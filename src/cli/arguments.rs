@@ -4,10 +4,7 @@
 use std::{env, path::PathBuf};
 
 use anyhow::anyhow;
-use clap::{
-    builder::{styling::AnsiColor, Styles},
-    Parser, Subcommand,
-};
+use clap::{builder::{styling::AnsiColor, Styles}, Parser, Subcommand, ValueEnum};
 use convert_case::{Case, Casing};
 
 use crate::{
@@ -116,6 +113,19 @@ pub struct Cli {
     command: Commands,
 }
 
+#[derive(Clone, ValueEnum)]
+#[clap(rename_all = "snake_case")]
+pub enum Network {
+    /// Local network
+    Local,
+    /// Main network
+    MainNet,
+    /// Test network
+    TestNet,
+    /// Custom network
+    Custom,
+}
+
 #[derive(Clone, Subcommand)]
 pub enum Commands {
     /// Creates a new Tari templates project
@@ -150,6 +160,20 @@ pub enum Commands {
         )]
         target: PathBuf,
     },
+    /// Deploying Tari template to a network
+    Deploy {
+        /// Tari DAN network
+        #[clap(value_enum, default_value_t=Network::TestNet)]
+        network: Network,
+
+        /// (Optional) Custom network name.
+        /// Custom network name set in project config
+        #[arg(short = 'c', long)]
+        custom_network: Option<String>,
+
+        // TODO: add custom network optional argument
+        // TODO: add custom tari.config.toml to a new project that could contain any custom tari dan network
+    },
 }
 
 impl Cli {
@@ -166,7 +190,7 @@ impl Cli {
                 .ok_or(anyhow!("Can't find folder of configuration file!"))?
                 .to_path_buf(),
         )
-        .await?;
+            .await?;
 
         // loading/creating config
         let mut config = if !util::file_exists(&self.args.config_file_path).await? {
@@ -193,10 +217,7 @@ impl Cli {
         Ok(config)
     }
 
-    async fn refresh_template_repository(
-        &self,
-        template_repo: &TemplateRepository,
-    ) -> anyhow::Result<GitRepository> {
+    async fn refresh_template_repository(&self, template_repo: &TemplateRepository) -> anyhow::Result<GitRepository> {
         util::create_dir(&self.args.base_dir.join(TEMPLATE_REPOS_FOLDER_NAME)).await?;
         let repo_url_splitted: Vec<&str> = template_repo.url.split("/").collect();
         let repo_name = repo_url_splitted
@@ -246,16 +267,11 @@ impl Cli {
         )?;
         let wasm_template_repo = loading!(
             "Refresh wasm templates repository",
-            self.refresh_template_repository(&config.wasm_template_repository)
-                .await
+            self.refresh_template_repository(&config.wasm_template_repository).await
         )?;
 
         match &self.command {
-            Commands::Create {
-                name,
-                template,
-                target,
-            } => {
+            Commands::Create { name, template, target } => {
                 create::handle(
                     config,
                     project_template_repo,
@@ -263,13 +279,9 @@ impl Cli {
                     template.as_ref(),
                     target.clone(),
                 )
-                .await
+                    .await
             }
-            Commands::New {
-                name,
-                template,
-                target,
-            } => {
+            Commands::New { name, template, target } => {
                 new::handle(
                     config,
                     wasm_template_repo,
@@ -277,7 +289,11 @@ impl Cli {
                     template.as_ref(),
                     target.clone(),
                 )
-                .await
+                    .await
+            }
+            Commands::Deploy { .. } => {
+                // TODO: implement
+                Ok(())
             }
         }
     }
