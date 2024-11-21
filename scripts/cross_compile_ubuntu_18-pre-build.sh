@@ -168,7 +168,7 @@ EoF
   dpkg --add-architecture ${CROSS_DEB_ARCH}
   apt-get update
 
-  apt-get install --assume-yes libssl-dev::${CROSS_DEB_ARCH}
+  apt-get install --assume-yes libssl-dev:${CROSS_DEB_ARCH}
 
   # scripts/install_ubuntu_dependencies-cross_compile.sh x86-64
   apt-get --assume-yes install \
