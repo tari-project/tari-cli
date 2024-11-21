@@ -70,18 +70,6 @@ crossArch=${CROSS_DEB_ARCH}
 
 apt-get update
 
-if [ "${crossArch}" == "arm64" ]; then
-  dpkg --add-architecture arm64
-  apt-get update
-  apt-get install --assume-yes libssl-dev:arm64
-fi
-
-if [ "${crossArch}" == "riscv64" ]; then
-  dpkg --add-architecture riscv64
-  apt-get update
-  apt-get install --assume-yes libssl-dev:riscv64
-fi
-
 # Base install packages
 # scripts/install_ubuntu_dependencies.sh
 apt-get install --no-install-recommends --assume-yes \
@@ -179,6 +167,8 @@ EoF
 
   dpkg --add-architecture ${CROSS_DEB_ARCH}
   apt-get update
+
+  apt-get install --assume-yes libssl-dev::${CROSS_DEB_ARCH}
 
   # scripts/install_ubuntu_dependencies-cross_compile.sh x86-64
   apt-get --assume-yes install \
