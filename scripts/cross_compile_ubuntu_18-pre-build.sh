@@ -70,9 +70,16 @@ crossArch=${CROSS_DEB_ARCH}
 
 apt-get update
 
-if [[ "${crossArch}" =~ ^(arm|riscv)64$ ]]; then
-  dpkg --add-architecture $CROSS_DEB_ARCH
-  apt-get install --assume-yes libssl-dev:$CROSS_DEB_ARCH
+if [ "${crossArch}" == "arm64" ]; then
+  dpkg --add-architecture arm64
+  apt-get update
+  apt-get install --assume-yes libssl-dev:arm64
+fi
+
+if [ "${crossArch}" == "riscv64" ]; then
+  dpkg --add-architecture riscv64
+  apt-get update
+  apt-get install --assume-yes libssl-dev:riscv64
 fi
 
 # Base install packages
@@ -85,7 +92,6 @@ apt-get install --no-install-recommends --assume-yes \
   bash \
   less \
   openssl \
-  libssl-dev \
   pkg-config \
   libsqlite3-dev \
   libsqlite3-0 \
