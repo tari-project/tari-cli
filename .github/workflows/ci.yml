@@ -222,7 +222,7 @@ jobs:
         run: cargo test --no-run --locked --all-features --release
 
       - name: cargo test
-        run: cargo nextest run --all-features --release -E "not package(integration_tests)" --profile ci
+        run: cargo nextest run --all-features --release --profile ci
 
       - name: upload artifact
         uses: actions/upload-artifact@v4 # upload test results as artifact
@@ -230,23 +230,6 @@ jobs:
         with:
           name: test-results
           path: ${{ github.workspace }}/target/nextest/ci/junit.xml
-
-      - name: cargo test cucumber
-        run: cargo test --release --package integration_tests --test cucumber -- --tags "not @ignore and not @flaky"
-
-      - name: upload test result artifact
-        uses: actions/upload-artifact@v4 # upload test results as artifact
-        if: success() || failure()
-        with:
-          name: cucumber-test-results
-          path: ${{ github.workspace }}/integration_tests/cucumber-output-junit.xml
-
-      - name: Upload cucumber log artifacts
-        uses: actions/upload-artifact@v4
-        if: success() || failure()
-        with:
-          name: cucumber-log-artifacts
-          path: ${{ github.workspace }}/integration_tests/tests/temp/cucumber_*/*.log
 
   # needed for test results
   event_file:
