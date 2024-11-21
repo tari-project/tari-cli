@@ -27,11 +27,7 @@ passthrough = [
 image.name = "ubuntu:18.04"
 # targetting is needed for apple silicon
 image.toolchain = ["linux/arm64=aarch64-unknown-linux-gnu", "linux/amd64=x86_64-unknown-linux-gnu"]
-pre-build = [
-  "dpkg --add-architecture $CROSS_DEB_ARCH",
-  "apt-get update && apt-get install --assume-yes libssl-dev:$CROSS_DEB_ARCH",
-  "./scripts/cross_compile_ubuntu_18-pre-build.sh",
-]
+pre-build = "./scripts/cross_compile_ubuntu_18-pre-build.sh"
 
 
 [target.aarch64-unknown-linux-gnu.env]
@@ -49,11 +45,7 @@ pre-build = "./scripts/cross_compile_ubuntu_18-pre-build.sh"
 #image.name = "riscv64/ubuntu:20.04"
 image.name = "ubuntu:20.04"
 image.toolchain = ["linux/riscv64=riscv64gc-unknown-linux-gnu", "linux/arm64=aarch64-unknown-linux-gnu", "linux/amd64=x86_64-unknown-linux-gnu"]
-pre-build = [
-  "dpkg --add-architecture arm64",
-  "apt-get update && apt-get install --assume-yes libssl-dev:arm64",
-  "./scripts/cross_compile_ubuntu_18-pre-build.sh",
-]
+pre-build = "./scripts/cross_compile_ubuntu_18-pre-build.sh"
 
 [target.riscv64gc-unknown-linux-gnu.env]
 passthrough = [

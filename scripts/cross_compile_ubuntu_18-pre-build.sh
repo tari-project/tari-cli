@@ -67,7 +67,13 @@ else
 fi
 
 crossArch=${CROSS_DEB_ARCH}
+
 apt-get update
+
+if [[ "${crossArch}" =~ ^(arm|riscv)64$ ]]; then
+  dpkg --add-architecture $CROSS_DEB_ARCH
+  apt-get install --assume-yes libssl-dev:$CROSS_DEB_ARCH
+fi
 
 # Base install packages
 # scripts/install_ubuntu_dependencies.sh
