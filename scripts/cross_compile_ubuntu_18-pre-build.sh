@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright 2024 The Tari Project
+# SPDX-License-Identifier: BSD-3-Clause
+
 #
 # Single script for Ubuntu 18.04 package setup, mostly used for cross-compiling
 #

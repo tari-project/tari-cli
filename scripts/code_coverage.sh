@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright 2024 The Tari Project
+# SPDX-License-Identifier: BSD-3-Clause
+
 set -e
 
 # Get member source directory and name from command line arguments
