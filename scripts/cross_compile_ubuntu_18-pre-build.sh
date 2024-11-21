@@ -80,6 +80,8 @@ apt-get install --no-install-recommends --assume-yes \
   bash \
   less \
   pkg-config \
+  openssl \
+  libssl-dev \
   libsqlite3-dev \
   libsqlite3-0 \
   libreadline-dev \
