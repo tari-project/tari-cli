@@ -79,7 +79,6 @@ apt-get install --no-install-recommends --assume-yes \
   gpg \
   bash \
   less \
-  openssl \
   pkg-config \
   libsqlite3-dev \
   libsqlite3-0 \
@@ -168,6 +167,7 @@ EoF
   dpkg --add-architecture ${CROSS_DEB_ARCH}
   apt-get update
 
+  apt-get install --assume-yes openssl:${CROSS_DEB_ARCH}
   apt-get install --assume-yes libssl-dev:${CROSS_DEB_ARCH}
 
   # scripts/install_ubuntu_dependencies-cross_compile.sh x86-64
