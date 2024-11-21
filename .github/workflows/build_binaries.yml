@@ -18,16 +18,13 @@ on:
         default: "development-tag"
 
 env:
-  TS_FILENAME: "tari_network_suite"
-  TS_BUNDLE_ID_BASE: "com.tari.network.pkg"
-  TS_SIG_FN: "sha256-unsigned.txt"
   ## Must be a JSon string
-  TS_FILES: '["tari_dan_wallet_cli","tari_dan_wallet_daemon","tari_indexer","tari_validator_node","tari_signaling_server","tari_generate"]'
+  TS_FILES: '["tari"]'
   TS_FEATURES: "default"
   TS_LIBRARIES: ""
   TARI_TARGET_NETWORK: igor
   TARI_NETWORK: igor
-  toolchain: 1.77
+  toolchain: 1.82
   matrix-json-file: ".github/workflows/build_binaries.json"
   CARGO_HTTP_MULTIPLEXING: false
   CARGO_UNSTABLE_SPARSE_REGISTRY: true
