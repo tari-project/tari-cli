@@ -1,0 +1,260 @@
+---
+name: CI
+
+'on':
+  workflow_dispatch:
+  push:
+    branches:
+      - development
+      - main
+      - ci-*
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+  merge_group:
+
+concurrency:
+  # https://docs.github.com/en/actions/examples/using-concurrency-expressions-and-a-test-matrix
+  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/v') || github.ref != 'refs/heads/development' }}
+
+env:
+  nightly_toolchain: nightly-2024-10-17
+  stable_toolchain: 1.82
+  CARGO_HTTP_MULTIPLEXING: false
+  CARGO_TERM_COLOR: always
+  TARI_TARGET_NETWORK: localnet
+  TARI_NETWORK: localnet
+  PROTOC: protoc
+  TERM: unknown
+
+jobs:
+  fmt:
+    name: fmt
+    runs-on: [ self-hosted, ubuntu-high-cpu ]
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: toolchain
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: ${{ env.nightly_toolchain }}
+          components: rustfmt
+
+      - name: ubuntu dependencies
+        run: |
+          sudo apt-get update
+          sudo bash scripts/install_ubuntu_dependencies.sh
+
+      - name: wasm target install
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: cargo format
+        run: cargo +${{ env.nightly_toolchain }} fmt --all -- --check
+
+  clippy:
+    name: clippy
+    runs-on: [ self-hosted, ubuntu-high-cpu ]
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.stable_toolchain }}
+          components: clippy
+
+      - name: ubuntu dependencies
+        run: |
+          sudo apt-get update
+          sudo bash scripts/install_ubuntu_dependencies.sh
+
+      - uses: rui314/setup-mold@v1
+
+      - name: wasm target install
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Install cargo-lints
+        run: cargo install cargo-lints
+
+      - name: Clippy check (with lints)
+        run: cargo lints clippy --all-targets --all-features
+
+  machete:
+    # Checks for unused dependencies.
+    name: machete
+    runs-on: [ ubuntu-latest ]
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.stable_toolchain }}
+          components: clippy, rustfmt
+
+      - name: ubuntu dependencies
+        run: |
+          sudo apt-get update
+          sudo bash scripts/install_ubuntu_dependencies.sh
+
+      - name: cargo machete
+        run: |
+          cargo install cargo-machete
+          cargo machete
+
+  build:
+    name: check nightly
+    runs-on: [ self-hosted, ubuntu-high-cpu ]
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: toolchain
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: ${{ env.nightly_toolchain }}
+
+      - name: ubuntu dependencies
+        run: |
+          sudo apt-get update
+          sudo bash scripts/install_ubuntu_dependencies.sh
+
+      - uses: rui314/setup-mold@v1
+
+      - name: wasm target install
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: cargo check
+        run: cargo check --release --all-features --all-targets --locked
+
+  build-stable:
+    name: check stable
+    runs-on: [ self-hosted, ubuntu-high-cpu ]
+    env:
+      RUSTUP_PERMIT_COPY_RENAME: true
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: ubuntu dependencies
+        run: |
+          sudo apt-get update
+          sudo bash scripts/install_ubuntu_dependencies.sh
+
+      - uses: rui314/setup-mold@v1
+
+      - name: wasm target install
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: rustup show
+        run: |
+          rustup show
+
+      - name: cargo check
+        run: cargo check --release --all-targets --locked
+
+  licenses:
+    name: file licenses
+    runs-on: [ ubuntu-latest ]
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: install ripgrep
+        # https://github.com/BurntSushi/ripgrep/releases
+        env:
+          ripgrep_version: 14.1.0
+        run: |
+          #wget https://github.com/BurntSushi/ripgrep/releases/download/14.1.0/ripgrep_14.1.0-1_amd64.deb.sha256
+          wget https://github.com/BurntSushi/ripgrep/releases/download/${{ env.ripgrep_version }}/ripgrep_${{ env.ripgrep_version }}-1_amd64.deb
+          sudo dpkg -i ripgrep_${{ env.ripgrep_version }}-1_amd64.deb
+          rg --version || exit 1
+
+      - name: run the license check
+        run: ./scripts/file_license_check.sh
+
+  test:
+    name: test
+    runs-on: [ self-hosted, ubuntu-high-cpu ]
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.stable_toolchain }}
+
+      - name: ubuntu dependencies
+        run: |
+          sudo apt-get update
+          sudo bash scripts/install_ubuntu_dependencies.sh
+
+      - uses: rui314/setup-mold@v1
+
+      - name: wasm target install
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Install cargo-nextest
+        run: cargo install cargo-nextest --locked
+
+      - name: cargo test compile
+        run: cargo test --no-run --locked --all-features --release
+
+      - name: cargo test
+        run: cargo nextest run --all-features --release -E "not package(integration_tests)" --profile ci
+
+      - name: upload artifact
+        uses: actions/upload-artifact@v4 # upload test results as artifact
+        if: success() || failure()
+        with:
+          name: test-results
+          path: ${{ github.workspace }}/target/nextest/ci/junit.xml
+
+      - name: cargo test cucumber
+        run: cargo test --release --package integration_tests --test cucumber -- --tags "not @ignore and not @flaky"
+
+      - name: upload test result artifact
+        uses: actions/upload-artifact@v4 # upload test results as artifact
+        if: success() || failure()
+        with:
+          name: cucumber-test-results
+          path: ${{ github.workspace }}/integration_tests/cucumber-output-junit.xml
+
+      - name: Upload cucumber log artifacts
+        uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: cucumber-log-artifacts
+          path: ${{ github.workspace }}/integration_tests/tests/temp/cucumber_*/*.log
+
+  # needed for test results
+  event_file:
+    runs-on: [ ubuntu-latest ]
+
+    steps:
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: Event File
+          path: ${{ github.event_path }}

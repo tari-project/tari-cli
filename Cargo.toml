@@ -1,0 +1,27 @@
+[package]
+name = "tari_cli"
+version = "0.1.0"
+edition = "2021"
+authors = ["The Tari Development Community"]
+repository = "https://github.com/tari-project/tari-cli"
+license = "BSD-3-Clause"
+
+[[bin]]
+name = "tari"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0.93"
+clap = { version = "4.5.20", features = ["derive", "string"] }
+dirs-next = "2.0.0"
+tokio = { version = "1.41.1", features = ["full"] }
+toml = "0.8.19"
+serde = { version = "1.0.215", features = ["derive"] }
+termimad = "0.31.0"
+cargo-generate = "^0.22.0"
+git2 = { version = "^0.19", features = ["default"] }
+thiserror = "2.0.3"
+spinners = "4.1.1"
+convert_case = "0.6.0"
+dialoguer = { version = "0.11.0", features = ["default", "fuzzy-select"] }
+cargo_toml = "0.20.5"
