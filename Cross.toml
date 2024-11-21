@@ -30,7 +30,6 @@ image.toolchain = ["linux/arm64=aarch64-unknown-linux-gnu", "linux/amd64=x86_64-
 pre-build = [
   "dpkg --add-architecture $CROSS_DEB_ARCH",
   "apt-get update && apt-get install --assume-yes libssl-dev:$CROSS_DEB_ARCH",
-  "apt-get install --assume-yes libssl-dev:arm64",
   "./scripts/cross_compile_ubuntu_18-pre-build.sh",
 ]
 
