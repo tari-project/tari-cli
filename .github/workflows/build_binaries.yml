@@ -20,7 +20,7 @@ on:
 env:
   ## Must be a JSon string
   TS_FILES: '["tari"]'
-  TS_FEATURES: "default"
+  TS_FEATURES: ""
   TS_LIBRARIES: ""
   TARI_TARGET_NETWORK: igor
   TARI_NETWORK: igor
