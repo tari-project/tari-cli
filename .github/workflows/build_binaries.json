@@ -2,7 +2,7 @@
   {
     "name": "linux-x86_64",
     "runs-on": "ubuntu-22.04",
-    "rust": "1.77",
+    "rust": "1.82",
     "target": "x86_64-unknown-linux-gnu",
     "cross": false,
     "features": ""
@@ -10,10 +10,10 @@
   {
     "name": "linux-arm64",
     "runs-on": "ubuntu-20.04",
-    "rust": "1.77",
+    "rust": "1.82",
     "target": "aarch64-unknown-linux-gnu",
     "cross": true,
-    "flags": "--workspace --exclude tari_integration_tests",
+    "flags": "",
     "build_enabled": true,
     "best_effort": true
   },
@@ -23,7 +23,7 @@
     "rust": "stable",
     "target": "riscv64gc-unknown-linux-gnu",
     "cross": true,
-    "flags": "--workspace --exclude tari_integration_tests",
+    "flags": "",
     "build_enabled": true,
     "best_effort": true
   },
@@ -31,7 +31,7 @@
   {
     "name": "macos-x86_64",
     "runs-on": "macos-12",
-    "rust": "1.77",
+    "rust": "1.82",
     "target": "x86_64-apple-darwin",
     "cross": false,
     "features": ""
@@ -39,7 +39,7 @@
   {
     "name": "macos-arm64",
     "runs-on": "macos-14",
-    "rust": "1.77",
+    "rust": "1.82",
     "target": "aarch64-apple-darwin",
     "cross": false,
     "features": "",
@@ -49,7 +49,7 @@
   {
     "name": "windows-x64",
     "runs-on": "windows-2019",
-    "rust": "1.77",
+    "rust": "1.82",
     "target": "x86_64-pc-windows-msvc",
     "cross": false,
     "features": ""
@@ -57,10 +57,10 @@
   {
     "name": "windows-arm64",
     "runs-on": "windows-latest",
-    "rust": "1.77",
+    "rust": "1.82",
     "target": "aarch64-pc-windows-msvc",
     "cross": false,
-    "target_bins": "tari_dan_wallet_cli, tari_dan_wallet_daemon, tari_indexer, tari_validator_node, tari_signaling_server",
+    "target_bins": "tari",
     "features": "",
     "build_enabled": true,
     "best_effort": true
