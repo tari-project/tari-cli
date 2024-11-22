@@ -8,6 +8,7 @@ use crate::cli::arguments::Cli;
 mod cli;
 mod git;
 mod templates;
+mod project;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
