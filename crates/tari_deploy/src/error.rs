@@ -6,6 +6,7 @@ use std::io;
 use tari_dan_engine::template::TemplateLoaderError;
 use tari_wallet_daemon_client::error::WalletDaemonClientError;
 use thiserror::Error;
+use crate::uploader;
 
 /// Possible errors for [`crate::TemplateDeployer`].
 #[derive(Error, Debug)]
@@ -22,4 +23,6 @@ pub enum Error {
     InvalidTemplate(#[from] TemplateLoaderError),
     #[error("Invalid template: {0}")]
     IO(#[from] io::Error),
+    #[error("Template binary uploader error: {0}")]
+    Uploader(#[from] uploader::Error),
 }

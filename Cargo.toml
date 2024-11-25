@@ -13,3 +13,4 @@ license = "BSD-3-Clause"
 tokio = { version = "1.41.1", features = ["full"] }
 serde = { version = "1.0.215", features = ["derive"] }
 thiserror = "2.0.3"
+url = { version = "2.5.3", features = ["default", "serde"] }

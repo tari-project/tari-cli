@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 use crate::error::Error;
+use crate::uploader::TemplateBinaryUploader;
 use crate::NetworkConfig;
 use minotari_app_grpc::authentication::ClientAuthenticationInterceptor;
 use minotari_app_grpc::tari_rpc::wallet_client::WalletClient;
@@ -23,25 +24,33 @@ type TariWalletClient = WalletClient<InterceptedService<Channel, ClientAuthentic
 /// Tari template deployer.
 /// You can use this struct to deploy easily Tari template project to the target network.
 /// Note: This is the entry point to use this library crate.
-pub struct TemplateDeployer {
+pub struct TemplateDeployer<U>
+where
+    U: TemplateBinaryUploader,
+{
     network: NetworkConfig,
+    uploader: U,
 }
 
-impl TemplateDeployer {
-    pub fn new(network: NetworkConfig) -> Self {
-        Self { network }
+impl<U> TemplateDeployer<U>
+where
+    U: TemplateBinaryUploader,
+{
+    pub fn new(network: NetworkConfig, uploader: U) -> Self {
+        Self { network, uploader }
     }
 
     pub async fn deploy(&self, wasm_template: &Path) -> Result<()> {
         self.validate_wasm_template(wasm_template).await?;
         self.check_balance_to_deploy(wasm_template).await?;
-
+        let uploaded_template_url = self.uploader.upload(wasm_template).await?;
+        // TODO: continue
         Ok(())
     }
 
     pub async fn check_balance_to_deploy(&self, wasm_template: &Path) -> Result<()> {
         let wallet_balance = self.wallet_balance().await?;
-        // TODO: calculate fee for the template deployment transaction   
+        // TODO: calculate fee for the template deployment transaction
         Ok(())
     }
 
@@ -70,7 +79,7 @@ impl TemplateDeployer {
 
     /// Returns a new wallet daemon client.
     async fn wallet_daemon_client(&self) -> Result<WalletDaemonClient> {
-        let mut client = WalletDaemonClient::connect(self.network.wallet_daemon_jrpc_address(), None)?;
+        let mut client = WalletDaemonClient::connect(self.network.wallet_daemon_jrpc_address().clone(), None)?;
 
         // authentication
         let AuthLoginResponse { auth_token, .. } = client

@@ -1,7 +1,6 @@
 mod config;
-mod deployer;
+pub mod deployer;
 mod error;
+pub mod uploader;
 
 pub use config::*;
-
-pub use deployer::*;

@@ -3,16 +3,11 @@
 
 use std::path::PathBuf;
 
+use crate::{cli::{config::Config, util}, git::repository::GitRepository, loading, project, templates::Collector};
 use anyhow::anyhow;
 use cargo_generate::{GenerateArgs, TemplatePath};
 use thiserror::Error;
-
-use crate::{
-    cli::{config::Config, util},
-    git::repository::GitRepository,
-    loading,
-    templates::Collector,
-};
+use tokio::fs;
 
 const PROJECT_TEMPLATE_EXTRA_TEMPLATES_FIELD_NAME: &str = "templates_dir";
 
@@ -79,15 +74,25 @@ pub async fn handle(
         cargo_generate::generate(generate_args)
     )?;
 
+    let final_path = target.join(name);
+
+    // create templates dir if set
     if let Some(templates_dir) = template
         .extra()
         .get(PROJECT_TEMPLATE_EXTRA_TEMPLATES_FIELD_NAME)
     {
-        util::create_dir(&target.join(&name).join(templates_dir)).await?;
+        util::create_dir(&final_path.join(templates_dir)).await?;
     }
 
+    // init project config file (remove if exists already somehow)
+    let project_config_file = final_path.join(project::CONFIG_FILE_NAME);
+    if util::file_exists(&project_config_file).await? {
+        fs::remove_file(&project_config_file).await?;
+    }
+    fs::write(&project_config_file, toml::to_string(&project::Config::default())?).await?;
+
     // git init
-    let mut new_repo = GitRepository::new(target.join(name));
+    let mut new_repo = GitRepository::new(final_path);
     new_repo.init()?;
 
     Ok(())

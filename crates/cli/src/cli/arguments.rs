@@ -1,21 +1,17 @@
 // Copyright 2024 The Tari Project
 // SPDX-License-Identifier: BSD-3-Clause
 
-use std::{env, path::PathBuf};
-
+use crate::cli::commands::deploy;
+use crate::{cli::{
+    commands::{create, new},
+    config::{Config, TemplateRepository},
+    util,
+}, git::repository::GitRepository, loading};
 use anyhow::anyhow;
 use clap::{builder::{styling::AnsiColor, Styles}, Parser, Subcommand, ValueEnum};
 use convert_case::{Case, Casing};
-
-use crate::{
-    cli::{
-        commands::{create, new},
-        config::{Config, TemplateRepository},
-        util,
-    },
-    git::repository::GitRepository,
-    loading,
-};
+use std::fmt::{Display, Formatter};
+use std::{env, path::PathBuf};
 
 const DEFAULT_DATA_FOLDER_NAME: &str = "tari_cli";
 const TEMPLATE_REPOS_FOLDER_NAME: &str = "template_repositories";
@@ -113,7 +109,7 @@ pub struct Cli {
     command: Commands,
 }
 
-#[derive(Clone, ValueEnum)]
+#[derive(Clone, ValueEnum, Debug, PartialEq)]
 #[clap(rename_all = "snake_case")]
 pub enum Network {
     /// Local network
@@ -124,6 +120,12 @@ pub enum Network {
     TestNet,
     /// Custom network
     Custom,
+}
+
+impl Display for Network {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", format!("{:?}", self).to_case(Case::Snake))
+    }
 }
 
 #[derive(Clone, Subcommand)]
@@ -162,8 +164,13 @@ pub enum Commands {
     },
     /// Deploying Tari template to a network
     Deploy {
+        /// Template project to deploy
+        #[arg()]
+        template: String,
+
         /// Tari DAN network
-        #[clap(value_enum, default_value_t=Network::TestNet)]
+        #[clap(value_enum, default_value_t=Network::Local)]
+        #[arg(short = 'n', long)]
         network: Network,
 
         /// (Optional) Custom network name.
@@ -171,8 +178,10 @@ pub enum Commands {
         #[arg(short = 'c', long)]
         custom_network: Option<String>,
 
-        // TODO: add custom network optional argument
-        // TODO: add custom tari.config.toml to a new project that could contain any custom tari dan network
+        /// Project folder where we have the project configuration file (tari.config.toml).
+        #[arg(long, value_name = "PATH", default_value = default_target_dir().into_os_string()
+        )]
+        project_folder: PathBuf,
     },
 }
 
@@ -291,9 +300,8 @@ impl Cli {
                 )
                     .await
             }
-            Commands::Deploy { .. } => {
-                // TODO: implement
-                Ok(())
+            Commands::Deploy { template, network, custom_network, project_folder } => {
+                deploy::handle(template, network.clone(), custom_network.as_ref(), project_folder).await
             }
         }
     }
