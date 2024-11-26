@@ -1,7 +1,10 @@
 // Copyright 2024 The Tari Project
 // SPDX-License-Identifier: BSD-3-Clause
 
+use crate::cli::commands::create::CreateArgs;
 use crate::cli::commands::deploy;
+use crate::cli::commands::deploy::DeployArgs;
+use crate::cli::commands::new::NewArgs;
 use crate::{cli::{
     commands::{create, new},
     config::{Config, TemplateRepository},
@@ -28,17 +31,17 @@ pub fn cli_styles() -> Styles {
         .valid(AnsiColor::BrightGreen.on_default())
 }
 
-fn default_base_dir() -> PathBuf {
+pub fn default_base_dir() -> PathBuf {
     dirs_next::data_dir()
         .unwrap_or_else(|| env::current_dir().unwrap())
         .join(DEFAULT_DATA_FOLDER_NAME)
 }
 
-fn default_target_dir() -> PathBuf {
+pub fn default_target_dir() -> PathBuf {
     env::current_dir().unwrap()
 }
 
-fn default_config_file() -> PathBuf {
+pub fn default_config_file() -> PathBuf {
     dirs_next::config_dir()
         .unwrap_or_else(|| env::current_dir().unwrap())
         .join(DEFAULT_DATA_FOLDER_NAME)
@@ -50,11 +53,11 @@ pub fn config_override_parser(config_override: &str) -> Result<ConfigOverride, S
         return Err(String::from("Override cannot be empty!"));
     }
 
-    let splitted: Vec<&str> = config_override.split("=").collect();
-    if splitted.len() != 2 {
+    let split: Vec<&str> = config_override.split("=").collect();
+    if split.len() != 2 {
         return Err(String::from("Invalid override!"));
     }
-    let (key, value) = (splitted.first().unwrap(), splitted.get(1).unwrap());
+    let (key, value) = (split.first().unwrap(), split.get(1).unwrap());
 
     if !Config::is_override_key_valid(key) {
         return Err(format!("Override key invalid: {}", key));
@@ -132,56 +135,18 @@ impl Display for Network {
 pub enum Commands {
     /// Creates a new Tari templates project
     Create {
-        /// Name of the project
-        #[arg(value_parser = project_name_parser)]
-        name: String,
-
-        /// (Optional) Selected project template (ID).
-        /// It will be prompted if not set.
-        #[arg(short = 't', long)]
-        template: Option<String>,
-
-        /// Target folder where the new project will be generated
-        #[arg(long, value_name = "PATH", default_value = default_target_dir().into_os_string()
-        )]
-        target: PathBuf,
+        #[clap(flatten)]
+        args: CreateArgs,
     },
     /// Creates a new Tari wasm template project
     New {
-        /// Name of the project
-        #[arg(value_parser = project_name_parser)]
-        name: String,
-
-        /// (Optional) Selected wasm template (ID).
-        /// It will be prompted if not set.
-        #[arg(short = 't', long)]
-        template: Option<String>,
-
-        /// Target folder where the new project will be generated.
-        #[arg(long, value_name = "PATH", default_value = default_target_dir().into_os_string()
-        )]
-        target: PathBuf,
+        #[clap(flatten)]
+        args: NewArgs,
     },
     /// Deploying Tari template to a network
     Deploy {
-        /// Template project to deploy
-        #[arg()]
-        template: String,
-
-        /// Tari DAN network
-        #[clap(value_enum, default_value_t=Network::Local)]
-        #[arg(short = 'n', long)]
-        network: Network,
-
-        /// (Optional) Custom network name.
-        /// Custom network name set in project config
-        #[arg(short = 'c', long)]
-        custom_network: Option<String>,
-
-        /// Project folder where we have the project configuration file (tari.config.toml).
-        #[arg(long, value_name = "PATH", default_value = default_target_dir().into_os_string()
-        )]
-        project_folder: PathBuf,
+        #[clap(flatten)]
+        args: DeployArgs,
     },
 }
 
@@ -280,28 +245,26 @@ impl Cli {
         )?;
 
         match &self.command {
-            Commands::Create { name, template, target } => {
+            Commands::Create { args } => {
                 create::handle(
                     config,
                     project_template_repo,
-                    name.as_str(),
-                    template.as_ref(),
-                    target.clone(),
+                    args,
                 )
                     .await
             }
-            Commands::New { name, template, target } => {
+            Commands::New { args } => {
                 new::handle(
                     config,
                     wasm_template_repo,
-                    name.as_ref(),
-                    template.as_ref(),
-                    target.clone(),
+                    args,
                 )
                     .await
             }
-            Commands::Deploy { template, network, custom_network, project_folder } => {
-                deploy::handle(template, network.clone(), custom_network.as_ref(), project_folder).await
+            Commands::Deploy {
+                args
+            } => {
+                deploy::handle(args).await
             }
         }
     }

@@ -14,3 +14,5 @@ tokio = { version = "1.41.1", features = ["full"] }
 serde = { version = "1.0.215", features = ["derive"] }
 thiserror = "2.0.3"
 url = { version = "2.5.3", features = ["default", "serde"] }
+tari_core = { git = "https://github.com/tari-project/tari.git", branch = "feature-dan2" }
+tari_common_types = { git = "https://github.com/tari-project/tari.git", branch = "feature-dan2" }

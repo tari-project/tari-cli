@@ -6,66 +6,139 @@ use crate::cli::util;
 use crate::{loading, project};
 use anyhow::anyhow;
 use cargo_toml::Manifest;
+use clap::Parser;
+use dialoguer::{Confirm, Input};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+use std::str::FromStr;
+use tari_core::transactions::tari_amount::MicroMinotari;
 use tari_deploy::deployer::TemplateDeployer;
 use tari_deploy::uploader::LocalSwarmUploader;
 use tari_deploy::NetworkConfig;
 use tokio::fs;
 use tokio::process::Command;
 
-pub async fn handle(
-    template: &str,
-    network: Network,
-    custom_network: Option<&String>,
-    project_folder: &Path,
-) -> anyhow::Result<()> {
+#[derive(Clone, Parser, Debug)]
+pub struct DeployArgs {
+    /// Template project to deploy
+    #[arg()]
+    pub template: String,
+
+    /// Tari DAN network
+    #[clap(value_enum, default_value_t=Network::Local)]
+    #[arg(short = 'n', long)]
+    pub network: Network,
+
+    /// (Optional) Custom network name.
+    /// Custom network name set in project config.
+    /// It must be set when network is set to custom!
+    #[arg(short = 'c', long)]
+    pub custom_network: Option<String>,
+
+    /// Confirm template deployment.
+    /// If false, it will be asked.
+    #[arg(short = 'y', long, default_value_t = false)]
+    pub yes: bool,
+
+    /// (Optional) Fee/gr
+    /// Fee per gram is a fee multiplier that is used to calculate fee of deployment transaction.
+    ///
+    /// The higher the fee/gr, the higher chance that this transaction will be processed sooner,
+    /// but of course the transaction will cost more.
+    ///
+    /// Please note that the value is in Micro-XTM!
+    ///
+    /// Prompted if not set.
+    #[arg(short = 'f', long)]
+    pub fee_per_gram: Option<u64>,
+
+    /// Project folder where we have the project configuration file (tari.config.toml).
+    #[arg(long, value_name = "PATH", default_value = crate::cli::arguments::default_target_dir().into_os_string()
+    )]
+    pub project_folder: PathBuf,
+}
+
+pub async fn handle(args: &DeployArgs) -> anyhow::Result<()> {
     // load network config from project config file
-    let project_config = load_project_config(project_folder).await?;
-    let network_config = if network == Network::Custom {
-        match custom_network {
+    let project_config = load_project_config(&args.project_folder).await?;
+    let network_config = if args.network == Network::Custom {
+        match &args.custom_network {
             Some(custom_network) => {
                 network_config(&project_config, custom_network)
             }
             None => { Err(anyhow!("No custom network name provided!")) }
         }
     } else {
-        network_config(&project_config, network.to_string().as_str())
+        network_config(&project_config, args.network.to_string().as_str())
     }?;
 
     // lookup project name and dir
     let mut project_dir = None;
     let mut project_name = String::new();
-    let workspace_cargo_toml = Manifest::from_path(project_folder.join("Cargo.toml"))?;
+    let workspace_cargo_toml = Manifest::from_path(args.project_folder.join("Cargo.toml"))?;
     let projects = workspace_cargo_toml.workspace.ok_or(anyhow!("Project is not a Cargo workspace project!"))?.members;
     for project in projects {
-        let cargo_toml = Manifest::from_path(project_folder.join(project.clone()).join("Cargo.toml"))?;
+        let cargo_toml = Manifest::from_path(args.project_folder.join(project.clone()).join("Cargo.toml"))?;
         let curr_project_name = cargo_toml.package.ok_or(anyhow!("No package details set!"))?.name;
-        if curr_project_name.to_lowercase() == template.to_lowercase() {
-            project_dir = Some(project_folder.join(project));
+        if curr_project_name.to_lowercase() == args.template.to_lowercase() {
+            project_dir = Some(args.project_folder.join(project));
             project_name = curr_project_name;
         }
     }
     if project_dir.is_none() {
-        return Err(anyhow!("Project \"{template}\" not found!"));
+        return Err(anyhow!("Project \"{}\" not found!", args.template));
     }
     let project_dir = project_dir.unwrap();
 
     // build
     let template_bin = loading!(format!("Building WASM template project \"{}\"", project_name), build_project(&project_dir, project_name.clone()).await)?;
 
+    // confirmation
+    if !args.yes {
+        let confirmation = Confirm::new()
+            .with_prompt("❓Deploying a template costs XTM, are you sure to continue?")
+            .interact()?;
+        if !confirmation {
+            return Err(anyhow!("💥 Deployment aborted!"));
+        }
+    }
+
+    // fee/gr
+    let fee_per_gram = match args.fee_per_gram {
+        Some(value) => {
+            MicroMinotari::from(value)
+        }
+        None => {
+            MicroMinotari::from_str(
+                Input::new()
+                    .with_prompt("Fee/gr (the higher, the faster the transaction, but costs more)")
+                    .validate_with(|input: &String| -> Result<(), &str> {
+                        match MicroMinotari::from_str(input) {
+                            Ok(_) => Ok(()),
+                            Err(_) => Err("Fee/gr must be a positive integer!"),
+                        }
+                    })
+                    .default("5".to_string())
+                    .interact()?
+                    .as_str()
+            )?
+        }
+    };
+
     // deploy
     // TODO: implement and use uploaders for the remaining networks
-    let uploader = match network {
+    let uploader = match args.network {
         Network::MainNet |
         Network::TestNet |
         Network::Custom |
         Network::Local => LocalSwarmUploader::new(network_config.uploader_endpoint().clone()),
     };
-    loading!(
-        format!("Deploying project \"{}\" to {} network", project_name, network),
-        TemplateDeployer::new(network_config, uploader).deploy(&template_bin).await
+    let template_address = loading!(
+        format!("Deploying project \"{}\" to {} network", project_name, args.network),
+        TemplateDeployer::new(network_config, uploader).deploy(&template_bin, fee_per_gram).await
     )?;
+
+    println!("⭐ Your new template's address: {}", template_address);
 
     Ok(())
 }

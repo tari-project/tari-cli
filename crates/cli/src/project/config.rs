@@ -4,7 +4,7 @@
 use crate::cli::arguments;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tari_deploy::NetworkConfig;
+use tari_deploy::{NetworkConfig, WalletGrpcAuthConfig, WalletGrpcConfig};
 use thiserror::Error;
 use url::Url;
 
@@ -32,7 +32,10 @@ impl Default for Config {
         Self {
             networks: HashMap::from([
                 (arguments::Network::Local.to_string(), NetworkConfig::new(
-                    Url::parse("http://127.0.0.1:12003").unwrap(),
+                    WalletGrpcConfig::new(
+                        Url::parse("http://127.0.0.1:12003").unwrap(),
+                        WalletGrpcAuthConfig::default(),
+                    ),
                     Url::parse("http://127.0.0.1:12009").unwrap(),
                     Url::parse("http://127.0.0.1:8080/upload_template?register_template=false").unwrap(),
                 ))

@@ -799,6 +799,7 @@ dependencies = [
  "git2",
  "serde",
  "spinners",
+ "tari_core",
  "tari_deploy",
  "termimad",
  "thiserror 2.0.3",
@@ -5877,6 +5878,7 @@ dependencies = [
 name = "tari_deploy"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "hickory-proto",
  "minotari_app_grpc",
  "reqwest 0.12.9",
@@ -5884,6 +5886,8 @@ dependencies = [
  "tari_common_types",
  "tari_core",
  "tari_dan_engine",
+ "tari_engine_types",
+ "tari_template_lib",
  "tari_wallet_daemon_client",
  "thiserror 2.0.3",
  "tokio",

@@ -2,13 +2,65 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 use serde::{Deserialize, Serialize};
+use tari_common_types::grpc_authentication::GrpcAuthentication;
 use url::Url;
+
+
+#[derive(Default, Clone, Debug, Serialize, Deserialize)]
+pub enum WalletGrpcAuthConfig {
+    #[default]
+    None,
+    Basic {
+        username: String,
+        password: String,
+    },
+}
+
+impl From<&WalletGrpcAuthConfig> for GrpcAuthentication {
+    fn from(config: &WalletGrpcAuthConfig) -> Self {
+        match config {
+            WalletGrpcAuthConfig::None => GrpcAuthentication::None,
+            WalletGrpcAuthConfig::Basic { username, password } => {
+                GrpcAuthentication::Basic {
+                    username: username.clone(),
+                    password: SafePassword::from_str(password.as_str()),
+                }
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct WalletGrpcConfig {
+    /// HTTP address of gRPC endpoint.
+    /// Example: http://127.0.0.1:12003
+    address: Url,
+
+    /// Authentication method to use when connecting to wallet's gRPC.
+    authentication: WalletGrpcAuthConfig,
+}
+
+impl WalletGrpcConfig {
+    pub fn new(address: Url, authentication: WalletGrpcAuthConfig) -> Self {
+        Self {
+            address,
+            authentication,
+        }
+    }
+
+    pub fn address(&self) -> &Url {
+        &self.address
+    }
+
+    pub fn authentication(&self) -> &WalletGrpcAuthConfig {
+        &self.authentication
+    }
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NetworkConfig {
-    /// HTTP address of Tari Layer-1 wallet's gRPC endpoint.
-    /// Example: http://127.0.0.1:12003
-    wallet_grpc_address: Url,
+    /// Configuration for Tari Layer-1 wallet's gRPC service.
+    wallet_grpc_config: WalletGrpcConfig,
 
     /// HTTP address of Tari Layer-2 wallet daemon's JRPC (JSON-RPC) endpoint.
     /// Example: http://127.0.0.1:12047
@@ -21,18 +73,15 @@ pub struct NetworkConfig {
 
 impl NetworkConfig {
     pub fn new(
-        wallet_grpc_address: Url,
+        wallet_grpc_config: WalletGrpcConfig,
         wallet_daemon_jrpc_address: Url,
         uploader_endpoint: Url,
     ) -> Self {
         Self {
-            wallet_grpc_address,
+            wallet_grpc_config,
             wallet_daemon_jrpc_address,
             uploader_endpoint,
         }
-    }
-    pub fn wallet_grpc_address(&self) -> &Url {
-        &self.wallet_grpc_address
     }
 
     pub fn wallet_daemon_jrpc_address(&self) -> &Url {
@@ -41,5 +90,9 @@ impl NetworkConfig {
 
     pub fn uploader_endpoint(&self) -> &Url {
         &self.uploader_endpoint
+    }
+
+    pub fn wallet_grpc_config(&self) -> &WalletGrpcConfig {
+        &self.wallet_grpc_config
     }
 }

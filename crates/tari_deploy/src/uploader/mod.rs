@@ -6,6 +6,7 @@ mod local;
 pub use local::*;
 use std::io;
 
+use async_trait::async_trait;
 use std::path::Path;
 use thiserror::Error;
 use url::Url;
@@ -23,6 +24,7 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[async_trait]
 pub trait TemplateBinaryUploader {
     async fn upload(&self, binary: &Path) -> Result<Url>;
 }

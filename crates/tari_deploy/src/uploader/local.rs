@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 use crate::uploader::{Error, TemplateBinaryUploader};
+use async_trait::async_trait;
 use reqwest::multipart::Form;
 use reqwest::Client;
 use serde::Deserialize;
@@ -28,6 +29,7 @@ impl LocalSwarmUploader {
     }
 }
 
+#[async_trait]
 impl TemplateBinaryUploader for LocalSwarmUploader {
     async fn upload(&self, binary: &Path) -> crate::uploader::Result<Url> {
         let form = Form::new().file("template", binary.canonicalize()?).await?;
