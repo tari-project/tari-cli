@@ -5,4 +5,3 @@ pub const CONFIG_FILE_NAME: &str = "tari.config.toml";
 mod config;
 
 pub use config::*;
-

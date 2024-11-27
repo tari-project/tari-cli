@@ -3,7 +3,12 @@
 
 use std::path::PathBuf;
 
-use crate::{cli::{config::Config, util}, git::repository::GitRepository, loading, project, templates::Collector};
+use crate::{
+    cli::{config::Config, util},
+    git::repository::GitRepository,
+    loading, project,
+    templates::Collector,
+};
 use anyhow::anyhow;
 use cargo_generate::{GenerateArgs, TemplatePath};
 use clap::Parser;
@@ -105,7 +110,11 @@ pub async fn handle(
     if util::file_exists(&project_config_file).await? {
         fs::remove_file(&project_config_file).await?;
     }
-    fs::write(&project_config_file, toml::to_string(&project::Config::default())?).await?;
+    fs::write(
+        &project_config_file,
+        toml::to_string(&project::Config::default())?,
+    )
+    .await?;
 
     // git init
     let mut new_repo = GitRepository::new(final_path);

@@ -2,9 +2,18 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use tari_common_types::grpc_authentication::GrpcAuthentication;
+use tari_utilities::SafePassword;
+use thiserror::Error;
 use url::Url;
 
+/// Configuration errors.
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("Safe password conversion error: {0}")]
+    SafePasswordConversion(String),
+}
 
 #[derive(Default, Clone, Debug, Serialize, Deserialize)]
 pub enum WalletGrpcAuthConfig {
@@ -16,17 +25,18 @@ pub enum WalletGrpcAuthConfig {
     },
 }
 
-impl From<&WalletGrpcAuthConfig> for GrpcAuthentication {
-    fn from(config: &WalletGrpcAuthConfig) -> Self {
-        match config {
+impl TryFrom<&WalletGrpcAuthConfig> for GrpcAuthentication {
+    type Error = Error;
+
+    fn try_from(config: &WalletGrpcAuthConfig) -> Result<Self, Self::Error> {
+        Ok(match config {
             WalletGrpcAuthConfig::None => GrpcAuthentication::None,
-            WalletGrpcAuthConfig::Basic { username, password } => {
-                GrpcAuthentication::Basic {
-                    username: username.clone(),
-                    password: SafePassword::from_str(password.as_str()),
-                }
-            }
-        }
+            WalletGrpcAuthConfig::Basic { username, password } => GrpcAuthentication::Basic {
+                username: username.clone(),
+                password: SafePassword::from_str(password.as_str())
+                    .map_err(Error::SafePasswordConversion)?,
+            },
+        })
     }
 }
 

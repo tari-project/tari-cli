@@ -30,17 +30,18 @@ impl Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            networks: HashMap::from([
-                (arguments::Network::Local.to_string(), NetworkConfig::new(
+            networks: HashMap::from([(
+                arguments::Network::Local.to_string(),
+                NetworkConfig::new(
                     WalletGrpcConfig::new(
                         Url::parse("http://127.0.0.1:12003").unwrap(),
                         WalletGrpcAuthConfig::default(),
                     ),
                     Url::parse("http://127.0.0.1:12009").unwrap(),
-                    Url::parse("http://127.0.0.1:8080/upload_template?register_template=false").unwrap(),
-                ))
-            ]),
+                    Url::parse("http://127.0.0.1:8080/upload_template?register_template=false")
+                        .unwrap(),
+                ),
+            )]),
         }
     }
 }
-

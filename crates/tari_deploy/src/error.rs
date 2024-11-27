@@ -1,9 +1,10 @@
 // Copyright 2024 The Tari Project
 // SPDX-License-Identifier: BSD-3-Clause
 
-use crate::uploader;
+use crate::{config, uploader};
 use minotari_app_grpc::authentication::BasicAuthError;
 use std::io;
+use tari_core::transactions::tari_amount::MicroMinotari;
 use tari_dan_engine::template::TemplateLoaderError;
 use tari_template_lib::HashParseError;
 use tari_wallet_daemon_client::error::WalletDaemonClientError;
@@ -28,4 +29,8 @@ pub enum Error {
     Uploader(#[from] uploader::Error),
     #[error("Invalid hash error: {0}")]
     InvalidHash(#[from] HashParseError),
+    #[error("Config error: {0}")]
+    Config(#[from] config::Error),
+    #[error("Insufficient balance in Tari L1 wallet! Current balance: {0} μXTM, Fee: {1} μXTM")]
+    InsufficientBalance(MicroMinotari, MicroMinotari),
 }

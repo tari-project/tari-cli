@@ -5,13 +5,20 @@ use crate::cli::commands::create::CreateArgs;
 use crate::cli::commands::deploy;
 use crate::cli::commands::deploy::DeployArgs;
 use crate::cli::commands::new::NewArgs;
-use crate::{cli::{
-    commands::{create, new},
-    config::{Config, TemplateRepository},
-    util,
-}, git::repository::GitRepository, loading};
+use crate::{
+    cli::{
+        commands::{create, new},
+        config::{Config, TemplateRepository},
+        util,
+    },
+    git::repository::GitRepository,
+    loading,
+};
 use anyhow::anyhow;
-use clap::{builder::{styling::AnsiColor, Styles}, Parser, Subcommand, ValueEnum};
+use clap::{
+    builder::{styling::AnsiColor, Styles},
+    Parser, Subcommand, ValueEnum,
+};
 use convert_case::{Case, Casing};
 use std::fmt::{Display, Formatter};
 use std::{env, path::PathBuf};
@@ -101,8 +108,8 @@ pub struct CommonArguments {
 #[command(styles = cli_styles())]
 #[command(
     version,
-    about = "🚀 Tari DAN CLI 🚀",
-    long_about = "🚀 Tari DAN CLI 🚀\nHelps you manage the flow of developing Tari templates."
+    about = "🚀 Tari CLI 🚀",
+    long_about = "🚀 Tari CLI 🚀\nHelps you manage the flow of developing Tari templates."
 )]
 pub struct Cli {
     #[clap(flatten)]
@@ -164,7 +171,7 @@ impl Cli {
                 .ok_or(anyhow!("Can't find folder of configuration file!"))?
                 .to_path_buf(),
         )
-            .await?;
+        .await?;
 
         // loading/creating config
         let mut config = if !util::file_exists(&self.args.config_file_path).await? {
@@ -191,7 +198,10 @@ impl Cli {
         Ok(config)
     }
 
-    async fn refresh_template_repository(&self, template_repo: &TemplateRepository) -> anyhow::Result<GitRepository> {
+    async fn refresh_template_repository(
+        &self,
+        template_repo: &TemplateRepository,
+    ) -> anyhow::Result<GitRepository> {
         util::create_dir(&self.args.base_dir.join(TEMPLATE_REPOS_FOLDER_NAME)).await?;
         let repo_url_splitted: Vec<&str> = template_repo.url.split("/").collect();
         let repo_name = repo_url_splitted
@@ -241,31 +251,14 @@ impl Cli {
         )?;
         let wasm_template_repo = loading!(
             "Refresh wasm templates repository",
-            self.refresh_template_repository(&config.wasm_template_repository).await
+            self.refresh_template_repository(&config.wasm_template_repository)
+                .await
         )?;
 
         match &self.command {
-            Commands::Create { args } => {
-                create::handle(
-                    config,
-                    project_template_repo,
-                    args,
-                )
-                    .await
-            }
-            Commands::New { args } => {
-                new::handle(
-                    config,
-                    wasm_template_repo,
-                    args,
-                )
-                    .await
-            }
-            Commands::Deploy {
-                args
-            } => {
-                deploy::handle(args).await
-            }
+            Commands::Create { args } => create::handle(config, project_template_repo, args).await,
+            Commands::New { args } => new::handle(config, wasm_template_repo, args).await,
+            Commands::Deploy { args } => deploy::handle(args).await,
         }
     }
 }

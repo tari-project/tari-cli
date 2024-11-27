@@ -24,7 +24,7 @@ pub struct LocalSwarmUploader {
 impl LocalSwarmUploader {
     pub fn new(swarm_web_upload_endpoint: Url) -> Self {
         Self {
-            swarm_web_upload_endpoint
+            swarm_web_upload_endpoint,
         }
     }
 }
@@ -47,7 +47,9 @@ impl TemplateBinaryUploader for LocalSwarmUploader {
         }
 
         if resp.template_url.is_none() {
-            return Err(Error::UploadFailed("Missing template URL in response!".to_string()));
+            return Err(Error::UploadFailed(
+                "Missing template URL in response!".to_string(),
+            ));
         }
 
         Ok(resp.template_url.unwrap())

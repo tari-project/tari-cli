@@ -7,14 +7,13 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
-minotari_app_grpc = { git = "https://github.com/tari-project/tari.git", branch = "feature-dan2" }
+minotari_app_grpc = { workspace = true }
 tari_common_types = { workspace = true }
 tari_core = { workspace = true }
-tari_wallet_daemon_client = { git = "https://github.com/tari-project/tari-dan.git", branch = "development" }
-tari_dan_engine = { git = "https://github.com/tari-project/tari-dan.git", branch = "development" }
-tari_engine_types = { git = "https://github.com/tari-project/tari-dan.git", branch = "development" }
-tari_template_lib = { git = "https://github.com/tari-project/tari-dan.git", branch = "development" }
-tari_utilities = { git = "https://github.com/tari-project/tari-dan.git", branch = "development", features = ["default", "serde"] }
+tari_wallet_daemon_client = { workspace = true }
+tari_dan_engine = { workspace = true }
+tari_engine_types = { workspace = true }
+tari_template_lib = { workspace = true }
 
 tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros"] }
 serde = { workspace = true }
@@ -25,3 +24,4 @@ hickory-proto = "=0.25.0-alpha.2"
 tonic = { version = "0.12.3", features = ["tls"] }
 reqwest = { version = "0.12.9", features = ["default", "multipart", "stream", "json"] }
 async-trait = "0.1.83"
+tari_utilities = { version = "0.8" }
