@@ -1,0 +1,30 @@
+[package]
+name = "cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "tari"
+path = "src/main.rs"
+
+[dependencies]
+tari_deploy = { path = "../tari_deploy" }
+tari_core = { workspace = true }
+anyhow = "1.0.93"
+clap = { version = "4.5.20", features = ["derive", "string"] }
+dirs-next = "2.0.0"
+tokio = { workspace = true }
+toml = "0.8.19"
+serde = { workspace = true }
+termimad = "0.31.0"
+cargo-generate = "^0.22.0"
+git2 = { version = "^0.19", features = ["default"] }
+thiserror = { workspace = true }
+spinners = "4.1.1"
+convert_case = "0.6.0"
+dialoguer = { version = "0.11.0", features = ["default", "fuzzy-select"] }
+cargo_toml = "0.20.5"
+url = { workspace = true }
