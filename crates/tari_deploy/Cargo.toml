@@ -25,3 +25,6 @@ tonic = { version = "0.12.3", features = ["tls"] }
 reqwest = { version = "0.12.9", features = ["default", "multipart", "stream", "json"] }
 async-trait = "0.1.83"
 tari_utilities = { version = "0.8" }
+
+[package.metadata.cargo-machete]
+ignored = ["hickory-proto"]
