@@ -68,10 +68,9 @@ where
         fee_per_gram: MicroMinotari,
     ) -> Result<TemplateAddress> {
         let register_request = self
-            .template_registration_request(params, fee_per_gram)
+            .template_registration_request(params.clone(), fee_per_gram)
             .await?;
-        self.check_balance_to_deploy(register_request.clone())
-            .await?;
+        self.check_balance_to_deploy(params, fee_per_gram).await?;
         self.register_template(register_request).await
     }
 
@@ -107,10 +106,14 @@ where
     }
 
     /// Check if we have enough balance or not to deploy the template.
-    async fn check_balance_to_deploy(
+    pub async fn check_balance_to_deploy(
         &self,
-        request: CreateTemplateRegistrationRequest,
+        params: DeployParams,
+        fee_per_gram: MicroMinotari,
     ) -> Result<()> {
+        let request = self
+            .template_registration_request(params, fee_per_gram)
+            .await?;
         let wallet_balance = self.wallet_balance().await?;
         let fee = self.get_registration_fee(request).await?;
         if fee > wallet_balance {

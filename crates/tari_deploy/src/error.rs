@@ -31,6 +31,6 @@ pub enum Error {
     InvalidHash(#[from] HashParseError),
     #[error("Config error: {0}")]
     Config(#[from] config::Error),
-    #[error("Insufficient balance in Tari L1 wallet! Current balance: {0} μXTM, Fee: {1} μXTM")]
+    #[error("Insufficient balance in Tari L1 wallet! Current balance: {0}, Estimated Fee: {1}")]
     InsufficientBalance(MicroMinotari, MicroMinotari),
 }

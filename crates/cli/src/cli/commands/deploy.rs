@@ -113,7 +113,7 @@ pub async fn handle(args: &DeployArgs) -> anyhow::Result<()> {
     // confirmation
     if !args.yes {
         let confirmation = Confirm::new()
-            .with_prompt("❓Deploying a template costs some μXTM, are you sure to continue?")
+            .with_prompt("❓Deploying a template costs some μT, are you sure to continue?")
             .interact()?;
         if !confirmation {
             return Err(anyhow!("💥 Deployment aborted!"));
@@ -144,14 +144,19 @@ pub async fn handle(args: &DeployArgs) -> anyhow::Result<()> {
         deployer.upload_template(&template_bin).await
     )?;
 
+    // check balance
+    deployer
+        .check_balance_to_deploy(deploy_params.clone(), fee_per_gram)
+        .await?;
+
     if !args.yes {
         let fee = deployer
             .registration_fee(deploy_params.clone(), fee_per_gram)
             .await?;
         let confirmation = Confirm::new()
             .with_prompt(format!(
-                "❓Deploying this template costs {} μXTM, are you sure to continue?",
-                fee.as_u64()
+                "❓Deploying this template costs {} (estimated), are you sure to continue?",
+                fee
             ))
             .interact()?;
         if !confirmation {
