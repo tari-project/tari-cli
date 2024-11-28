@@ -16,6 +16,7 @@ pub enum Error {
 }
 
 #[derive(Default, Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum WalletGrpcAuthConfig {
     #[default]
     None,
@@ -41,6 +42,7 @@ impl TryFrom<&WalletGrpcAuthConfig> for GrpcAuthentication {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct WalletGrpcConfig {
     /// HTTP address of gRPC endpoint.
     /// Example: http://127.0.0.1:12003
@@ -68,6 +70,7 @@ impl WalletGrpcConfig {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct NetworkConfig {
     /// Configuration for Tari Layer-1 wallet's gRPC service.
     wallet_grpc_config: WalletGrpcConfig,
