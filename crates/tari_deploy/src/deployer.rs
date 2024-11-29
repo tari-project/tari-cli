@@ -238,6 +238,7 @@ where
         ))
     }
 
+    #[allow(dead_code)]
     /// Returns a new wallet daemon client.
     async fn wallet_daemon_client(&self) -> Result<WalletDaemonClient> {
         let mut client =
