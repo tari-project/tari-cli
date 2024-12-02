@@ -799,7 +799,7 @@ dependencies = [
  "git2",
  "serde",
  "spinners",
- "tari_core 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
+ "tari_core",
  "tari_deploy",
  "termimad",
  "thiserror 2.0.3",
@@ -3382,7 +3382,7 @@ dependencies = [
 [[package]]
 name = "minotari_app_grpc"
 version = "1.7.0-pre.3"
-source = "git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration#9b538aed702b403a997793f1c32b73029d6e9a14"
+source = "git+https://github.com/tari-project/tari.git?branch=feature-dan2#9aaa3642ac9949c212d9ebf708413851b09794f7"
 dependencies = [
  "argon2",
  "base64 0.13.1",
@@ -3394,13 +3394,13 @@ dependencies = [
  "rand",
  "rcgen",
  "subtle",
- "tari_common_types 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_comms 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_core 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
+ "tari_common_types",
+ "tari_comms",
+ "tari_core",
  "tari_crypto",
- "tari_features 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_max_size 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_script 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
+ "tari_features",
+ "tari_max_size",
+ "tari_script",
  "tari_utilities",
  "thiserror 1.0.69",
  "tokio",
@@ -3413,14 +3413,6 @@ dependencies = [
 name = "minotari_ledger_wallet_common"
 version = "1.7.0-pre.3"
 source = "git+https://github.com/tari-project/tari.git?branch=feature-dan2#b75d533bbda62bf18b9436e228a422374f486d51"
-dependencies = [
- "bs58 0.5.1",
-]
-
-[[package]]
-name = "minotari_ledger_wallet_common"
-version = "1.7.0-pre.3"
-source = "git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration#9b538aed702b403a997793f1c32b73029d6e9a14"
 dependencies = [
  "bs58 0.5.1",
 ]
@@ -5528,32 +5520,7 @@ dependencies = [
  "serde_yaml",
  "sha2",
  "structopt",
- "tari_features 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tempfile",
- "thiserror 1.0.69",
- "toml 0.5.11",
-]
-
-[[package]]
-name = "tari_common"
-version = "1.7.0-pre.3"
-source = "git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration#9b538aed702b403a997793f1c32b73029d6e9a14"
-dependencies = [
- "anyhow",
- "cargo_toml",
- "config",
- "dirs-next 1.0.2",
- "log",
- "log4rs",
- "multiaddr",
- "path-clean",
- "prost-build 0.11.9",
- "serde",
- "serde_json",
- "serde_yaml",
- "sha2",
- "structopt",
- "tari_features 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
+ "tari_features",
  "tempfile",
  "thiserror 1.0.69",
  "toml 0.5.11",
@@ -5563,20 +5530,6 @@ dependencies = [
 name = "tari_common_sqlite"
 version = "1.7.0-pre.3"
 source = "git+https://github.com/tari-project/tari.git?branch=feature-dan2#b75d533bbda62bf18b9436e228a422374f486d51"
-dependencies = [
- "diesel",
- "diesel_migrations",
- "log",
- "serde",
- "tari_utilities",
- "thiserror 1.0.69",
- "tokio",
-]
-
-[[package]]
-name = "tari_common_sqlite"
-version = "1.7.0-pre.3"
-source = "git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration#9b538aed702b403a997793f1c32b73029d6e9a14"
 dependencies = [
  "diesel",
  "diesel_migrations",
@@ -5599,7 +5552,7 @@ dependencies = [
  "bs58 0.5.1",
  "chacha20poly1305",
  "digest",
- "minotari_ledger_wallet_common 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
+ "minotari_ledger_wallet_common",
  "newtype-ops",
  "once_cell",
  "primitive-types",
@@ -5607,33 +5560,7 @@ dependencies = [
  "serde",
  "strum 0.22.0",
  "strum_macros 0.22.0",
- "tari_common 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_crypto",
- "tari_utilities",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "tari_common_types"
-version = "1.7.0-pre.3"
-source = "git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration#9b538aed702b403a997793f1c32b73029d6e9a14"
-dependencies = [
- "base64 0.21.7",
- "bitflags 2.6.0",
- "blake2",
- "borsh",
- "bs58 0.5.1",
- "chacha20poly1305",
- "digest",
- "minotari_ledger_wallet_common 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "newtype-ops",
- "once_cell",
- "primitive-types",
- "rand",
- "serde",
- "strum 0.22.0",
- "strum_macros 0.22.0",
- "tari_common 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
+ "tari_common",
  "tari_crypto",
  "tari_utilities",
  "thiserror 1.0.69",
@@ -5668,54 +5595,10 @@ dependencies = [
  "serde_derive",
  "sha3",
  "snow",
- "tari_common 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
+ "tari_common",
  "tari_crypto",
- "tari_shutdown 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_storage 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_utilities",
- "thiserror 1.0.69",
- "tokio",
- "tokio-stream",
- "tokio-util 0.6.10",
- "tower 0.4.13",
- "tracing",
- "yamux",
- "zeroize",
-]
-
-[[package]]
-name = "tari_comms"
-version = "1.7.0-pre.3"
-source = "git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration#9b538aed702b403a997793f1c32b73029d6e9a14"
-dependencies = [
- "anyhow",
- "async-trait",
- "bitflags 2.6.0",
- "blake2",
- "bytes 1.8.0",
- "chrono",
- "cidr",
- "data-encoding",
- "derivative",
- "digest",
- "futures 0.3.31",
- "lmdb-zero",
- "log",
- "log-mdc",
- "multiaddr",
- "nom",
- "once_cell",
- "pin-project 1.1.7",
- "prost 0.13.3",
- "rand",
- "serde",
- "serde_derive",
- "sha3",
- "snow",
- "tari_common 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_crypto",
- "tari_shutdown 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_storage 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
+ "tari_shutdown",
+ "tari_storage",
  "tari_utilities",
  "thiserror 1.0.69",
  "tokio",
@@ -5748,48 +5631,13 @@ dependencies = [
  "prost 0.13.3",
  "rand",
  "serde",
- "tari_common 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_common_sqlite 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_comms 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_comms_rpc_macros 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
+ "tari_common",
+ "tari_common_sqlite",
+ "tari_comms",
+ "tari_comms_rpc_macros",
  "tari_crypto",
- "tari_shutdown 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_storage 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_utilities",
- "thiserror 1.0.69",
- "tokio",
- "tower 0.4.13",
- "zeroize",
-]
-
-[[package]]
-name = "tari_comms_dht"
-version = "1.7.0-pre.3"
-source = "git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration#9b538aed702b403a997793f1c32b73029d6e9a14"
-dependencies = [
- "anyhow",
- "bitflags 2.6.0",
- "blake2",
- "chacha20 0.7.3",
- "chacha20poly1305",
- "chrono",
- "diesel",
- "diesel_migrations",
- "digest",
- "futures 0.3.31",
- "log",
- "log-mdc",
- "pin-project 0.4.30",
- "prost 0.13.3",
- "rand",
- "serde",
- "tari_common 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_common_sqlite 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_comms 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_comms_rpc_macros 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_crypto",
- "tari_shutdown 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_storage 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
+ "tari_shutdown",
+ "tari_storage",
  "tari_utilities",
  "thiserror 1.0.69",
  "tokio",
@@ -5801,16 +5649,6 @@ dependencies = [
 name = "tari_comms_rpc_macros"
 version = "1.7.0-pre.3"
 source = "git+https://github.com/tari-project/tari.git?branch=feature-dan2#b75d533bbda62bf18b9436e228a422374f486d51"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 1.0.109",
-]
-
-[[package]]
-name = "tari_comms_rpc_macros"
-version = "1.7.0-pre.3"
-source = "git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration#9b538aed702b403a997793f1c32b73029d6e9a14"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5859,91 +5697,24 @@ dependencies = [
  "strum 0.22.0",
  "strum_macros 0.22.0",
  "tari-tiny-keccak",
- "tari_common 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_common_sqlite 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_common_types 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_comms 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_comms_dht 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_comms_rpc_macros 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
+ "tari_common",
+ "tari_common_sqlite",
+ "tari_common_types",
+ "tari_comms",
+ "tari_comms_dht",
+ "tari_comms_rpc_macros",
  "tari_crypto",
- "tari_features 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_hashing 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_key_manager 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_max_size 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_mmr 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_p2p 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_script 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_service_framework 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_shutdown 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_storage 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_test_utils 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_utilities",
- "thiserror 1.0.69",
- "tokio",
- "tracing",
- "zeroize",
-]
-
-[[package]]
-name = "tari_core"
-version = "1.7.0-pre.3"
-source = "git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration#9b538aed702b403a997793f1c32b73029d6e9a14"
-dependencies = [
- "async-trait",
- "bincode",
- "bitflags 2.6.0",
- "blake2",
- "borsh",
- "bytes 0.5.6",
- "chacha20poly1305",
- "chrono",
- "decimal-rs",
- "derivative",
- "digest",
- "dirs-next 1.0.2",
- "fs2",
- "futures 0.3.31",
- "hex",
- "integer-encoding",
- "lmdb-zero",
- "log",
- "log-mdc",
- "monero",
- "newtype-ops",
- "num-derive",
- "num-format",
- "num-traits",
- "once_cell",
- "primitive-types",
- "prost 0.13.3",
- "rand",
- "randomx-rs",
- "serde",
- "serde_json",
- "serde_repr",
- "sha2",
- "sha3",
- "strum 0.22.0",
- "strum_macros 0.22.0",
- "tari-tiny-keccak",
- "tari_common 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_common_sqlite 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_common_types 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_comms 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_comms_dht 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_comms_rpc_macros 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_crypto",
- "tari_features 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_hashing 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_key_manager 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_max_size 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_mmr 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_p2p 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_script 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_service_framework 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_shutdown 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_storage 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_test_utils 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
+ "tari_features",
+ "tari_hashing",
+ "tari_key_manager",
+ "tari_max_size",
+ "tari_mmr",
+ "tari_p2p",
+ "tari_script",
+ "tari_service_framework",
+ "tari_shutdown",
+ "tari_storage",
+ "tari_test_utils",
  "tari_utilities",
  "thiserror 1.0.69",
  "tokio",
@@ -5989,12 +5760,12 @@ dependencies = [
  "rand",
  "serde",
  "tari_bor",
- "tari_common 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_common_types 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
+ "tari_common",
+ "tari_common_types",
  "tari_crypto",
  "tari_engine_types",
- "tari_hashing 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_mmr 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
+ "tari_hashing",
+ "tari_mmr",
  "tari_template_lib",
  "thiserror 1.0.69",
 ]
@@ -6015,8 +5786,8 @@ dependencies = [
  "serde",
  "serde_json",
  "tari_bor",
- "tari_common 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_common_types 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
+ "tari_common",
+ "tari_common_types",
  "tari_crypto",
  "tari_dan_common_types",
  "tari_engine_types",
@@ -6044,9 +5815,9 @@ dependencies = [
  "serde",
  "strum 0.26.3",
  "strum_macros 0.26.4",
- "tari_common 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_common_types 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_core 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
+ "tari_common",
+ "tari_common_types",
+ "tari_core",
  "tari_crypto",
  "tari_dan_common_types",
  "tari_engine_types",
@@ -6067,7 +5838,7 @@ dependencies = [
  "rand",
  "tari_crypto",
  "tari_engine_types",
- "tari_hashing 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
+ "tari_hashing",
  "tari_template_lib",
  "tari_utilities",
  "thiserror 1.0.69",
@@ -6089,13 +5860,13 @@ dependencies = [
  "serde",
  "serde_json",
  "tari_bor",
- "tari_common_types 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
+ "tari_common_types",
  "tari_crypto",
  "tari_dan_common_types",
  "tari_dan_storage",
  "tari_dan_wallet_crypto",
  "tari_engine_types",
- "tari_key_manager 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
+ "tari_key_manager",
  "tari_template_abi",
  "tari_template_builtin",
  "tari_template_lib",
@@ -6112,8 +5883,8 @@ dependencies = [
  "minotari_app_grpc",
  "reqwest 0.12.9",
  "serde",
- "tari_common_types 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_core 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
+ "tari_common_types",
+ "tari_core",
  "tari_dan_engine",
  "tari_engine_types",
  "tari_template_lib",
@@ -6140,10 +5911,10 @@ dependencies = [
  "serde",
  "serde_json",
  "tari_bor",
- "tari_common 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_common_types 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
+ "tari_common",
+ "tari_common_types",
  "tari_crypto",
- "tari_hashing 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
+ "tari_hashing",
  "tari_template_abi",
  "tari_template_lib",
  "tari_utilities",
@@ -6156,24 +5927,9 @@ version = "1.7.0-pre.3"
 source = "git+https://github.com/tari-project/tari.git?branch=feature-dan2#b75d533bbda62bf18b9436e228a422374f486d51"
 
 [[package]]
-name = "tari_features"
-version = "1.7.0-pre.3"
-source = "git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration#9b538aed702b403a997793f1c32b73029d6e9a14"
-
-[[package]]
 name = "tari_hashing"
 version = "1.7.0-pre.3"
 source = "git+https://github.com/tari-project/tari.git?branch=feature-dan2#b75d533bbda62bf18b9436e228a422374f486d51"
-dependencies = [
- "borsh",
- "digest",
- "tari_crypto",
-]
-
-[[package]]
-name = "tari_hashing"
-version = "1.7.0-pre.3"
-source = "git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration#9b538aed702b403a997793f1c32b73029d6e9a14"
 dependencies = [
  "borsh",
  "digest",
@@ -6203,43 +5959,10 @@ dependencies = [
  "strum 0.22.0",
  "strum_macros 0.22.0",
  "subtle",
- "tari_common_sqlite 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_common_types 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
+ "tari_common_sqlite",
+ "tari_common_types",
  "tari_crypto",
- "tari_service_framework 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_utilities",
- "thiserror 1.0.69",
- "tokio",
- "zeroize",
-]
-
-[[package]]
-name = "tari_key_manager"
-version = "1.7.0-pre.3"
-source = "git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration#9b538aed702b403a997793f1c32b73029d6e9a14"
-dependencies = [
- "argon2",
- "async-trait",
- "blake2",
- "chacha20 0.7.3",
- "chacha20poly1305",
- "chrono",
- "crc32fast",
- "derivative",
- "diesel",
- "diesel_migrations",
- "digest",
- "futures 0.3.31",
- "log",
- "rand",
- "serde",
- "strum 0.22.0",
- "strum_macros 0.22.0",
- "subtle",
- "tari_common_sqlite 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_common_types 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_crypto",
- "tari_service_framework 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
+ "tari_service_framework",
  "tari_utilities",
  "thiserror 1.0.69",
  "tokio",
@@ -6258,34 +5981,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "tari_max_size"
-version = "1.7.0-pre.3"
-source = "git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration#9b538aed702b403a997793f1c32b73029d6e9a14"
-dependencies = [
- "borsh",
- "serde",
- "tari_utilities",
- "thiserror 1.0.69",
-]
-
-[[package]]
 name = "tari_mmr"
 version = "1.7.0-pre.3"
 source = "git+https://github.com/tari-project/tari.git?branch=feature-dan2#b75d533bbda62bf18b9436e228a422374f486d51"
-dependencies = [
- "borsh",
- "digest",
- "log",
- "serde",
- "tari_crypto",
- "tari_utilities",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "tari_mmr"
-version = "1.7.0-pre.3"
-source = "git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration#9b538aed702b403a997793f1c32b73029d6e9a14"
 dependencies = [
  "borsh",
  "digest",
@@ -6312,44 +6010,13 @@ dependencies = [
  "rand",
  "rustls",
  "serde",
- "tari_common 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_comms 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_comms_dht 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
+ "tari_common",
+ "tari_comms",
+ "tari_comms_dht",
  "tari_crypto",
- "tari_service_framework 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_shutdown 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_storage 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_utilities",
- "thiserror 1.0.69",
- "tokio",
- "tokio-stream",
- "tower 0.4.13",
- "webpki-roots",
-]
-
-[[package]]
-name = "tari_p2p"
-version = "1.7.0-pre.3"
-source = "git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration#9b538aed702b403a997793f1c32b73029d6e9a14"
-dependencies = [
- "anyhow",
- "fs2",
- "futures 0.3.31",
- "hickory-client",
- "hickory-resolver",
- "lmdb-zero",
- "log",
- "prost 0.13.3",
- "rand",
- "rustls",
- "serde",
- "tari_common 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_comms 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_comms_dht 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_crypto",
- "tari_service_framework 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_shutdown 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_storage 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
+ "tari_service_framework",
+ "tari_shutdown",
+ "tari_storage",
  "tari_utilities",
  "thiserror 1.0.69",
  "tokio",
@@ -6371,25 +6038,7 @@ dependencies = [
  "sha2",
  "sha3",
  "tari_crypto",
- "tari_max_size 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_utilities",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "tari_script"
-version = "1.7.0-pre.3"
-source = "git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration#9b538aed702b403a997793f1c32b73029d6e9a14"
-dependencies = [
- "blake2",
- "borsh",
- "digest",
- "integer-encoding",
- "serde",
- "sha2",
- "sha3",
- "tari_crypto",
- "tari_max_size 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
+ "tari_max_size",
  "tari_utilities",
  "thiserror 1.0.69",
 ]
@@ -6403,22 +6052,7 @@ dependencies = [
  "async-trait",
  "futures 0.3.31",
  "log",
- "tari_shutdown 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "thiserror 1.0.69",
- "tokio",
- "tower-service",
-]
-
-[[package]]
-name = "tari_service_framework"
-version = "1.7.0-pre.3"
-source = "git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration#9b538aed702b403a997793f1c32b73029d6e9a14"
-dependencies = [
- "anyhow",
- "async-trait",
- "futures 0.3.31",
- "log",
- "tari_shutdown 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
+ "tari_shutdown",
  "thiserror 1.0.69",
  "tokio",
  "tower-service",
@@ -6428,14 +6062,6 @@ dependencies = [
 name = "tari_shutdown"
 version = "1.7.0-pre.3"
 source = "git+https://github.com/tari-project/tari.git?branch=feature-dan2#b75d533bbda62bf18b9436e228a422374f486d51"
-dependencies = [
- "futures 0.3.31",
-]
-
-[[package]]
-name = "tari_shutdown"
-version = "1.7.0-pre.3"
-source = "git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration#9b538aed702b403a997793f1c32b73029d6e9a14"
 dependencies = [
  "futures 0.3.31",
 ]
@@ -6449,7 +6075,7 @@ dependencies = [
  "indexmap 2.6.0",
  "log",
  "serde",
- "tari_common_types 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
+ "tari_common_types",
  "tari_crypto",
  "tari_dan_common_types",
  "tari_engine_types",
@@ -6461,18 +6087,6 @@ dependencies = [
 name = "tari_storage"
 version = "1.7.0-pre.3"
 source = "git+https://github.com/tari-project/tari.git?branch=feature-dan2#b75d533bbda62bf18b9436e228a422374f486d51"
-dependencies = [
- "bincode",
- "lmdb-zero",
- "log",
- "serde",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "tari_storage"
-version = "1.7.0-pre.3"
-source = "git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration#9b538aed702b403a997793f1c32b73029d6e9a14"
 dependencies = [
  "bincode",
  "lmdb-zero",
@@ -6530,21 +6144,8 @@ source = "git+https://github.com/tari-project/tari.git?branch=feature-dan2#b75d5
 dependencies = [
  "futures 0.3.31",
  "rand",
- "tari_comms 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tari_shutdown 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
- "tempfile",
- "tokio",
-]
-
-[[package]]
-name = "tari_test_utils"
-version = "1.7.0-pre.3"
-source = "git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration#9b538aed702b403a997793f1c32b73029d6e9a14"
-dependencies = [
- "futures 0.3.31",
- "rand",
- "tari_comms 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
- "tari_shutdown 1.7.0-pre.3 (git+https://github.com/ksrichard/tari.git?branch=feature/wallet-grpc-get-fee-for-template-registration)",
+ "tari_comms",
+ "tari_shutdown",
  "tempfile",
  "tokio",
 ]
@@ -6557,7 +6158,7 @@ dependencies = [
  "indexmap 2.6.0",
  "rand",
  "serde",
- "tari_common_types 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
+ "tari_common_types",
  "tari_crypto",
  "tari_dan_common_types",
  "tari_engine_types",
@@ -6592,7 +6193,7 @@ dependencies = [
  "reqwest 0.11.27",
  "serde",
  "serde_json",
- "tari_common_types 1.7.0-pre.3 (git+https://github.com/tari-project/tari.git?branch=feature-dan2)",
+ "tari_common_types",
  "tari_dan_common_types",
  "tari_dan_wallet_sdk",
  "tari_engine_types",

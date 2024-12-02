@@ -15,13 +15,9 @@ serde = { version = "1.0.215", features = ["derive"] }
 thiserror = "2.0.3"
 url = { version = "2.5.3", features = ["default", "serde"] }
 
-tari_core = { git = "https://github.com/ksrichard/tari.git", branch = "feature/wallet-grpc-get-fee-for-template-registration" }
-tari_common_types = { git = "https://github.com/ksrichard/tari.git", branch = "feature/wallet-grpc-get-fee-for-template-registration" }
-minotari_app_grpc = { git = "https://github.com/ksrichard/tari.git", branch = "feature/wallet-grpc-get-fee-for-template-registration" }
-
-#tari_core = { git = "https://github.com/tari-project/tari.git", branch = "feature-dan2" }
-#tari_common_types = { git = "https://github.com/tari-project/tari.git", branch = "feature-dan2" }
-#minotari_app_grpc = { git = "https://github.com/tari-project/tari.git", branch = "feature-dan2" }
+tari_core = { git = "https://github.com/tari-project/tari.git", branch = "feature-dan2" }
+tari_common_types = { git = "https://github.com/tari-project/tari.git", branch = "feature-dan2" }
+minotari_app_grpc = { git = "https://github.com/tari-project/tari.git", branch = "feature-dan2" }
 
 tari_wallet_daemon_client = { git = "https://github.com/tari-project/tari-dan.git", branch = "development" }
 tari_dan_engine = { git = "https://github.com/tari-project/tari-dan.git", branch = "development" }
