@@ -18,6 +18,7 @@ pub const VALID_OVERRIDE_KEYS: &[&str] = &[
 
 /// CLI configuration.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Config {
     pub project_template_repository: TemplateRepository,
     pub wasm_template_repository: TemplateRepository,
@@ -25,6 +26,7 @@ pub struct Config {
 
 /// Repository that holds templates to generate project and Tari templates.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct TemplateRepository {
     pub url: String,
     pub branch: String,

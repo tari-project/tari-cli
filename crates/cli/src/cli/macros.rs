@@ -7,11 +7,11 @@ macro_rules! loading {
         let mut loader = spinners::Spinner::new(spinners::Spinners::Dots, $text.into());
         let result = match $call {
             Ok(res) => {
-                loader.stop_with_symbol("✅ ");
+                loader.stop_with_symbol("✅");
                 Ok(res)
             }
             Err(error) => {
-                loader.stop_with_symbol("❌ ");
+                loader.stop_with_symbol("❌");
                 Err(error)
             }
         };

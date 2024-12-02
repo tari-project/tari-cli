@@ -1,0 +1,30 @@
+[package]
+name = "tari_deploy"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+minotari_app_grpc = { workspace = true }
+tari_common_types = { workspace = true }
+tari_core = { workspace = true }
+tari_wallet_daemon_client = { workspace = true }
+tari_dan_engine = { workspace = true }
+tari_engine_types = { workspace = true }
+tari_template_lib = { workspace = true }
+
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros"] }
+serde = { workspace = true }
+thiserror = { workspace = true }
+url = { workspace = true }
+
+hickory-proto = "=0.25.0-alpha.2"
+tonic = { version = "0.12.3", features = ["tls"] }
+reqwest = { version = "0.12.9", features = ["default", "multipart", "stream", "json"] }
+async-trait = "0.1.83"
+tari_utilities = { version = "0.8" }
+
+[package.metadata.cargo-machete]
+ignored = ["hickory-proto"]
