@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use anyhow::anyhow;
 use cargo_generate::{GenerateArgs, TemplatePath};
 use cargo_toml::{Manifest, Resolver, Workspace};
+use clap::Parser;
 use tokio::fs;
 
 use crate::{
@@ -17,14 +18,29 @@ use crate::{
 
 const DEFAULT_TEMPLATES_DIR: &str = "templates";
 
+#[derive(Clone, Parser, Debug)]
+pub struct NewArgs {
+    /// Name of the project
+    #[arg(value_parser = crate::cli::arguments::project_name_parser)]
+    pub name: String,
+
+    /// (Optional) Selected wasm template (ID).
+    /// It will be prompted if not set.
+    #[arg(short = 't', long)]
+    pub template: Option<String>,
+
+    /// Target folder where the new project will be generated.
+    #[arg(long, value_name = "PATH", default_value = crate::cli::arguments::default_target_dir().into_os_string()
+    )]
+    pub target: PathBuf,
+}
+
 /// Handle `new` command.
 /// It creates a new Tari WASM template development project.
 pub async fn handle(
     config: Config,
     wasm_template_repo: GitRepository,
-    name: &str,
-    wasm_template: Option<&String>,
-    target: PathBuf,
+    args: &NewArgs,
 ) -> anyhow::Result<()> {
     // selecting wasm template
     let templates = loading!(
@@ -38,7 +54,7 @@ pub async fn handle(
         .await
     )?;
 
-    let template = match wasm_template {
+    let template = match &args.template {
         Some(template_id) => templates
             .iter()
             .filter(|template| template.name().to_lowercase() == template_id.to_lowercase())
@@ -59,20 +75,20 @@ pub async fn handle(
         .ok_or(anyhow!("Invalid template path!"))?
         .to_string();
 
-    let cargo_toml_file = target.join("Cargo.toml");
+    let cargo_toml_file = args.target.join("Cargo.toml");
     let is_cargo_project = util::file_exists(&cargo_toml_file).await?;
 
     // use '/templates' directory if exists
-    let has_templates_sub_dir = util::dir_exists(&target.join(DEFAULT_TEMPLATES_DIR)).await?;
+    let has_templates_sub_dir = util::dir_exists(&args.target.join(DEFAULT_TEMPLATES_DIR)).await?;
     let target = if has_templates_sub_dir {
-        target.join(DEFAULT_TEMPLATES_DIR)
+        args.target.join(DEFAULT_TEMPLATES_DIR)
     } else {
-        target
+        args.target.clone()
     };
 
     // generate new project
     let generate_args = GenerateArgs {
-        name: Some(name.to_string()),
+        name: Some(args.name.to_string()),
         destination: Some(target.clone()),
         define: vec![format!("in_cargo_workspace={}", is_cargo_project)],
         template_path: TemplatePath {
@@ -89,9 +105,9 @@ pub async fn handle(
     // check if target is a cargo project and update Cargo.toml if exists
     if is_cargo_project {
         let project_name = if has_templates_sub_dir {
-            format!("{}/{}", DEFAULT_TEMPLATES_DIR, name)
+            format!("{}/{}", DEFAULT_TEMPLATES_DIR, args.name)
         } else {
-            name.to_string()
+            args.name.to_string()
         };
         loading!(
             "Update Cargo.toml",
@@ -99,7 +115,7 @@ pub async fn handle(
         )?;
     } else {
         // git init as new project is a separate one
-        if let Err(error) = GitRepository::new(target.join(name)).init() {
+        if let Err(error) = GitRepository::new(target.join(args.name.clone())).init() {
             println!("⚠️ Git repository already initialized: {error:?}");
         }
     }

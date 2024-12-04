@@ -1,15 +1,10 @@
 // Copyright 2024 The Tari Project
 // SPDX-License-Identifier: BSD-3-Clause
 
-use std::{env, path::PathBuf};
-
-use anyhow::anyhow;
-use clap::{
-    builder::{styling::AnsiColor, Styles},
-    Parser, Subcommand,
-};
-use convert_case::{Case, Casing};
-
+use crate::cli::commands::create::CreateArgs;
+use crate::cli::commands::deploy;
+use crate::cli::commands::deploy::DeployArgs;
+use crate::cli::commands::new::NewArgs;
 use crate::{
     cli::{
         commands::{create, new},
@@ -19,6 +14,14 @@ use crate::{
     git::repository::GitRepository,
     loading,
 };
+use anyhow::anyhow;
+use clap::{
+    builder::{styling::AnsiColor, Styles},
+    Parser, Subcommand, ValueEnum,
+};
+use convert_case::{Case, Casing};
+use std::fmt::{Display, Formatter};
+use std::{env, path::PathBuf};
 
 const DEFAULT_DATA_FOLDER_NAME: &str = "tari_cli";
 const TEMPLATE_REPOS_FOLDER_NAME: &str = "template_repositories";
@@ -35,17 +38,17 @@ pub fn cli_styles() -> Styles {
         .valid(AnsiColor::BrightGreen.on_default())
 }
 
-fn default_base_dir() -> PathBuf {
+pub fn default_base_dir() -> PathBuf {
     dirs_next::data_dir()
         .unwrap_or_else(|| env::current_dir().unwrap())
         .join(DEFAULT_DATA_FOLDER_NAME)
 }
 
-fn default_target_dir() -> PathBuf {
+pub fn default_target_dir() -> PathBuf {
     env::current_dir().unwrap()
 }
 
-fn default_config_file() -> PathBuf {
+pub fn default_config_file() -> PathBuf {
     dirs_next::config_dir()
         .unwrap_or_else(|| env::current_dir().unwrap())
         .join(DEFAULT_DATA_FOLDER_NAME)
@@ -57,11 +60,11 @@ pub fn config_override_parser(config_override: &str) -> Result<ConfigOverride, S
         return Err(String::from("Override cannot be empty!"));
     }
 
-    let splitted: Vec<&str> = config_override.split("=").collect();
-    if splitted.len() != 2 {
+    let split: Vec<&str> = config_override.split("=").collect();
+    if split.len() != 2 {
         return Err(String::from("Invalid override!"));
     }
-    let (key, value) = (splitted.first().unwrap(), splitted.get(1).unwrap());
+    let (key, value) = (split.first().unwrap(), split.get(1).unwrap());
 
     if !Config::is_override_key_valid(key) {
         return Err(format!("Override key invalid: {}", key));
@@ -105,8 +108,8 @@ pub struct CommonArguments {
 #[command(styles = cli_styles())]
 #[command(
     version,
-    about = "🚀 Tari DAN CLI 🚀",
-    long_about = "🚀 Tari DAN CLI 🚀\nHelps you manage the flow of developing Tari templates."
+    about = "🚀 Tari CLI 🚀",
+    long_about = "🚀 Tari CLI 🚀\nHelps you manage the flow of developing Tari templates."
 )]
 pub struct Cli {
     #[clap(flatten)]
@@ -116,39 +119,41 @@ pub struct Cli {
     command: Commands,
 }
 
+#[derive(Clone, ValueEnum, Debug, PartialEq)]
+#[clap(rename_all = "snake_case")]
+pub enum Network {
+    /// Local network
+    Local,
+    /// Main network
+    MainNet,
+    /// Test network
+    TestNet,
+    /// Custom network
+    Custom,
+}
+
+impl Display for Network {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", format!("{:?}", self).to_case(Case::Snake))
+    }
+}
+
 #[derive(Clone, Subcommand)]
 pub enum Commands {
     /// Creates a new Tari templates project
     Create {
-        /// Name of the project
-        #[arg(value_parser = project_name_parser)]
-        name: String,
-
-        /// (Optional) Selected project template (ID).
-        /// It will be prompted if not set.
-        #[arg(short = 't', long)]
-        template: Option<String>,
-
-        /// Target folder where the new project will be generated
-        #[arg(long, value_name = "PATH", default_value = default_target_dir().into_os_string()
-        )]
-        target: PathBuf,
+        #[clap(flatten)]
+        args: CreateArgs,
     },
     /// Creates a new Tari wasm template project
     New {
-        /// Name of the project
-        #[arg(value_parser = project_name_parser)]
-        name: String,
-
-        /// (Optional) Selected wasm template (ID).
-        /// It will be prompted if not set.
-        #[arg(short = 't', long)]
-        template: Option<String>,
-
-        /// Target folder where the new project will be generated.
-        #[arg(long, value_name = "PATH", default_value = default_target_dir().into_os_string()
-        )]
-        target: PathBuf,
+        #[clap(flatten)]
+        args: NewArgs,
+    },
+    /// Deploying Tari template to a network
+    Deploy {
+        #[clap(flatten)]
+        args: DeployArgs,
     },
 }
 
@@ -251,34 +256,9 @@ impl Cli {
         )?;
 
         match &self.command {
-            Commands::Create {
-                name,
-                template,
-                target,
-            } => {
-                create::handle(
-                    config,
-                    project_template_repo,
-                    name.as_str(),
-                    template.as_ref(),
-                    target.clone(),
-                )
-                .await
-            }
-            Commands::New {
-                name,
-                template,
-                target,
-            } => {
-                new::handle(
-                    config,
-                    wasm_template_repo,
-                    name.as_ref(),
-                    template.as_ref(),
-                    target.clone(),
-                )
-                .await
-            }
+            Commands::Create { args } => create::handle(config, project_template_repo, args).await,
+            Commands::New { args } => new::handle(config, wasm_template_repo, args).await,
+            Commands::Deploy { args } => deploy::handle(args).await,
         }
     }
 }

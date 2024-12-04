@@ -3,18 +3,36 @@
 
 use std::path::PathBuf;
 
-use anyhow::anyhow;
-use cargo_generate::{GenerateArgs, TemplatePath};
-use thiserror::Error;
-
 use crate::{
     cli::{config::Config, util},
     git::repository::GitRepository,
-    loading,
+    loading, project,
     templates::Collector,
 };
+use anyhow::anyhow;
+use cargo_generate::{GenerateArgs, TemplatePath};
+use clap::Parser;
+use thiserror::Error;
+use tokio::fs;
 
 const PROJECT_TEMPLATE_EXTRA_TEMPLATES_FIELD_NAME: &str = "templates_dir";
+
+#[derive(Clone, Parser, Debug)]
+pub struct CreateArgs {
+    /// Name of the project
+    #[arg(value_parser = crate::cli::arguments::project_name_parser)]
+    pub name: String,
+
+    /// (Optional) Selected project template (ID).
+    /// It will be prompted if not set.
+    #[arg(short = 't', long)]
+    pub template: Option<String>,
+
+    /// Target folder where the new project will be generated
+    #[arg(long, value_name = "PATH", default_value = crate::cli::arguments::default_target_dir().into_os_string()
+    )]
+    pub target: PathBuf,
+}
 
 #[derive(Error, Debug)]
 pub enum CreateHandlerError {
@@ -27,9 +45,7 @@ pub enum CreateHandlerError {
 pub async fn handle(
     config: Config,
     project_template_repo: GitRepository,
-    name: &str,
-    project_template: Option<&String>,
-    target: PathBuf,
+    args: &CreateArgs,
 ) -> anyhow::Result<()> {
     // selecting project template
     let templates = loading!(
@@ -43,7 +59,7 @@ pub async fn handle(
         .await
     )?;
 
-    let template = match project_template {
+    let template = match &args.template {
         Some(template_id) => templates
             .iter()
             .filter(|template| template.id().to_lowercase() == template_id.to_lowercase())
@@ -66,8 +82,8 @@ pub async fn handle(
 
     // generate new project
     let generate_args = GenerateArgs {
-        name: Some(name.to_string()),
-        destination: Some(target.clone()),
+        name: Some(args.name.to_string()),
+        destination: Some(args.target.clone()),
         template_path: TemplatePath {
             path: Some(template_path),
             ..TemplatePath::default()
@@ -79,15 +95,29 @@ pub async fn handle(
         cargo_generate::generate(generate_args)
     )?;
 
+    let final_path = args.target.join(args.name.as_str());
+
+    // create templates dir if set
     if let Some(templates_dir) = template
         .extra()
         .get(PROJECT_TEMPLATE_EXTRA_TEMPLATES_FIELD_NAME)
     {
-        util::create_dir(&target.join(&name).join(templates_dir)).await?;
+        util::create_dir(&final_path.join(templates_dir)).await?;
     }
 
+    // init project config file (remove if exists already somehow)
+    let project_config_file = final_path.join(project::CONFIG_FILE_NAME);
+    if util::file_exists(&project_config_file).await? {
+        fs::remove_file(&project_config_file).await?;
+    }
+    fs::write(
+        &project_config_file,
+        toml::to_string(&project::Config::default())?,
+    )
+    .await?;
+
     // git init
-    let mut new_repo = GitRepository::new(target.join(name));
+    let mut new_repo = GitRepository::new(final_path);
     new_repo.init()?;
 
     Ok(())
