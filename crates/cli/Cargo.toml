@@ -1,5 +1,5 @@
 [package]
-name = "cli"
+name = "tari-cli"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -11,7 +11,7 @@ name = "tari"
 path = "src/main.rs"
 
 [dependencies]
-tari_deploy = { path = "../tari_deploy" }
+tari_deploy = { workspace = true }
 tari_core = { workspace = true }
 anyhow = "1.0.93"
 clap = { version = "4.5.20", features = ["derive", "string"] }

@@ -786,29 +786,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "afb84c814227b90d6895e01398aee0d8033c00e7466aca416fb6a8e0eb19d8a7"
 
 [[package]]
-name = "cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "cargo-generate",
- "cargo_toml",
- "clap 4.5.21",
- "convert_case",
- "dialoguer",
- "dirs-next 2.0.0",
- "git2",
- "serde",
- "spinners",
- "tari_core",
- "tari_deploy",
- "termimad",
- "thiserror 2.0.3",
- "tokio",
- "toml 0.8.19",
- "url",
-]
-
-[[package]]
 name = "colorchoice"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5453,6 +5430,29 @@ name = "target-lexicon"
 version = "0.12.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61c41af27dd6d1e27b1b16b489db798443478cef1f06a660c96db617ba5de3b1"
+
+[[package]]
+name = "tari-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cargo-generate",
+ "cargo_toml",
+ "clap 4.5.21",
+ "convert_case",
+ "dialoguer",
+ "dirs-next 2.0.0",
+ "git2",
+ "serde",
+ "spinners",
+ "tari_core",
+ "tari_deploy",
+ "termimad",
+ "thiserror 2.0.3",
+ "tokio",
+ "toml 0.8.19",
+ "url",
+]
 
 [[package]]
 name = "tari-tiny-keccak"
