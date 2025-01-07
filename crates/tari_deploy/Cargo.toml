@@ -11,6 +11,7 @@ minotari_app_grpc = { workspace = true }
 tari_common_types = { workspace = true }
 tari_core = { workspace = true }
 tari_wallet_daemon_client = { workspace = true }
+tari_dan_wallet_sdk = { workspace = true }
 tari_dan_engine = { workspace = true }
 tari_engine_types = { workspace = true }
 tari_template_lib = { workspace = true }

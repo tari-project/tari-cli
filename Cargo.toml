@@ -21,7 +21,13 @@ tari_core = { git = "https://github.com/tari-project/tari.git", branch = "featur
 tari_common_types = { git = "https://github.com/tari-project/tari.git", branch = "feature-dan2" }
 minotari_app_grpc = { git = "https://github.com/tari-project/tari.git", branch = "feature-dan2" }
 
-tari_wallet_daemon_client = { git = "https://github.com/tari-project/tari-dan.git", branch = "development" }
-tari_dan_engine = { git = "https://github.com/tari-project/tari-dan.git", branch = "development" }
-tari_engine_types = { git = "https://github.com/tari-project/tari-dan.git", branch = "development" }
-tari_template_lib = { git = "https://github.com/tari-project/tari-dan.git", branch = "development" }
+#tari_wallet_daemon_client = { git = "https://github.com/tari-project/tari-dan.git", branch = "development" }
+#tari_dan_engine = { git = "https://github.com/tari-project/tari-dan.git", branch = "development" }
+#tari_engine_types = { git = "https://github.com/tari-project/tari-dan.git", branch = "development" }
+#tari_template_lib = { git = "https://github.com/tari-project/tari-dan.git", branch = "development" }
+#tari_dan_wallet_sdk = { git = "https://github.com/tari-project/tari-dan.git", branch = "development" }
+tari_wallet_daemon_client = { git = "https://github.com/ksrichard/tari-dan.git", branch = "feature/wallet-daemon-client-publish-template" }
+tari_dan_engine = { git = "https://github.com/ksrichard/tari-dan.git", branch = "feature/wallet-daemon-client-publish-template" }
+tari_engine_types = { git = "https://github.com/ksrichard/tari-dan.git", branch = "feature/wallet-daemon-client-publish-template" }
+tari_template_lib = { git = "https://github.com/ksrichard/tari-dan.git", branch = "feature/wallet-daemon-client-publish-template" }
+tari_dan_wallet_sdk = { git = "https://github.com/ksrichard/tari-dan.git", branch = "feature/wallet-daemon-client-publish-template" }
