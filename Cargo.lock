@@ -5008,7 +5008,6 @@ dependencies = [
  "hickory-proto",
  "serde",
  "tari_dan_engine",
- "tari_dan_wallet_sdk",
  "tari_engine_types",
  "tari_template_lib",
  "tari_wallet_daemon_client",
