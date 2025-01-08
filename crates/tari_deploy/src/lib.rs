@@ -6,7 +6,6 @@
 mod config;
 pub mod deployer;
 mod error;
-pub mod uploader;
 
 pub use config::*;
 pub use error::Error as DeployerError;

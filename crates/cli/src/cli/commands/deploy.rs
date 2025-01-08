@@ -7,14 +7,13 @@ use crate::{loading, project};
 use anyhow::anyhow;
 use cargo_toml::Manifest;
 use clap::Parser;
-use dialoguer::{Confirm, Input};
+use dialoguer::Confirm;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::str::FromStr;
-use tari_core::transactions::tari_amount::MicroMinotari;
-use tari_deploy::deployer::TemplateDeployer;
-use tari_deploy::uploader::LocalSwarmUploader;
+use tari_deploy::deployer::{Template, TemplateDeployer, TOKEN_SYMBOL};
 use tari_deploy::NetworkConfig;
+use tari_wallet_daemon_client::ComponentAddressOrName;
 use tokio::fs;
 use tokio::process::Command;
 
@@ -24,10 +23,14 @@ pub struct DeployArgs {
     #[arg()]
     pub template: String,
 
-    /// Tari DAN network
+    /// Tari Ootle network
     #[clap(value_enum, default_value_t=Network::Local)]
     #[arg(short = 'n', long)]
     pub network: Network,
+
+    /// Account to be used for deployment fees.
+    #[arg(short = 'a', long)]
+    pub account: String,
 
     /// (Optional) Custom network name.
     /// Custom network name set in project config.
@@ -40,17 +43,12 @@ pub struct DeployArgs {
     #[arg(short = 'y', long, default_value_t = false)]
     pub yes: bool,
 
-    /// (Optional) Fee/gr
-    /// Fee per gram is a fee multiplier that is used to calculate fee of deployment transaction.
+    /// (Optional) Maximum fee
+    /// Maximum fee applied to the deployment.
     ///
-    /// The higher the fee/gr, the higher chance that this transaction will be processed sooner,
-    /// but of course the transaction will cost more.
-    ///
-    /// Please note that the value is in Micro-XTM!
-    ///
-    /// Prompted if not set.
+    /// Automatically adjusted to estimated fee if not set.
     #[arg(short = 'f', long)]
-    pub fee_per_gram: Option<u64>,
+    pub max_fee: Option<u64>,
 
     /// Project folder where we have the project configuration file (tari.config.toml).
     #[arg(long, value_name = "PATH", default_value = crate::cli::arguments::default_target_dir().into_os_string()
@@ -101,62 +99,23 @@ pub async fn handle(args: &DeployArgs) -> anyhow::Result<()> {
         build_project(&project_dir, project_name.clone()).await
     )?;
 
-    // init template deployer
-    // TODO: implement and use uploaders for the remaining networks
-    let uploader = match args.network {
-        Network::MainNet | Network::TestNet | Network::Custom | Network::Local => {
-            LocalSwarmUploader::new(network_config.uploader_endpoint().clone())
-        }
-    };
-    let deployer = TemplateDeployer::new(network_config, uploader);
-
-    // confirmation
-    if !args.yes {
-        let confirmation = Confirm::new()
-            .with_prompt("❓Deploying a template costs some μT, are you sure to continue?")
-            .interact()?;
-        if !confirmation {
-            return Err(anyhow!("💥 Deployment aborted!"));
-        }
-    }
-
-    // fee/gr
-    let fee_per_gram = match args.fee_per_gram {
-        Some(value) => MicroMinotari::from(value),
-        None => MicroMinotari::from_str(
-            Input::new()
-                .with_prompt("Fee/g (the higher, the faster the transaction, but costs more)")
-                .validate_with(|input: &String| -> Result<(), &str> {
-                    match MicroMinotari::from_str(input) {
-                        Ok(_) => Ok(()),
-                        Err(_) => Err("Fee/g must be a positive integer!"),
-                    }
-                })
-                .default("5".to_string())
-                .interact()?
-                .as_str(),
-        )?,
-    };
-
-    // upload template
-    let deploy_params = loading!(
-        "Uploading template",
-        deployer.upload_template(&template_bin).await
-    )?;
+    // template deployer
+    let deployer = TemplateDeployer::new(network_config);
+    let account = ComponentAddressOrName::from_str(args.account.as_str())?;
+    let template = Template::Path { path: template_bin };
 
     // check balance
     deployer
-        .check_balance_to_deploy(deploy_params.clone(), fee_per_gram)
+        .check_balance_to_deploy(&account, &template)
         .await?;
 
+    let max_fee = deployer.publish_fee(&account, &template).await?;
+
     if !args.yes {
-        let fee = deployer
-            .registration_fee(deploy_params.clone(), fee_per_gram)
-            .await?;
         let confirmation = Confirm::new()
             .with_prompt(format!(
-                "❓Deploying this template costs {} (estimated), are you sure to continue?",
-                fee
+                "❓Deploying this template costs {} {TOKEN_SYMBOL} (estimated), are you sure to continue?",
+                max_fee
             ))
             .interact()?;
         if !confirmation {
@@ -170,7 +129,7 @@ pub async fn handle(args: &DeployArgs) -> anyhow::Result<()> {
             "Deploying project \"{}\" to {} network",
             project_name, args.network
         ),
-        deployer.deploy(deploy_params, fee_per_gram).await
+        deployer.deploy(&account, template, max_fee, None).await
     )?;
 
     println!("⭐ Your new template's address: {}", template_address);
