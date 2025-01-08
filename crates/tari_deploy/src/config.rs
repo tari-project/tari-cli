@@ -13,9 +13,7 @@ pub struct NetworkConfig {
 }
 
 impl NetworkConfig {
-    pub fn new(
-        wallet_daemon_jrpc_address: Url,
-    ) -> Self {
+    pub fn new(wallet_daemon_jrpc_address: Url) -> Self {
         Self {
             wallet_daemon_jrpc_address,
         }

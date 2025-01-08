@@ -24,7 +24,7 @@ pub enum Error {
     InsufficientBalance(u64, u64),
     #[error("Waiting for transaction timed out! Transaction ID: {0}")]
     WaitForTransactionTimeout(String),
-    #[error("Invalid transaction: {0}. Reason: {1}")]
+    #[error("Invalid transaction: {0}!\n{1}")]
     InvalidTransaction(String, String),
     #[error("Missing transaction result: {0}")]
     MissingTransactionResult(String),

@@ -7,11 +7,10 @@ use crate::{loading, project};
 use anyhow::anyhow;
 use cargo_toml::Manifest;
 use clap::Parser;
-use dialoguer::{Confirm, Input};
+use dialoguer::Confirm;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::str::FromStr;
-use tari_core::transactions::tari_amount::MicroMinotari;
 use tari_deploy::deployer::{Template, TemplateDeployer, TOKEN_SYMBOL};
 use tari_deploy::NetworkConfig;
 use tari_wallet_daemon_client::ComponentAddressOrName;
@@ -100,55 +99,23 @@ pub async fn handle(args: &DeployArgs) -> anyhow::Result<()> {
         build_project(&project_dir, project_name.clone()).await
     )?;
 
-    // init template deployer
+    // template deployer
     let deployer = TemplateDeployer::new(network_config);
-
-    // confirmation
-    if !args.yes {
-        let confirmation = Confirm::new()
-            .with_prompt(format!("❓Deploying a template costs some {TOKEN_SYMBOL}, are you sure to continue?"))
-            .interact()?;
-        if !confirmation {
-            return Err(anyhow!("💥 Deployment aborted!"));
-        }
-    }
-
-    // TODO: instead of prompting max fee, just get publish fee and set it as max fee
-
-    // max fee
-    let max_fee = match args.max_fee {
-        Some(value) => value,
-        None => u64::from_str(
-            Input::new()
-                .with_prompt("Maximum fee")
-                .validate_with(|input: &String| -> Result<(), &str> {
-                    match MicroMinotari::from_str(input) {
-                        Ok(_) => Ok(()),
-                        Err(_) => Err("Maximum fee must be a positive integer!"),
-                    }
-                })
-                .default("200000".to_string())
-                .interact()?
-                .as_str(),
-        )?,
-    };
-
     let account = ComponentAddressOrName::from_str(args.account.as_str())?;
     let template = Template::Path { path: template_bin };
 
     // check balance
     deployer
-        .check_balance_to_deploy(&account, &template, max_fee)
+        .check_balance_to_deploy(&account, &template)
         .await?;
 
+    let max_fee = deployer.publish_fee(&account, &template).await?;
+
     if !args.yes {
-        let fee = deployer
-            .publish_fee(&account, &template, max_fee)
-            .await?;
         let confirmation = Confirm::new()
             .with_prompt(format!(
                 "❓Deploying this template costs {} {TOKEN_SYMBOL} (estimated), are you sure to continue?",
-                fee
+                max_fee
             ))
             .interact()?;
         if !confirmation {
@@ -162,7 +129,7 @@ pub async fn handle(args: &DeployArgs) -> anyhow::Result<()> {
             "Deploying project \"{}\" to {} network",
             project_name, args.network
         ),
-        deployer.deploy(&account, template, max_fee).await
+        deployer.deploy(&account, template, max_fee, None).await
     )?;
 
     println!("⭐ Your new template's address: {}", template_address);

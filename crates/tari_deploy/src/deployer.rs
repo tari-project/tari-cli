@@ -7,13 +7,16 @@ use std::path::PathBuf;
 use std::time::Duration;
 use tari_dan_engine::template::LoadedTemplate;
 use tari_dan_engine::wasm::WasmModule;
-use tari_dan_wallet_sdk::models::TransactionStatus;
 use tari_engine_types::commit_result::TransactionResult;
 use tari_engine_types::hashing::template_hasher32;
 use tari_engine_types::substate::SubstateId;
+use tari_template_lib::constants::XTR;
 use tari_template_lib::prelude::TemplateAddress;
 use tari_template_lib::Hash;
-use tari_wallet_daemon_client::types::{AccountsGetBalancesRequest, AuthLoginAcceptRequest, AuthLoginRequest, AuthLoginResponse, PublishTemplateRequest, TransactionWaitResultRequest};
+use tari_wallet_daemon_client::types::{
+    AccountsGetBalancesRequest, AuthLoginAcceptRequest, AuthLoginRequest, AuthLoginResponse,
+    PublishTemplateRequest, TransactionWaitResultRequest,
+};
 use tari_wallet_daemon_client::{ComponentAddressOrName, WalletDaemonClient};
 use tokio::fs;
 
@@ -47,12 +50,17 @@ impl TemplateDeployer {
         account: &ComponentAddressOrName,
         template: Template,
         max_fee: u64,
+        wait_timeout: Option<Duration>,
     ) -> Result<TemplateAddress> {
         let publish_template_request = self
             .publish_template_request(account, &template, max_fee)
             .await?;
-        self.check_balance_to_deploy(account, &template, max_fee).await?;
-        self.publish_template(publish_template_request, Some(Duration::from_secs(120))).await
+        self.check_balance_to_deploy(account, &template).await?;
+        self.publish_template(
+            publish_template_request,
+            wait_timeout.or(Some(Duration::from_secs(120))),
+        )
+        .await
     }
 
     /// Get publish fee.
@@ -61,20 +69,22 @@ impl TemplateDeployer {
         &self,
         account: &ComponentAddressOrName,
         template: &Template,
-        max_fee: u64,
     ) -> Result<u64> {
-        let request = self
-            .publish_template_request(account, template, max_fee)
+        let mut request = self
+            .publish_template_request(account, template, 1_000_000)
             .await?;
-        self.get_publish_fee(request).await
+        self.get_publish_fee(&mut request).await
     }
 
-    async fn get_publish_fee(
-        &self,
-        request: PublishTemplateRequest,
-    ) -> Result<u64> {
+    /// Get publish fee based on a [`PublishTemplateRequest`].
+    async fn get_publish_fee(&self, request: &mut PublishTemplateRequest) -> Result<u64> {
         let mut client = self.wallet_daemon_client().await?;
-        // TODO: implement
+        request.dry_run = true;
+        let response = client.publish_template(request).await?;
+        if let Some(fee) = response.dry_run_fee {
+            return Ok(fee.value() as u64);
+        }
+
         Ok(0)
     }
 
@@ -83,14 +93,12 @@ impl TemplateDeployer {
         &self,
         account: &ComponentAddressOrName,
         template: &Template,
-        max_fee: u64,
     ) -> Result<()> {
-        let request = self
-            .publish_template_request(account, template, max_fee)
+        let mut request = self
+            .publish_template_request(account, template, 1_000_000)
             .await?;
+        let fee = self.get_publish_fee(&mut request).await?;
         let wallet_balance = self.wallet_balance(account).await?;
-
-        let fee = self.get_publish_fee(request).await?;
         if fee > wallet_balance {
             return Err(Error::InsufficientBalance(wallet_balance, fee));
         }
@@ -104,27 +112,36 @@ impl TemplateDeployer {
         tx_finalize_timeout: Option<Duration>,
     ) -> Result<TemplateAddress> {
         let mut client = self.wallet_daemon_client().await?;
-        let response = client
-            .publish_template(request)
+        let response = client.publish_template(request).await?;
+
+        let tx_resp = client
+            .wait_transaction_result(TransactionWaitResultRequest {
+                transaction_id: response.transaction_id,
+                timeout_secs: tx_finalize_timeout.map(|duration| duration.as_secs()),
+            })
             .await?;
 
-        let tx_resp = client.wait_transaction_result(
-            TransactionWaitResultRequest {
-                transaction_id: response.transaction_id,
-                timeout_secs: tx_finalize_timeout.map(|duration| { duration.as_secs() }),
-            }).await?;
-
         if tx_resp.timed_out {
-            return Err(Error::WaitForTransactionTimeout(response.transaction_id.to_string()));
+            return Err(Error::WaitForTransactionTimeout(
+                response.transaction_id.to_string(),
+            ));
         }
 
-        if !matches!(tx_resp.status, TransactionStatus::Accepted) {
-            return Err(Error::InvalidTransaction(response.transaction_id.to_string(), tx_resp.status.to_string()));
-        }
-
-        let finalize_result = tx_resp.result.ok_or(Error::MissingTransactionResult(response.transaction_id.to_string()))?;
+        let finalize_result = tx_resp.result.ok_or(Error::MissingTransactionResult(
+            response.transaction_id.to_string(),
+        ))?;
         if !matches!(finalize_result.result, TransactionResult::Accept(_)) {
-            return Err(Error::InvalidTransaction(response.transaction_id.to_string(), tx_resp.status.to_string()));
+            let error_status = match finalize_result.result {
+                TransactionResult::AcceptFeeRejectRest(_, reason)
+                | TransactionResult::Reject(reason) => {
+                    format!("⚠️ Status: {}\n⚠️ Reason: {}", tx_resp.status, reason)
+                }
+                TransactionResult::Accept(_) => String::new(), // does not happen here
+            };
+            return Err(Error::InvalidTransaction(
+                response.transaction_id.to_string(),
+                error_status,
+            ));
         }
 
         // look for the new UP template substate
@@ -174,17 +191,17 @@ impl TemplateDeployer {
     /// Get available wallet balance.
     async fn wallet_balance(&self, account: &ComponentAddressOrName) -> Result<u64> {
         let mut client = self.wallet_daemon_client().await?;
-        let balances_response = client.get_account_balances(AccountsGetBalancesRequest {
-            account: Some(account.clone()),
-            refresh: false,
-        }).await?;
+        let balances_response = client
+            .get_account_balances(AccountsGetBalancesRequest {
+                account: Some(account.clone()),
+                refresh: false,
+            })
+            .await?;
         let mut account_balance = 0u64;
         for entry in balances_response.balances {
-            if let Some(symbol) = entry.token_symbol {
-                if symbol.eq(TOKEN_SYMBOL) {
-                    account_balance = entry.balance.value() as u64;
-                    break;
-                }
+            if entry.resource_address == XTR {
+                account_balance = entry.balance.value() as u64;
+                break;
             }
         }
 

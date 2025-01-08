@@ -32,9 +32,7 @@ impl Default for Config {
         Self {
             networks: HashMap::from([(
                 arguments::Network::Local.to_string(),
-                NetworkConfig::new(
-                    Url::parse("http://127.0.0.1:12009").unwrap(),
-                ),
+                NetworkConfig::new(Url::parse("http://127.0.0.1:12009").unwrap()),
             )]),
         }
     }
