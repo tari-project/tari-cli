@@ -1,7 +1,6 @@
 // Copyright 2024 The Tari Project
 // SPDX-License-Identifier: BSD-3-Clause
 
-use crate::cli::arguments::Network;
 use crate::cli::util;
 use crate::{loading, project};
 use anyhow::anyhow;
@@ -12,7 +11,6 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::str::FromStr;
 use tari_deploy::deployer::{Template, TemplateDeployer, TOKEN_SYMBOL};
-use tari_deploy::NetworkConfig;
 use tari_wallet_daemon_client::ComponentAddressOrName;
 use tokio::fs;
 use tokio::process::Command;
@@ -22,11 +20,6 @@ pub struct DeployArgs {
     /// Template project to deploy
     #[arg()]
     pub template: String,
-
-    /// Tari Ootle network
-    #[clap(value_enum, default_value_t=Network::Local)]
-    #[arg(short = 'n', long)]
-    pub network: Network,
 
     /// Account to be used for deployment fees.
     #[arg(short = 'a', long)]
@@ -59,14 +52,6 @@ pub struct DeployArgs {
 pub async fn handle(args: &DeployArgs) -> anyhow::Result<()> {
     // load network config from project config file
     let project_config = load_project_config(&args.project_folder).await?;
-    let network_config = if args.network == Network::Custom {
-        match &args.custom_network {
-            Some(custom_network) => network_config(&project_config, custom_network),
-            None => Err(anyhow!("No custom network name provided!")),
-        }
-    } else {
-        network_config(&project_config, args.network.to_string().as_str())
-    }?;
 
     // lookup project name and dir
     let mut project_dir = None;
@@ -95,12 +80,12 @@ pub async fn handle(args: &DeployArgs) -> anyhow::Result<()> {
 
     // build
     let template_bin = loading!(
-        format!("Building WASM template project \"{}\"", project_name),
+        format!("Building WASM template project **{}**", project_name),
         build_project(&project_dir, project_name.clone()).await
     )?;
 
     // template deployer
-    let deployer = TemplateDeployer::new(network_config);
+    let deployer = TemplateDeployer::new(project_config.network().clone());
     let account = ComponentAddressOrName::from_str(args.account.as_str())?;
     let template = Template::Path { path: template_bin };
 
@@ -125,10 +110,7 @@ pub async fn handle(args: &DeployArgs) -> anyhow::Result<()> {
 
     // deploy
     let template_address = loading!(
-        format!(
-            "Deploying project \"{}\" to {} network",
-            project_name, args.network
-        ),
+        format!("Deploying project **{}**...", project_name),
         deployer.deploy(&account, template, max_fee, None).await
     )?;
 
@@ -171,16 +153,6 @@ async fn build_project(dir: &Path, name: String) -> anyhow::Result<PathBuf> {
     }
 
     Ok(output_bin)
-}
-
-fn network_config(
-    project_config: &project::Config,
-    network: &str,
-) -> anyhow::Result<NetworkConfig> {
-    match project_config.find_network_config(network) {
-        Some(found_network) => Ok(found_network.clone()),
-        None => Err(anyhow!("Network not found in project config: {}", network)),
-    }
 }
 
 async fn load_project_config(project_folder: &Path) -> anyhow::Result<project::Config> {

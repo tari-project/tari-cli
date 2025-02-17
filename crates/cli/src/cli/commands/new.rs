@@ -44,7 +44,7 @@ pub async fn handle(
 ) -> anyhow::Result<()> {
     // selecting wasm template
     let templates = loading!(
-        "Collecting available WASM templates",
+        "Collecting available **WASM** templates",
         Collector::new(
             wasm_template_repo
                 .local_folder()
@@ -110,7 +110,7 @@ pub async fn handle(
             args.name.to_string()
         };
         loading!(
-            "Update Cargo.toml",
+            "Update **Cargo.toml**",
             update_cargo_toml(&cargo_toml_file, project_name).await
         )?;
     } else {
