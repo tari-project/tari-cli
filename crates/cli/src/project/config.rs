@@ -27,7 +27,7 @@ impl Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            network: NetworkConfig::new(Url::parse("http://127.0.0.1:12009").unwrap()),
+            network: NetworkConfig::new(Url::parse("http://127.0.0.1:9000").unwrap()),
         }
     }
 }
