@@ -83,6 +83,9 @@ jobs:
       - name: Install cargo-lints
         run: cargo install cargo-lints
 
+      - name: check rust version
+        run: rustup --version
+
       - name: Clippy check (with lints)
         run: cargo lints clippy --all-targets --all-features
 
