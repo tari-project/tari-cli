@@ -113,7 +113,7 @@ jobs:
 
   build:
     name: check nightly
-    runs-on: [ self-hosted, ubuntu-latest ]
+    runs-on: [ ubuntu-latest ]
 
     steps:
       - name: checkout
