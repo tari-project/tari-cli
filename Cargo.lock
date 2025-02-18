@@ -563,6 +563,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "cargo_toml"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5fbd1fe9db3ebf71b89060adaf7b0504c2d6a425cf061313099547e382c2e472"
+dependencies = [
+ "serde",
+ "toml 0.8.20",
+]
+
+[[package]]
 name = "cc"
 version = "1.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4758,7 +4768,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "cargo-generate",
- "cargo_toml",
+ "cargo_toml 0.21.0",
  "clap 4.5.29",
  "convert_case",
  "dialoguer",
@@ -4812,7 +4822,7 @@ version = "1.7.0-pre.3"
 source = "git+https://github.com/tari-project/tari.git?branch=feature-dan2#2c16abe22556cafa458b88a0f7546c740ab73fed"
 dependencies = [
  "anyhow",
- "cargo_toml",
+ "cargo_toml 0.20.5",
  "config",
  "dirs-next 1.0.2",
  "log",
@@ -4925,7 +4935,7 @@ source = "git+https://github.com/tari-project/tari-dan.git?branch=development#9a
 dependencies = [
  "anyhow",
  "blake2",
- "cargo_toml",
+ "cargo_toml 0.20.5",
  "d3ne",
  "indexmap 2.7.1",
  "log",
