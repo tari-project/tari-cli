@@ -84,7 +84,7 @@ jobs:
         run: cargo install cargo-lints
 
       - name: Clippy check (with lints)
-        run: rustup --version && cargo lints clippy --all-targets --all-features
+        run: cargo lints clippy --all-targets --all-features
 
   machete:
     # Checks for unused dependencies.
