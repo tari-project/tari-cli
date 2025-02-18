@@ -87,3 +87,103 @@ impl Collector {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+    use std::path::Path;
+    use tempdir::TempDir;
+
+    struct TemplateToGenerate<'a> {
+        name: &'a str,
+        description: &'a str,
+        extra: Option<HashMap<String, String>>,
+    }
+
+    impl<'a> TemplateToGenerate<'a> {
+        pub fn new(
+            name: &'a str,
+            description: &'a str,
+            extra: Option<HashMap<String, String>>,
+        ) -> Self {
+            Self {
+                name,
+                description,
+                extra,
+            }
+        }
+    }
+
+    async fn generate_template(dir: &Path, template: &TemplateToGenerate<'_>) -> PathBuf {
+        let template_dir = dir.join(template.name);
+        fs::create_dir_all(template_dir.clone()).await.unwrap();
+        let extra_str = if let Some(extra) = &template.extra {
+            let values = extra.iter().fold(String::new(), |mut value, (k, v)| {
+                value.push_str(format!("{} = \"{}\"\n", k, v).as_str());
+                value
+            });
+            format!(
+                r#"
+            [extra]
+            {}
+            "#,
+                values
+            )
+        } else {
+            String::default()
+        };
+        let template_toml = format!(
+            r#"
+        name = "{}"
+        description = "{}"
+        
+        {}
+        "#,
+            template.name, template.description, extra_str
+        );
+        fs::write(
+            template_dir.join(TEMPLATE_DESCRIPTOR_FILE_NAME),
+            template_toml,
+        )
+        .await
+        .unwrap();
+        template_dir
+    }
+
+    #[tokio::test]
+    async fn test_collect() {
+        let temp_dir = TempDir::new("tari_cli_test_collect_templates").unwrap();
+        let temp_dir_path = temp_dir.path().to_path_buf();
+        let templates_to_generate = vec![
+            TemplateToGenerate::new("template1", "description1", None),
+            TemplateToGenerate::new("template2", "description2", None),
+            TemplateToGenerate::new(
+                "template3",
+                "description3",
+                Some(HashMap::from([(
+                    "templates_dir".to_string(),
+                    "templates".to_string(),
+                )])),
+            ),
+        ];
+        for template in &templates_to_generate {
+            generate_template(&temp_dir_path, template).await;
+        }
+
+        let collector = Collector::new(temp_dir_path);
+        let result = collector.collect().await;
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert_eq!(result.len(), templates_to_generate.len());
+
+        // assert all templates existence
+        for template in &templates_to_generate {
+            assert!(result.iter().any(|curr_template| {
+                curr_template.name() == template.name
+                    && curr_template.description() == template.description
+            }));
+        }
+    }
+}
