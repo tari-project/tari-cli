@@ -180,10 +180,21 @@ mod tests {
 
         // assert all templates existence
         for template in &templates_to_generate {
-            assert!(result.iter().any(|curr_template| {
-                curr_template.name() == template.name
-                    && curr_template.description() == template.description
-            }));
+            match &template.extra {
+                Some(extra) => {
+                    assert!(result.iter().any(|curr_template| {
+                        curr_template.name() == template.name
+                            && curr_template.description() == template.description
+                            && curr_template.extra().eq(extra)
+                    }));
+                }
+                None => {
+                    assert!(result.iter().any(|curr_template| {
+                        curr_template.name() == template.name
+                            && curr_template.description() == template.description
+                    }));
+                }
+            }
         }
     }
 }
