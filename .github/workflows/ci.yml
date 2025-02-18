@@ -21,7 +21,7 @@ concurrency:
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/v') || github.ref != 'refs/heads/development' }}
 
 env:
-  nightly_toolchain: nightly-2025-01-09
+  nightly_toolchain: nightly
   stable_toolchain: 1.84.0
   CARGO_HTTP_MULTIPLEXING: false
   CARGO_TERM_COLOR: always
@@ -120,7 +120,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: toolchain
-        uses: dtolnay/rust-toolchain@${{ env.nightly_toolchain }}
+        uses: dtolnay/rust-toolchain@nightly
         with:
           toolchain: ${{ env.nightly_toolchain }}
 
