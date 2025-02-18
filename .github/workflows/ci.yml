@@ -21,7 +21,7 @@ concurrency:
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/v') || github.ref != 'refs/heads/development' }}
 
 env:
-  nightly_toolchain: nightly
+  nightly_toolchain: nightly-2025-01-09
   stable_toolchain: 1.84.0
   CARGO_HTTP_MULTIPLEXING: false
   CARGO_TERM_COLOR: always
@@ -113,7 +113,7 @@ jobs:
 
   build:
     name: check nightly
-    runs-on: [ self-hosted, ubuntu-high-cpu ]
+    runs-on: [ self-hosted, ubuntu-latest ]
 
     steps:
       - name: checkout
