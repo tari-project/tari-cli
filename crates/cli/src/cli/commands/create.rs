@@ -3,10 +3,12 @@
 
 use std::path::PathBuf;
 
+use crate::cli::commands::new;
+use crate::cli::commands::new::NewArgs;
 use crate::{
     cli::{config::Config, util},
     git::repository::GitRepository,
-    loading, project,
+    loading, md_println, project,
     templates::Collector,
 };
 use anyhow::anyhow;
@@ -16,6 +18,7 @@ use thiserror::Error;
 use tokio::fs;
 
 const PROJECT_TEMPLATE_EXTRA_TEMPLATES_FIELD_NAME: &str = "templates_dir";
+const PROJECT_TEMPLATE_EXTRA_INIT_WASM_TEMPLATES_FIELD_NAME: &str = "wasm_templates";
 
 #[derive(Clone, Parser, Debug)]
 pub struct CreateArgs {
@@ -45,6 +48,7 @@ pub enum CreateHandlerError {
 pub async fn handle(
     config: Config,
     project_template_repo: GitRepository,
+    wasm_template_repo: GitRepository,
     args: &CreateArgs,
 ) -> anyhow::Result<()> {
     // selecting project template
@@ -53,7 +57,7 @@ pub async fn handle(
         Collector::new(
             project_template_repo
                 .local_folder()
-                .join(config.project_template_repository.folder)
+                .join(config.project_template_repository.folder.clone()),
         )
         .collect()
         .await
@@ -115,6 +119,29 @@ pub async fn handle(
         toml::to_string(&project::Config::default())?,
     )
     .await?;
+
+    // init wasm templates if set
+    if let Some(wasm_templates) = template
+        .extra()
+        .get(PROJECT_TEMPLATE_EXTRA_INIT_WASM_TEMPLATES_FIELD_NAME)
+    {
+        let wasm_templates = wasm_templates.replace(" ", "");
+        let wasm_template_names = wasm_templates.split(',').collect::<Vec<_>>();
+        for wasm_template_name in wasm_template_names {
+            let wasm_template_repo = GitRepository::new(wasm_template_repo.local_folder().clone());
+            md_println!("\n⚙️ Generating WASM project: **{}**", wasm_template_name);
+            new::handle(
+                config.clone(),
+                wasm_template_repo,
+                &NewArgs {
+                    name: wasm_template_name.to_string(),
+                    template: Some(wasm_template_name.to_string()),
+                    target: final_path.clone(),
+                },
+            )
+            .await?;
+        }
+    }
 
     // git init
     let mut new_repo = GitRepository::new(final_path);

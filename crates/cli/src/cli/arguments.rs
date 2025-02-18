@@ -17,10 +17,9 @@ use crate::{
 use anyhow::anyhow;
 use clap::{
     builder::{styling::AnsiColor, Styles},
-    Parser, Subcommand, ValueEnum,
+    Parser, Subcommand,
 };
 use convert_case::{Case, Casing};
-use std::fmt::{Display, Formatter};
 use std::{env, path::PathBuf};
 
 const DEFAULT_DATA_FOLDER_NAME: &str = "tari_cli";
@@ -117,25 +116,6 @@ pub struct Cli {
 
     #[command(subcommand)]
     command: Commands,
-}
-
-#[derive(Clone, ValueEnum, Debug, PartialEq)]
-#[clap(rename_all = "snake_case")]
-pub enum Network {
-    /// Local network
-    Local,
-    /// Main network
-    MainNet,
-    /// Test network
-    TestNet,
-    /// Custom network
-    Custom,
-}
-
-impl Display for Network {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", format!("{:?}", self).to_case(Case::Snake))
-    }
 }
 
 #[derive(Clone, Subcommand)]
@@ -256,7 +236,9 @@ impl Cli {
         )?;
 
         match &self.command {
-            Commands::Create { args } => create::handle(config, project_template_repo, args).await,
+            Commands::Create { args } => {
+                create::handle(config, project_template_repo, wasm_template_repo, args).await
+            }
             Commands::New { args } => new::handle(config, wasm_template_repo, args).await,
             Commands::Deploy { args } => deploy::handle(args).await,
         }
