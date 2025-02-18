@@ -25,7 +25,7 @@ You can download latest binary from [Releases](https://github.com/tari-project/t
   URL** (in `project_dir/tari.config.toml`).
     - Example:
       ```toml
-      [networks.local]
+      [network]
       wallet-daemon-jrpc-address = "http://127.0.0.1:12009/"
       ```
 

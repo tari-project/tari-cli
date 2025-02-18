@@ -6,7 +6,7 @@ use std::{collections::HashMap, fmt::Display, path::PathBuf};
 use serde::{Deserialize, Serialize};
 use termimad::{crossterm::style::Color, MadSkin};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Template {
     path: PathBuf,
     id: String,
@@ -58,6 +58,10 @@ impl Template {
 
     pub fn extra(&self) -> &HashMap<String, String> {
         &self.extra
+    }
+
+    pub fn description(&self) -> &str {
+        &self.description
     }
 }
 
