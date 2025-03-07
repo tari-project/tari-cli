@@ -218,6 +218,7 @@ impl TemplateDeployer {
             .auth_request(AuthLoginRequest {
                 permissions: vec!["Admin".to_string()],
                 duration: None,
+                webauthn_finish_auth_request: None,
             })
             .await?;
         let auth_response = client
