@@ -3,7 +3,7 @@
 
 use std::io;
 use tari_dan_engine::template::TemplateLoaderError;
-use tari_template_lib::HashParseError;
+use tari_template_lib::types::HashParseError;
 use tari_wallet_daemon_client::error::WalletDaemonClientError;
 use thiserror::Error;
 
