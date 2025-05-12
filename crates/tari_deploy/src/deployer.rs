@@ -12,7 +12,7 @@ use tari_engine_types::hashing::template_hasher32;
 use tari_engine_types::substate::SubstateId;
 use tari_template_lib::constants::XTR;
 use tari_template_lib::prelude::TemplateAddress;
-use tari_template_lib::Hash;
+use tari_template_lib::types::Hash;
 use tari_wallet_daemon_client::types::{
     AccountsGetBalancesRequest, AuthLoginAcceptRequest, AuthLoginRequest, AuthLoginResponse,
     PublishTemplateRequest, TransactionWaitResultRequest,

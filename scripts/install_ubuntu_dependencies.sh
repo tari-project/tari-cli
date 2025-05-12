@@ -8,6 +8,7 @@ apt-get install --no-install-recommends --assume-yes \
   gpg \
   openssl \
   libssl-dev \
+  libdbus-1-dev \
   pkg-config \
   libsqlite3-dev \
   git \
