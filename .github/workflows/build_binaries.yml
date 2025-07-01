@@ -11,34 +11,38 @@ on:
   schedule:
     - cron: "05 00 * * *"
   workflow_dispatch:
-    inputs:
-      customTag:
-        description: "Development Tag"
-        required: true
-        default: "development-tag"
 
 env:
-  ## Must be a JSon string
-  TS_FILES: '["tari"]'
-  TS_FILENAME: "tari"
-  TS_FEATURES: ""
-  TS_LIBRARIES: "tari-cli"
+  TS_FILENAME: "tari-cli"
+  TS_BUNDLE_ID_BASE: "com.tari.cli.pkg"
+  TS_SIG_FN: "sha256-unsigned.txt"
+  ## Must be a JSON string
+  TS_FILES: '["tari-cli"]'
+  TS_FEATURES: "default"
+  TS_LIBRARIES: ""
+  TS_DESCRIPTION: "Tari Ootle Cli"
+  TS_URL: "https://tari.com"
+  # For debug builds
+  # TS_BUILD: "debug"
+  TS_BUILD: "release"
   TARI_TARGET_NETWORK: igor
   TARI_NETWORK: igor
-  toolchain: 1.82
+  toolchain: 1.82.0
   matrix-json-file: ".github/workflows/build_binaries.json"
   CARGO_HTTP_MULTIPLEXING: false
   CARGO_UNSTABLE_SPARSE_REGISTRY: true
   CARGO: cargo
-  CARGO_OPTIONS: "--release"
+  CARGO_OPTIONS: "--locked"
   CARGO_CACHE: true
+  RUSTUP_PERMIT_COPY_RENAME: true
 
 concurrency:
   # https://docs.github.com/en/actions/examples/using-concurrency-expressions-and-a-test-matrix
   group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/v') || github.ref != 'refs/heads/development' || github.ref != 'refs/heads/nextnet' || github.ref != 'refs/heads/stagenet' }}
 
-permissions: { }
+permissions:
+  contents: read
 
 jobs:
   matrix-prep:
@@ -47,8 +51,6 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: false
 
       - name: Set Matrix
         id: set-matrix
@@ -90,10 +92,10 @@ jobs:
   builds:
     name: Building ${{ matrix.builds.name }} on ${{ matrix.builds.runs-on }}
     needs: matrix-prep
-    continue-on-error: ${{ matrix.builds.best_effort || false }}
+    continue-on-error: ${{ startsWith(github.ref, 'refs/tags/') || matrix.builds.best_effort || false }}
     outputs:
-      TARI_NETWORK_DIR: ${{ steps.set-tari-network.outputs.TARI_NETWORK_DIR }}
-      TARI_CLI_VERSION: ${{ steps.set-tari-vars.outputs.TARI_CLI_VERSION }}
+      TARI_VERSION: ${{ steps.set-tari-vars.outputs.TARI_VERSION }}
+      VSHA_SHORT: ${{ steps.set-tari-vars.outputs.VSHA_SHORT }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.matrix-prep.outputs.matrix) }}
@@ -106,35 +108,19 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Declare TestNet for tags
-        id: set-tari-network
-        # Don't forget to comment out the below if, when force testing with GHA_NETWORK
-        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-        env:
-          GHA_NETWORK: ${{ github.ref_name }}
-          # GHA_NETWORK: "v1.0.0-rc.4"
-        shell: bash
-        run: |
-          source buildtools/multinet_envs.sh ${{ env.GHA_NETWORK }}
-          echo ${TARI_NETWORK}
-          echo ${TARI_TARGET_NETWORK}
-          echo ${TARI_NETWORK_DIR}
-          echo "TARI_NETWORK=${TARI_NETWORK}" >> $GITHUB_ENV
-          echo "TARI_TARGET_NETWORK=${TARI_TARGET_NETWORK}" >> $GITHUB_ENV
-          echo "TARI_NETWORK_DIR=${TARI_NETWORK_DIR}" >> $GITHUB_ENV
-          echo "TARI_NETWORK_DIR=${TARI_NETWORK_DIR}" >> $GITHUB_OUTPUT
-
       - name: Declare Global Variables 4 GHA ${{ github.event_name }}
         id: set-tari-vars
         shell: bash
         run: |
           echo "VBRANCH=${{ github.ref_name }}" >> $GITHUB_ENV
-          echo "VSHA_SHORT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-          TARI_CLI_VERSION=$(awk -F ' = ' '$1 ~ /^version/ \
+          VSHA_SHORT=$(git rev-parse --short HEAD)
+          echo "VSHA_SHORT=${VSHA_SHORT}" >> $GITHUB_ENV
+          echo "VSHA_SHORT=${VSHA_SHORT}" >> $GITHUB_OUTPUT
+          TARI_VERSION=$(awk -F ' = ' '$1 ~ /^version/ \
             { gsub(/["]/, "", $2); printf("%s",$2) }' \
             "$GITHUB_WORKSPACE/Cargo.toml")
-          echo "TARI_CLI_VERSION=${TARI_CLI_VERSION}" >> $GITHUB_ENV
-          echo "TARI_CLI_VERSION=${TARI_CLI_VERSION}" >> $GITHUB_OUTPUT
+          echo "TARI_VERSION=${TARI_VERSION}" >> $GITHUB_ENV
+          echo "TARI_VERSION=${TARI_VERSION}" >> $GITHUB_OUTPUT
           if [[ "${{ matrix.builds.features }}" == "" ]]; then
             echo "BUILD_FEATURES=${{ env.TS_FEATURES }}" >> $GITHUB_ENV
           else
@@ -193,8 +179,10 @@ jobs:
           sudo apt-get update
           sudo bash scripts/install_ubuntu_dependencies.sh
 
-      - name: Install Linux dependencies - Ubuntu - cross-compiled ${{ env.TARI_BUILD_ISA_CPU }} on x86-64
-        if: ${{ startsWith(runner.os,'Linux') && ( ! matrix.builds.cross ) && matrix.builds.name != 'linux-x86_64' }}
+      - name: Install Linux dependencies - Ubuntu - local cross-compiled ${{ env.TARI_BUILD_ISA_CPU }} on x86-64
+        # Disabled
+        if: ${{ false }}
+        # if: ${{ startsWith(runner.os,'Linux') && ( ! matrix.builds.cross ) && matrix.builds.name != 'linux-x86_64' }}
         run: |
           sudo apt-get update
           sudo bash scripts/install_ubuntu_dependencies-cross_compile.sh ${{ env.TARI_BUILD_ISA_CPU }}
@@ -204,22 +192,31 @@ jobs:
       - name: Install macOS dependencies
         if: startsWith(runner.os,'macOS')
         run: |
-          brew install openssl cmake zip coreutils automake autoconf protobuf
+          # openssl, cmake and autoconf already installed
+          brew install zip coreutils automake protobuf
           rustup target add ${{ matrix.builds.target }}
+
+      - name: Install macOS-14 missing dependencies - hack
+        if: ${{ startsWith(runner.os,'macOS') && startsWith(runner.arch,'ARM64') }}
+        run: |
+          brew install libtool
 
       - name: Install Windows dependencies
         if: startsWith(runner.os,'Windows')
         run: |
           vcpkg.exe install sqlite3:x64-windows zlib:x64-windows
+          # Needed for hickory openssl dependency
+          vcpkg install openssl:x64-windows-static
           # Bug in choco - need to install each package individually
           choco upgrade llvm -y
           # psutils is out of date
           # choco upgrade psutils -y
-          choco upgrade openssl -y
-          # Should already be installed
-          # choco upgrade strawberryperl -y
           choco upgrade protoc -y
           rustup target add ${{ matrix.builds.target }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       - name: Set environment variables - Nix
         if: ${{ ! startsWith(runner.os,'Windows') }}
@@ -272,15 +269,14 @@ jobs:
           echo "TS_DIST=\dist" >> $GITHUB_ENV
           echo "PLATFORM_SPECIFIC_DIR=windows" >> $GITHUB_ENV
           echo "SQLITE3_LIB_DIR=C:\vcpkg\installed\x64-windows\lib" >> $GITHUB_ENV
-          echo "OPENSSL_DIR=C:\Program Files\OpenSSL-Win64" >> $GITHUB_ENV
+          echo "X86_64_PC_WINDOWS_MSVC_OPENSSL_DIR=C:\vcpkg\packages\openssl_x64-windows-static" >> $GITHUB_ENV
           echo "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $GITHUB_ENV
-          echo "C:\Strawberry\perl\bin" >> $GITHUB_PATH
 
       - name: Cache cargo files and outputs
         if: ${{ ( ! startsWith(github.ref, 'refs/tags/v') ) && ( ! matrix.builds.cross ) && ( env.CARGO_CACHE ) }}
         uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ matrix.builds.target }}
+          key: ${{ matrix.builds.runs-on }}-${{ matrix.builds.target }}-${{ matrix.builds.name }}
 
       - name: Install and setup cargo cross
         if: ${{ matrix.builds.cross }}
@@ -291,13 +287,20 @@ jobs:
           echo "CARGO=cross" >> $GITHUB_ENV
 
       - name: Install and setup cargo-auditable
-        if: ${{ false }}
+        if: ${{ ( ! matrix.builds.cross ) }}
+        shell: bash
+        run: |
+          cargo install cargo-auditable cargo-audit
+          echo "CARGO=${{ env.CARGO }} auditable" >> $GITHUB_ENV
+
+      - name: Build release targets
         # if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         shell: bash
         run: |
-          cargo install cargo-auditable
-          echo "CARGO=${{ env.CARGO }} auditable" >> $GITHUB_ENV
-          echo "CARGO_OPTIONS=${{ env.CARGO_OPTIONS }} --release" >> $GITHUB_ENV
+          # echo "TS_BUILD=release" >> $GITHUB_ENV
+          if [[ "${{ env.TS_BUILD }}" == "release" ]]; then
+            echo "CARGO_OPTIONS=${{ env.CARGO_OPTIONS }} --${{ env.TS_BUILD }}" >> $GITHUB_ENV
+          fi
 
       - name: Show command used for Cargo
         shell: bash
@@ -307,14 +310,14 @@ jobs:
           echo "cross flag: ${{ matrix.builds.cross }}"
 
       - name: Build release binaries
-        timeout-minutes: 30
+        timeout-minutes: 60
         shell: bash
         run: |
           ${{ env.CARGO }} build ${{ env.CARGO_OPTIONS }} \
             --target ${{ matrix.builds.target }} \
             --features "${{ env.BUILD_FEATURES }}" \
             ${{ env.TARGET_BINS }} \
-            ${{ matrix.builds.flags }} --locked
+            ${{ matrix.builds.flags }}
 
       - name: Build release libraries
         if: ${{ env.TS_LIBRARIES != '' }}
@@ -323,7 +326,7 @@ jobs:
           ${{ env.CARGO }} build ${{ env.CARGO_OPTIONS }} \
             --target ${{ matrix.builds.target }} \
             --lib ${{ env.TARGET_LIBS }} \
-            ${{ matrix.builds.flags }} --locked
+            ${{ matrix.builds.flags }}
 
       - name: Copy binaries to folder for archiving
         shell: bash
@@ -331,16 +334,16 @@ jobs:
           # set -xo pipefail
           mkdir -p "$GITHUB_WORKSPACE${TS_DIST}"
           cd "$GITHUB_WORKSPACE${TS_DIST}"
-          BINFILE="${TS_FILENAME}-${TARI_CLI_VERSION}-${VSHA_SHORT}-${{ matrix.builds.name }}${TS_EXT}"
+          BINFILE="${TS_FILENAME}-${TARI_VERSION}-${VSHA_SHORT}-${{ matrix.builds.name }}${TS_EXT}"
           echo "BINFILE=${BINFILE}" >> $GITHUB_ENV
           echo "Copying files for ${BINFILE} to $(pwd)"
           echo "MTS_SOURCE=$(pwd)" >> $GITHUB_ENV
-          ls -alht "$GITHUB_WORKSPACE/target/${{ matrix.builds.target }}/release/"
+          ls -alht "$GITHUB_WORKSPACE/target/${{ matrix.builds.target }}/${{ env.TS_BUILD }}/"
           ARRAY_FILES=( $(echo ${TS_FILES} | jq --raw-output '.[]' | awk '{ print $1 }') )
           for FILE in "${ARRAY_FILES[@]}"; do
             echo "checking for file - ${FILE}${TS_EXT}"
-            if [ -f "${GITHUB_WORKSPACE}/target/${{ matrix.builds.target }}/release/${FILE}${TS_EXT}" ]; then
-              cp -vf "${GITHUB_WORKSPACE}/target/${{ matrix.builds.target }}/release/${FILE}${TS_EXT}" .
+            if [ -f "${GITHUB_WORKSPACE}/target/${{ matrix.builds.target }}/${{ env.TS_BUILD }}/${FILE}${TS_EXT}" ]; then
+              cp -vf "${GITHUB_WORKSPACE}/target/${{ matrix.builds.target }}/${{ env.TS_BUILD }}/${FILE}${TS_EXT}" .
             fi
           done
           if [[ "${{ matrix.builds.target_libs }}" == "" ]]; then
@@ -351,12 +354,12 @@ jobs:
           for FILE in "${ARRAY_LIBS[@]}"; do
             echo "checking for file - ${FILE}${TS_EXT}"
             # Check on Nix for libs
-            if [ -f "${GITHUB_WORKSPACE}/target/${{ matrix.builds.target }}/release/lib${FILE}${LIB_EXT}" ]; then
-              cp -vf "${GITHUB_WORKSPACE}/target/${{ matrix.builds.target }}/release/lib${FILE}${LIB_EXT}" .
+            if [ -f "${GITHUB_WORKSPACE}/target/${{ matrix.builds.target }}/${{ env.TS_BUILD }}/lib${FILE}${LIB_EXT}" ]; then
+              cp -vf "${GITHUB_WORKSPACE}/target/${{ matrix.builds.target }}/${{ env.TS_BUILD }}/lib${FILE}${LIB_EXT}" .
             fi
             # Check on Windows libs
-            if [ -f "${GITHUB_WORKSPACE}/target/${{ matrix.builds.target }}/release/${FILE}${LIB_EXT}" ]; then
-              cp -vf "${GITHUB_WORKSPACE}/target/${{ matrix.builds.target }}/release/${FILE}${LIB_EXT}" .
+            if [ -f "${GITHUB_WORKSPACE}/target/${{ matrix.builds.target }}/${{ env.TS_BUILD }}/${FILE}${LIB_EXT}" ]; then
+              cp -vf "${GITHUB_WORKSPACE}/target/${{ matrix.builds.target }}/${{ env.TS_BUILD }}/${FILE}${LIB_EXT}" .
             fi
           done
           if [ -f "${GITHUB_WORKSPACE}/applications/minotari_node/${PLATFORM_SPECIFIC_DIR}/runtime/start_tor${SHELL_EXT}" ]; then
@@ -374,79 +377,106 @@ jobs:
           name: ${{ env.TS_FILENAME }}_unsigned-archive-${{ matrix.builds.name }}
           path: "${{ env.MTS_SOURCE }}/*"
 
-      - name: Build the macOS pkg
-        # Disabled
-        if: ${{ false }}
-        # if: startsWith(runner.os,'macOS')
+      - name: Build the macOS Archive and code-sign
+        if: ${{ ( startsWith(runner.os,'macOS') ) && ( env.MACOS_NOTARIZE_USERNAME != '' ) }}
         continue-on-error: true
         env:
           MACOS_KEYCHAIN_PASS: ${{ secrets.MACOS_KEYCHAIN_PASS }}
           MACOS_APPLICATION_ID: ${{ secrets.MACOS_APPLICATION_ID }}
           MACOS_APPLICATION_CERT: ${{ secrets.MACOS_APPLICATION_CERT }}
           MACOS_APPLICATION_PASS: ${{ secrets.MACOS_APPLICATION_PASS }}
-          MACOS_INSTALLER_ID: ${{ secrets.MACOS_INSTALLER_ID }}
-          MACOS_INSTALLER_CERT: ${{ secrets.MACOS_INSTALLER_CERT }}
-          MACOS_INSTALLER_PASS: ${{ secrets.MACOS_INSTALLER_PASS }}
+          # MACOS_INSTALLER_ID: ${{ secrets.MACOS_INSTALLER_ID }}
+          # MACOS_INSTALLER_CERT: ${{ secrets.MACOS_INSTALLER_CERT }}
+          # MACOS_INSTALLER_PASS: ${{ secrets.MACOS_INSTALLER_PASS }}
           MACOS_NOTARIZE_USERNAME: ${{ secrets.MACOS_NOTARIZE_USERNAME }}
           MACOS_NOTARIZE_PASSWORD: ${{ secrets.MACOS_NOTARIZE_PASSWORD }}
           MACOS_ASC_PROVIDER: ${{ secrets.MACOS_ASC_PROVIDER }}
         run: |
-          echo $MACOS_APPLICATION_CERT | base64 --decode > application.p12
-          echo $MACOS_INSTALLER_CERT | base64 --decode > installer.p12
-          security create-keychain -p $MACOS_KEYCHAIN_PASS build.keychain
+          set -xo pipefail
+          echo "${MACOS_APPLICATION_CERT}" | base64 --decode > application.p12
+          # echo "${MACOS_INSTALLER_CERT}" | base64 --decode > installer.p12
+          security create-keychain -p ${MACOS_KEYCHAIN_PASS} build.keychain
           security default-keychain -s build.keychain
-          security unlock-keychain -p $MACOS_KEYCHAIN_PASS build.keychain
-          security import application.p12 -k build.keychain -P $MACOS_APPLICATION_PASS -T /usr/bin/codesign
-          security import installer.p12 -k build.keychain -P $MACOS_INSTALLER_PASS -T /usr/bin/pkgbuild
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k $MACOS_KEYCHAIN_PASS build.keychain
-          if [[ "${{ matrix.builds.name }}" == "macos-arm64" ]]; then
-            echo "Add codesign extra args for ${{ matrix.builds.name }}"
-            OSX_CODESIGN_EXTRAS="--entitlements ${GITHUB_WORKSPACE}/applications/minotari_node/osx-pkg/entitlements.xml"
-          fi
-          cd buildtools
-          export target_release="target/${{ matrix.builds.target }}/release"
-          mkdir -p "${{ runner.temp }}/osxpkg"
-          export tarball_parent="${{ runner.temp }}/osxpkg"
-          export tarball_source="${{ env.TARI_NETWORK_DIR }}"
-          ./create_osx_install_zip.sh unused nozip
+          security unlock-keychain -p ${MACOS_KEYCHAIN_PASS} build.keychain
+          security import application.p12 -k build.keychain \
+            -t cert -f pkcs12 \
+            -P ${MACOS_APPLICATION_PASS} \
+            -T /usr/bin/codesign
+          # security import installer.p12 -k build.keychain \
+          #   -t cert -f pkcs12 \
+          #   -P ${MACOS_INSTALLER_PASS} \
+          #   -T /usr/bin/pkgbuild
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${MACOS_KEYCHAIN_PASS} build.keychain
+
+          # if [[ "${{ matrix.builds.name }}" == "macos-arm64" ]]; then
+          #   echo "Add codesign extra args for ${{ matrix.builds.name }}"
+          #   OSX_CODESIGN_EXTRAS="--entitlements ${GITHUB_WORKSPACE}/applications/minotari_node/osx-pkg/entitlements.xml"
+          # fi
+
+          # cd buildtools
+          # export target_release="target/${{ matrix.builds.target }}/${{ env.TS_BUILD }}"
+
+          # mkdir -p "${{ runner.temp }}/osxpkg"
+          # export tarball_parent="${{ runner.temp }}/osxpkg"
+          # export tarball_source="${{ env.TARI_NETWORK_DIR }}"
+          # ./create_osx_install_zip.sh unused nozip
+
           ARRAY_FILES=( $(echo ${TS_FILES} | jq --raw-output '.[]' | awk '{ print $1 }') )
-          find "${GITHUB_WORKSPACE}/${target_release}" \
-            -name "randomx-*" -type f -perm -+x \
-            -exec cp -vf {} "${{ runner.temp }}/osxpkg/${{ env.TARI_NETWORK_DIR }}/runtime/" \;
-          FILES_DIAG_UTILS=( \
-            $(find "${GITHUB_WORKSPACE}/${target_release}" \
-                -name "randomx-*" -type f -perm -+x \
-                  -exec sh -c 'echo "$(basename "{}")"' \; \
-              ) \
-          )
-          ARRAY_FILES+=(${FILES_DIAG_UTILS[@]})
+
+          # find "${GITHUB_WORKSPACE}/${target_release}" \
+          #   -name "randomx-*" -type f -perm -+x \
+          #   -exec cp -vf {} "${{ runner.temp }}/osxpkg/${{ env.TARI_NETWORK_DIR }}/runtime/" \;
+          #   FILES_DIAG_UTILS=( \
+          #     $(find "${GITHUB_WORKSPACE}/${target_release}" \
+          #       -name "randomx-*" -type f -perm -+x \
+          #         -exec sh -c 'echo "$(basename "{}")"' \; \
+          #     ) \
+          # )
+          # ARRAY_FILES+=(${FILES_DIAG_UTILS[@]})
+
+          # Codesign all files in ARRAY_FILES
           for FILE in "${ARRAY_FILES[@]}"; do
+            # Codesign
             codesign --options runtime --force --verify --verbose --timestamp ${OSX_CODESIGN_EXTRAS} \
-              --prefix "${{ env.TS_BUNDLE_ID_BASE }}.${{ env.TS_FILENAME }}." \
-              --sign "Developer ID Application: $MACOS_APPLICATION_ID" \
-              "${{ runner.temp }}/osxpkg/${{ env.TARI_NETWORK_DIR }}/runtime/$FILE"
+              --sign "Developer ID Application: ${MACOS_APPLICATION_ID}" \
+              "${{ env.MTS_SOURCE }}/${FILE}"
+
+            # Verify codesign
             codesign --verify --deep --display --verbose=4 \
-              "${{ runner.temp }}/osxpkg/${{ env.TARI_NETWORK_DIR }}/runtime/$FILE"
-            cp -vf "${{ runner.temp }}/osxpkg/${{ env.TARI_NETWORK_DIR }}/runtime/$FILE" \
-              "${{ env.MTS_SOURCE }}"
+              "${{ env.MTS_SOURCE }}/${FILE}"
+
+            # cp -vf "${{ runner.temp }}/osxpkg/${{ env.TARI_NETWORK_DIR }}/runtime/${FILE}" \
+            #   "${{ env.MTS_SOURCE }}"
           done
-          distDirPKG=$(mktemp -d -t ${{ env.TS_FILENAME }})
-          echo "${distDirPKG}"
-          echo "distDirPKG=${distDirPKG}" >> $GITHUB_ENV
-          TS_Temp=${{ env.TS_FILENAME }}
-          TS_BUNDLE_ID_VALID_NAME=$(echo "${TS_Temp//_/-}")
-          # Strip apple-darwin
-          TS_ARCH=$(echo "${${{ matrix.builds.target }}//-apple-darwin/}")
-          pkgbuild --root "${{ runner.temp }}/osxpkg/${{ env.TARI_NETWORK_DIR }}" \
-            --identifier "${{ env.TS_BUNDLE_ID_BASE }}.pkg.${TS_BUNDLE_ID_VALID_NAME}" \
-            --version "${TARI_CLI_VERSION}" \
-            --install-location "/tmp/tari" \
-            --scripts "${{ runner.temp }}/osxpkg/${{ env.TARI_NETWORK_DIR }}/scripts" \
-            --sign "Developer ID Installer: ${MACOS_INSTALLER_ID}" \
-            "${distDirPKG}/${{ env.TS_FILENAME }}-${{ matrix.builds.name }}-${{ env.TARI_CLI_VERSION }}.pkg"
+
+          # distDirPKG=$(mktemp -d -t ${{ env.TS_FILENAME }})
+          # echo "${distDirPKG}"
+          # echo "distDirPKG=${distDirPKG}" >> $GITHUB_ENV
+          # TS_Temp=${{ env.TS_FILENAME }}
+          # TS_BUNDLE_ID_VALID_NAME=$(echo "${TS_Temp//_/-}")
+          # # Strip apple-darwin
+          # TS_ARCH=$(echo "${${{ matrix.builds.target }}//-apple-darwin/}")
+          # pkgbuild --root "${{ runner.temp }}/osxpkg/${{ env.TARI_NETWORK_DIR }}" \
+          #   --identifier "${{ env.TS_BUNDLE_ID_BASE }}.pkg.${TS_BUNDLE_ID_VALID_NAME}" \
+          #   --version "${TARI_VERSION}" \
+          #   --install-location "/tmp/tari" \
+          #   --scripts "${{ runner.temp }}/osxpkg/${{ env.TARI_NETWORK_DIR }}/scripts" \
+          #   --sign "Developer ID Installer: ${MACOS_INSTALLER_ID}" \
+          #   "${distDirPKG}/${{ env.TS_FILENAME }}-${{ matrix.builds.name }}-${{ env.TARI_VERSION }}.pkg"
+
+          echo "Archive ${{ env.BINFILE }} too ${{ env.BINFILE }}.zip"
+          cd "${{ env.MTS_SOURCE }}"
+          echo "Compute files shasum"
+          ${SHARUN} * >> "${{ env.BINFILE }}.sha256"
+          echo "Show the shasum"
+          cat "${{ env.BINFILE }}.sha256"
+          echo "Checksum verification for files is "
+          ${SHARUN} --check "${{ env.BINFILE }}.sha256"
+          7z a "${{ env.BINFILE }}.zip" *
+
           echo -e "Submitting to Apple...\n\n"
           xcrun notarytool submit \
-            "${distDirPKG}/${{ env.TS_FILENAME }}-${{ matrix.builds.name }}-${{ env.TARI_CLI_VERSION }}.pkg" \
+            "${{ env.BINFILE }}.zip" \
             --apple-id "${MACOS_NOTARIZE_USERNAME}" \
             --password ${MACOS_NOTARIZE_PASSWORD} \
             --team-id ${MACOS_ASC_PROVIDER} \
@@ -455,22 +485,30 @@ jobs:
           requestUUID=$(tail -n5 notarisation.result | grep "id:" | cut -d" " -f 4)
           requestSTATUS=$(tail -n5 notarisation.result | grep "\ \ status:" | cut -d" " -f 4)
           if [[ ${requestUUID} == "" ]] || [[ ${requestSTATUS} != "Accepted" ]]; then
-            echo "## status: ${requestSTATUS} - could not notarize - ${requestUUID} - ${{ env.TS_FILENAME }}-${{ matrix.builds.name }}-${{ env.TARI_CLI_VERSION }}.pkg"
+            echo "## status: ${requestSTATUS} - could not notarize - ${requestUUID} - ${{ env.BINFILE }}.zip"
             exit 1
           else
-            echo "Notarization RequestUUID: ${requestUUID}"
-            echo -e "\nStapling package...\
-              ${{ env.TS_FILENAME }}-${{ matrix.builds.name }}-${{ env.TARI_CLI_VERSION }}.pkg\n"
-            xcrun stapler staple -v \
-              "${distDirPKG}/${{ env.TS_FILENAME }}-${{ matrix.builds.name }}-${{ env.TARI_CLI_VERSION }}.pkg"
+            echo "Notarization RequestUUID: ${requestUUID} - can't stapler archives"
+            # echo -e "\nStapling package...\
+            #   ${{ env.TS_FILENAME }}-${{ matrix.builds.name }}-${{ env.TARI_VERSION }}.pkg\n"
+            # xcrun stapler staple -v \
+            #   "${distDirPKG}/${{ env.TS_FILENAME }}-${{ matrix.builds.name }}-${{ env.TARI_VERSION }}.pkg"
           fi
-          cd ${distDirPKG}
-          echo "Compute pkg shasum"
-          ${SHARUN} "${{ env.TS_FILENAME }}-${{ matrix.builds.name }}-${{ env.TARI_CLI_VERSION }}.pkg" \
-            >> "${{ env.TS_FILENAME }}-${{ matrix.builds.name }}-${{ env.TARI_CLI_VERSION }}.pkg.sha256"
-          cat "${{ env.TS_FILENAME }}-${{ matrix.builds.name }}-${{ env.TARI_CLI_VERSION }}.pkg.sha256"
-          echo "Checksum verification for pkg is "
-          ${SHARUN} --check "${{ env.TS_FILENAME }}-${{ matrix.builds.name }}-${{ env.TARI_CLI_VERSION }}.pkg.sha256"
+
+          # cd ${distDirPKG}
+          # echo "Compute pkg shasum"
+          # ${SHARUN} "${{ env.TS_FILENAME }}-${{ matrix.builds.name }}-${{ env.TARI_VERSION }}.pkg" \
+          #   >> "${{ env.TS_FILENAME }}-${{ matrix.builds.name }}-${{ env.TARI_VERSION }}.pkg.sha256"
+          # cat "${{ env.TS_FILENAME }}-${{ matrix.builds.name }}-${{ env.TARI_VERSION }}.pkg.sha256"
+          # echo "Checksum verification for pkg is "
+          # ${SHARUN} --check "${{ env.TS_FILENAME }}-${{ matrix.builds.name }}-${{ env.TARI_VERSION }}.pkg.sha256"
+
+          echo "Compute archive shasum"
+          ${SHARUN} "${{ env.BINFILE }}.zip" >> "${{ env.BINFILE }}.zip.sha256"
+          echo "Show the shasum"
+          cat "${{ env.BINFILE }}.zip.sha256"
+          echo "Checksum verification archive is "
+          ${SHARUN} --check "${{ env.BINFILE }}.zip.sha256"
 
       - name: Artifact upload for macOS pkg
         # Disabled
@@ -479,8 +517,36 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.TS_FILENAME }}-${{ matrix.builds.name }}-${{ env.TARI_CLI_VERSION }}.pkg
-          path: "${{ env.distDirPKG }}/${{ env.TS_FILENAME }}-${{ matrix.builds.name }}-${{ env.TARI_CLI_VERSION }}*.pkg*"
+          name: ${{ env.TS_FILENAME }}-${{ matrix.builds.name }}-${{ env.TARI_VERSION }}.pkg
+          path: "${{ env.distDirPKG }}/${{ env.TS_FILENAME }}-${{ matrix.builds.name }}-${{ env.TARI_VERSION }}*.pkg*"
+
+      - name: Sign Windows files with Trusted Signing
+        if: ${{ ( startsWith(runner.os,'Windows') ) && ( env.AZURE_TENANT_ID != '' ) }}
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        uses: azure/trusted-signing-action@v0.5.1
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: https://eus.codesigning.azure.net/
+          trusted-signing-account-name: Tari
+          certificate-profile-name: Tarilabs
+          files-folder: ${{ github.workspace }}${{ env.TS_DIST }}/
+          files-folder-filter: exe,dll
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          description: ${{ env.TS_DESCRIPTION }}
+          description-url: ${{ env.TS_URL }}
+
+      - name: Verify Windows signing for archive pack
+        if: ${{ ( startsWith(runner.os,'Windows') ) && ( env.AZURE_TENANT_ID != '' ) }}
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        shell: powershell
+        run: |
+          .\buildtools\check_signatures.ps1 -ScanDir ".\${{ env.TS_DIST }}"
 
       - name: Build the Windows installer
         # Disabled
@@ -489,14 +555,47 @@ jobs:
         shell: cmd
         run: |
           cd buildtools
-          "%programfiles(x86)%\Inno Setup 6\iscc.exe" "/DMyAppVersion=${{ env.TARI_CLI_VERSION }}-${{ env.VSHA_SHORT }}-${{ matrix.builds.name }}-installer" "/DMinotariSuite=${{ env.TS_FILENAME }}" "/DTariSuitePath=${{ github.workspace }}${{ env.TS_DIST }}" "windows_inno_installer.iss"
+          "%programfiles(x86)%\Inno Setup 6\iscc.exe" "/DMyAppVersion=${{ env.TARI_VERSION }}-${{ env.VSHA_SHORT }}-${{ matrix.builds.name }}-installer" "/DMinotariSuite=${{ env.TS_FILENAME }}" "/DTariSuitePath=${{ github.workspace }}${{ env.TS_DIST }}" "windows_inno_installer.iss"
           cd Output
           echo "Compute archive shasum"
-          ${{ env.SHARUN }} "${{ env.TS_FILENAME }}-${{ env.TARI_CLI_VERSION }}-${{ env.VSHA_SHORT }}-${{ matrix.builds.name }}-installer.exe" >> "${{ env.TS_FILENAME }}-${{ env.TARI_CLI_VERSION }}-${{ env.VSHA_SHORT }}-${{ matrix.builds.name }}-installer.exe.sha256"
+          ${{ env.SHARUN }} "${{ env.TS_FILENAME }}-${{ env.TARI_VERSION }}-${{ env.VSHA_SHORT }}-${{ matrix.builds.name }}-installer.exe" >> "${{ env.TS_FILENAME }}-${{ env.TARI_VERSION }}-${{ env.VSHA_SHORT }}-${{ matrix.builds.name }}-installer.exe.sha256"
           echo "Show the shasum"
-          cat "${{ env.TS_FILENAME }}-${{ env.TARI_CLI_VERSION }}-${{ env.VSHA_SHORT }}-${{ matrix.builds.name }}-installer.exe.sha256"
+          cat "${{ env.TS_FILENAME }}-${{ env.TARI_VERSION }}-${{ env.VSHA_SHORT }}-${{ matrix.builds.name }}-installer.exe.sha256"
           echo "Checksum verification archive is "
-          ${{ env.SHARUN }} --check "${{ env.TS_FILENAME }}-${{ env.TARI_CLI_VERSION }}-${{ env.VSHA_SHORT }}-${{ matrix.builds.name }}-installer.exe.sha256"
+          ${{ env.SHARUN }} --check "${{ env.TS_FILENAME }}-${{ env.TARI_VERSION }}-${{ env.VSHA_SHORT }}-${{ matrix.builds.name }}-installer.exe.sha256"
+
+      - name: Sign Windows installer with Trusted Signing
+        # Disabled
+        if: ${{ false }}
+        # if: ${{ ( startsWith(runner.os,'Windows') ) && ( env.AZURE_TENANT_ID != '' ) }}
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        uses: azure/trusted-signing-action@v0.5.1
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: https://eus.codesigning.azure.net/
+          trusted-signing-account-name: Tari
+          certificate-profile-name: Tarilabs
+          files-folder: ${{ github.workspace }}/buildtools/Output/
+          files-folder-filter: exe,dll
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          description: ${{ env.TS_DESCRIPTION }}
+          description-url: ${{ env.TS_URL }}
+
+      - name: Verify Windows signing for installer
+        # Disabled
+        if: ${{ false }}
+        # if: ${{ ( startsWith(runner.os,'Windows') ) && ( env.AZURE_TENANT_ID != '' ) }}
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        shell: powershell
+        working-directory: ${{ github.workspace }}/buildtools/Output
+        run: |
+          ..\check_signatures.ps1 -ScanDir "."
 
       - name: Artifact upload for Windows installer
         # Disabled
@@ -507,7 +606,19 @@ jobs:
           name: "${{ env.TS_FILENAME }}_windows_installer"
           path: "${{ github.workspace }}/buildtools/Output/*"
 
+      - name: Audit tree and feedback for binaries
+        if: ${{ ( ! matrix.builds.cross ) }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          cd "${{ env.MTS_SOURCE }}"
+          echo "Audit binaries ..."
+          cargo audit bin *tari*
+
       - name: Archive and Checksum Binaries
+        if: ${{ ! ( ( startsWith(runner.os, 'macOS') && ( env.MACOS_NOTARIZE_USERNAME != '' ) ) ) }}
+        env:
+          MACOS_NOTARIZE_USERNAME: ${{ secrets.MACOS_NOTARIZE_USERNAME }}
         shell: bash
         run: |
           echo "Archive ${{ env.BINFILE }} too ${{ env.BINFILE }}.zip"
@@ -537,7 +648,7 @@ jobs:
     needs: builds
 
     env:
-      TARI_CLI_VERSION: ${{ needs.builds.outputs.TARI_CLI_VERSION }}
+      TARI_VERSION: ${{ needs.builds.outputs.TARI_VERSION }}
       VSHA_SHORT: ${{ needs.builds.outputs.VSHA_SHORT }}
       SHARUN: "shasum --algorithm 256"
 
@@ -560,8 +671,9 @@ jobs:
       - name: Set environment variables for macOS universal
         shell: bash
         run: |
-          BINFN="${TS_FILENAME}-${TARI_CLI_VERSION}-${VSHA_SHORT}"
+          BINFN="${TS_FILENAME}-${TARI_VERSION}-${VSHA_SHORT}"
           echo "BINFN=${BINFN}" >> $GITHUB_ENV
+          echo "BINFILE=${BINFN}-macos-universal" >> $GITHUB_ENV
 
       - name: Install macOS dependencies
         shell: bash
@@ -605,67 +717,92 @@ jobs:
           done
           ls -alhtR macos-universal
 
-      - name: Build the macOS universal pkg
-        # Disabled
-        if: ${{ false }}
+      - name: Build the macOS universal Archive and code-sign
+        if: ${{ ( startsWith(runner.os,'macOS') ) && ( env.MACOS_NOTARIZE_USERNAME != '' ) }}
         continue-on-error: true
         env:
           MACOS_KEYCHAIN_PASS: ${{ secrets.MACOS_KEYCHAIN_PASS }}
           MACOS_APPLICATION_ID: ${{ secrets.MACOS_APPLICATION_ID }}
           MACOS_APPLICATION_CERT: ${{ secrets.MACOS_APPLICATION_CERT }}
           MACOS_APPLICATION_PASS: ${{ secrets.MACOS_APPLICATION_PASS }}
-          MACOS_INSTALLER_ID: ${{ secrets.MACOS_INSTALLER_ID }}
-          MACOS_INSTALLER_CERT: ${{ secrets.MACOS_INSTALLER_CERT }}
-          MACOS_INSTALLER_PASS: ${{ secrets.MACOS_INSTALLER_PASS }}
+          # MACOS_INSTALLER_ID: ${{ secrets.MACOS_INSTALLER_ID }}
+          # MACOS_INSTALLER_CERT: ${{ secrets.MACOS_INSTALLER_CERT }}
+          # MACOS_INSTALLER_PASS: ${{ secrets.MACOS_INSTALLER_PASS }}
           MACOS_NOTARIZE_USERNAME: ${{ secrets.MACOS_NOTARIZE_USERNAME }}
           MACOS_NOTARIZE_PASSWORD: ${{ secrets.MACOS_NOTARIZE_PASSWORD }}
           MACOS_ASC_PROVIDER: ${{ secrets.MACOS_ASC_PROVIDER }}
         run: |
-          echo $MACOS_APPLICATION_CERT | base64 --decode > application.p12
-          echo $MACOS_INSTALLER_CERT | base64 --decode > installer.p12
-          security create-keychain -p $MACOS_KEYCHAIN_PASS build.keychain
+          set -xo pipefail
+          echo "${MACOS_APPLICATION_CERT}" | base64 --decode > application.p12
+          # echo "${MACOS_INSTALLER_CERT}" | base64 --decode > installer.p12
+          security create-keychain -p ${MACOS_KEYCHAIN_PASS} build.keychain
           security default-keychain -s build.keychain
-          security unlock-keychain -p $MACOS_KEYCHAIN_PASS build.keychain
-          security import application.p12 -k build.keychain -P $MACOS_APPLICATION_PASS -T /usr/bin/codesign
-          security import installer.p12 -k build.keychain -P $MACOS_INSTALLER_PASS -T /usr/bin/pkgbuild
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k $MACOS_KEYCHAIN_PASS build.keychain
-          OSX_CODESIGN_EXTRAS="--entitlements ${GITHUB_WORKSPACE}/applications/minotari_node/osx-pkg/entitlements.xml"
-          cd buildtools
-          # export target_release="target/${{ matrix.builds.target }}/release"
-          # matrix.builds.target=macos-universal
-          # matrix.builds.name=macos-universal
-          export target_release="osxuni/macos-universal"
-          mkdir -p "${{ runner.temp }}/osxpkg"
-          export tarball_parent="${{ runner.temp }}/osxpkg"
-          export tarball_source="${{ env.TARI_NETWORK_DIR }}"
-          ./create_osx_install_zip.sh unused nozip
+          security unlock-keychain -p ${MACOS_KEYCHAIN_PASS} build.keychain
+          security import application.p12 -k build.keychain \
+            -t cert -f pkcs12 \
+            -P ${MACOS_APPLICATION_PASS} \
+            -T /usr/bin/codesign
+          # security import installer.p12 -k build.keychain \
+          #   -t cert -f pkcs12 \
+          #   -P ${MACOS_INSTALLER_PASS} \
+          #   -T /usr/bin/pkgbuild
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${MACOS_KEYCHAIN_PASS} build.keychain
+
+          # OSX_CODESIGN_EXTRAS="--entitlements ${GITHUB_WORKSPACE}/applications/minotari_node/osx-pkg/entitlements.xml"
+
+          # cd buildtools
+          # # export target_release="target/${{ matrix.builds.target }}/${{ env.TS_BUILD }}"
+          # # matrix.builds.target=macos-universal
+          # # matrix.builds.name=macos-universal
+          # export target_release="osxuni/macos-universal"
+          # mkdir -p "${{ runner.temp }}/osxpkg"
+          # export tarball_parent="${{ runner.temp }}/osxpkg"
+          # export tarball_source="${{ env.TARI_NETWORK_DIR }}"
+          # ./create_osx_install_zip.sh unused nozip
+
           ARRAY_FILES=( $(echo ${TS_FILES} | jq --raw-output '.[]' | awk '{ print $1 }') )
+
+          # Codesign all files in ARRAY_FILES
           for FILE in "${ARRAY_FILES[@]}"; do
+            # Codesign
             codesign --options runtime --force --verify --verbose --timestamp ${OSX_CODESIGN_EXTRAS} \
-              --prefix "${{ env.TS_BUNDLE_ID_BASE }}.${{ env.TS_FILENAME }}." \
-              --sign "Developer ID Application: $MACOS_APPLICATION_ID" \
-              "${{ runner.temp }}/osxpkg/${{ env.TARI_NETWORK_DIR }}/runtime/$FILE"
+              --sign "Developer ID Application: ${MACOS_APPLICATION_ID}" \
+              "${{ github.workspace }}/osxuni/macos-universal/${FILE}"
+            # Verify codesign
             codesign --verify --deep --display --verbose=4 \
-              "${{ runner.temp }}/osxpkg/${{ env.TARI_NETWORK_DIR }}/runtime/$FILE"
-            cp -vf "${{ runner.temp }}/osxpkg/${{ env.TARI_NETWORK_DIR }}/runtime/$FILE" \
-              "${{ github.workspace }}/osxuni/macos-universal/"
+              "${{ github.workspace }}/osxuni/macos-universal/${FILE}"
+
+            # cp -vf "${{ runner.temp }}/osxpkg/${{ env.TARI_NETWORK_DIR }}/runtime/${FILE}" \
+            #   "${{ github.workspace }}/osxuni/macos-universal/"
           done
-          distDirPKG=$(mktemp -d -t ${{ env.TS_FILENAME }})
-          echo "${distDirPKG}"
-          echo "distDirPKG=${distDirPKG}" >> $GITHUB_ENV
-          TS_Temp=${{ env.TS_FILENAME }}
-          TS_BUNDLE_ID_VALID_NAME=$(echo "${TS_Temp//_/-}")
-          TS_ARCH=universal
-          pkgbuild --root "${{ runner.temp }}/osxpkg/${{ env.TARI_NETWORK_DIR }}" \
-            --identifier "${{ env.TS_BUNDLE_ID_BASE }}.pkg.${TS_BUNDLE_ID_VALID_NAME}" \
-            --version "${TARI_CLI_VERSION}" \
-            --install-location "/tmp/tari" \
-            --scripts "${{ runner.temp }}/osxpkg/${{ env.TARI_NETWORK_DIR }}/scripts" \
-            --sign "Developer ID Installer: ${MACOS_INSTALLER_ID}" \
-            "${distDirPKG}/${{ env.TS_FILENAME }}-macos-universal-${{ env.TARI_CLI_VERSION }}.pkg"
+
+          # distDirPKG=$(mktemp -d -t ${{ env.TS_FILENAME }})
+          # echo "${distDirPKG}"
+          # echo "distDirPKG=${distDirPKG}" >> $GITHUB_ENV
+          # TS_Temp=${{ env.TS_FILENAME }}
+          # TS_BUNDLE_ID_VALID_NAME=$(echo "${TS_Temp//_/-}")
+          # TS_ARCH=universal
+          # pkgbuild --root "${{ runner.temp }}/osxpkg/${{ env.TARI_NETWORK_DIR }}" \
+          #   --identifier "${{ env.TS_BUNDLE_ID_BASE }}.pkg.${TS_BUNDLE_ID_VALID_NAME}" \
+          #   --version "${TARI_VERSION}" \
+          #   --install-location "/tmp/tari" \
+          #   --scripts "${{ runner.temp }}/osxpkg/${{ env.TARI_NETWORK_DIR }}/scripts" \
+          #   --sign "Developer ID Installer: ${MACOS_INSTALLER_ID}" \
+          #   "${distDirPKG}/${{ env.TS_FILENAME }}-macos-universal-${{ env.TARI_VERSION }}.pkg"
+
+          echo "Archive ${{ env.BINFILE }} too ${{ env.BINFILE }}.zip"
+          cd "osxuni/macos-universal"
+          echo "Compute files shasum"
+          ${SHARUN} * >> "${{ env.BINFILE }}.sha256"
+          echo "Show the shasum"
+          cat "${{ env.BINFILE }}.sha256"
+          echo "Checksum verification for files is "
+          ${SHARUN} --check "${{ env.BINFILE }}.sha256"
+          7z a "${{ env.BINFILE }}.zip" *
+
           echo -e "Submitting to Apple...\n\n"
           xcrun notarytool submit \
-            "${distDirPKG}/${{ env.TS_FILENAME }}-macos-universal-${{ env.TARI_CLI_VERSION }}.pkg" \
+            "${{ env.BINFILE }}.zip" \
             --apple-id "${MACOS_NOTARIZE_USERNAME}" \
             --password ${MACOS_NOTARIZE_PASSWORD} \
             --team-id ${MACOS_ASC_PROVIDER} \
@@ -674,54 +811,30 @@ jobs:
           requestUUID=$(tail -n5 notarisation.result | grep "id:" | cut -d" " -f 4)
           requestSTATUS=$(tail -n5 notarisation.result | grep "\ \ status:" | cut -d" " -f 4)
           if [[ ${requestUUID} == "" ]] || [[ ${requestSTATUS} != "Accepted" ]]; then
-            echo "## status: ${requestSTATUS} - could not notarize - ${requestUUID} - ${{ env.TS_FILENAME }}-macos-universal-${{ env.TARI_CLI_VERSION }}.pkg"
+            echo "## status: ${requestSTATUS} - could not notarize - ${requestUUID} - ${{ env.BINFILE }}.zip"
             exit 1
           else
-            echo "Notarization RequestUUID: ${requestUUID}"
-            echo -e "\nStapling package...\
-              ${{ env.TS_FILENAME }}-macos-universal-${{ env.TARI_CLI_VERSION }}.pkg\n"
-            xcrun stapler staple -v \
-              "${distDirPKG}/${{ env.TS_FILENAME }}-macos-universal-${{ env.TARI_CLI_VERSION }}.pkg"
+            echo "Notarization RequestUUID: ${requestUUID} - can't stapler archives"
+            # echo -e "\nStapling package...\
+            #   ${{ env.TS_FILENAME }}-macos-universal-${{ env.TARI_VERSION }}.pkg\n"
+            # xcrun stapler staple -v \
+            #   "${distDirPKG}/${{ env.TS_FILENAME }}-macos-universal-${{ env.TARI_VERSION }}.pkg"
           fi
-          cd ${distDirPKG}
-          echo "Compute pkg shasum"
-          ${SHARUN} "${{ env.TS_FILENAME }}-macos-universal-${{ env.TARI_CLI_VERSION }}.pkg" \
-            >> "${{ env.TS_FILENAME }}-macos-universal-${{ env.TARI_CLI_VERSION }}.pkg.sha256"
-          cat "${{ env.TS_FILENAME }}-macos-universal-${{ env.TARI_CLI_VERSION }}.pkg.sha256"
-          echo "Checksum verification for pkg is "
-          ${SHARUN} --check "${{ env.TS_FILENAME }}-macos-universal-${{ env.TARI_CLI_VERSION }}.pkg.sha256"
 
-      - name: Artifact upload for macOS universal pkg
-        # Disabled
-        if: ${{ false }}
-        # if: startsWith(runner.os,'macOS')
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.TS_FILENAME }}-macos-universal-${{ env.TARI_CLI_VERSION }}.pkg
-          path: "${{ env.distDirPKG }}/${{ env.TS_FILENAME }}-macos-universal-${{ env.TARI_CLI_VERSION }}*.pkg*"
+          # cd ${distDirPKG}
+          # echo "Compute pkg shasum"
+          # ${SHARUN} "${{ env.TS_FILENAME }}-macos-universal-${{ env.TARI_VERSION }}.pkg" \
+          #   >> "${{ env.TS_FILENAME }}-macos-universal-${{ env.TARI_VERSION }}.pkg.sha256"
+          # cat "${{ env.TS_FILENAME }}-macos-universal-${{ env.TARI_VERSION }}.pkg.sha256"
+          # echo "Checksum verification for pkg is "
+          # ${SHARUN} --check "${{ env.TS_FILENAME }}-macos-universal-${{ env.TARI_VERSION }}.pkg.sha256"
 
-      - name: Archive and Checksum macOS universal Binaries
-        shell: bash
-        working-directory: osxuni/macos-universal
-        run: |
-          # set -xo pipefail
-          BINFILE="${BINFN}-macos-universal"
-          echo "BINFILE=${BINFILE}" >> $GITHUB_ENV
-          echo "Archive ${BINFILE} into ${BINFILE}.zip"
-          echo "Compute files shasum into ${BINFILE}.sha256"
-          ${SHARUN} * >> "${BINFILE}.sha256"
+          echo "Compute archive shasum"
+          ${SHARUN} "${{ env.BINFILE }}.zip" >> "${{ env.BINFILE }}.zip.sha256"
           echo "Show the shasum"
-          cat "${BINFILE}.sha256"
-          echo "Checksum verification for files is "
-          ${SHARUN} --check "${BINFILE}.sha256"
-          7z a "${BINFILE}.zip" *
-          echo "Compute archive shasum into ${BINFILE}.zip.sha256"
-          ${SHARUN} "${BINFILE}.zip" >> "${BINFILE}.zip.sha256"
-          echo "Show the shasum from ${BINFILE}.zip.sha256"
-          cat "${BINFILE}.zip.sha256"
+          cat "${{ env.BINFILE }}.zip.sha256"
           echo "Checksum verification archive is "
-          ${SHARUN} --check "${BINFILE}.zip.sha256"
+          ${SHARUN} --check "${{ env.BINFILE }}.zip.sha256"
 
       - name: Artifact upload for Archive
         uses: actions/upload-artifact@v4
@@ -733,11 +846,11 @@ jobs:
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
 
     runs-on: ubuntu-latest
-    needs: builds
+    needs: [ builds, macOS-universal-assemble ]
 
     env:
       TARI_NETWORK_DIR: ${{ needs.builds.outputs.TARI_NETWORK_DIR }}
-      TARI_CLI_VERSION: ${{ needs.builds.outputs.TARI_CLI_VERSION }}
+      TARI_VERSION: ${{ needs.builds.outputs.TARI_VERSION }}
 
     permissions:
       contents: write
@@ -758,14 +871,14 @@ jobs:
           sudo apt-get update
           sudo apt-get --no-install-recommends --assume-yes install dos2unix
           ls -alhtR
-          if [ -f "${{ env.TS_FILENAME }}-${{ env.TARI_CLI_VERSION }}.${{ env.TS_SIG_FN }}" ] ; then
-            rm -fv "${{ env.TS_FILENAME }}-${{ env.TARI_CLI_VERSION }}.${{ env.TS_SIG_FN }}"
+          if [ -f "${{ env.TS_FILENAME }}-${{ env.TARI_VERSION }}.${{ env.TS_SIG_FN }}" ] ; then
+            rm -fv "${{ env.TS_FILENAME }}-${{ env.TARI_VERSION }}.${{ env.TS_SIG_FN }}"
           fi
           # Merge all sha256 files into one
-          find . -name "*.sha256" -type f -print | xargs cat >> "${{ env.TS_FILENAME }}-${{ env.TARI_CLI_VERSION }}.${{ env.TS_SIG_FN }}"
-          dos2unix --quiet "${{ env.TS_FILENAME }}-${{ env.TARI_CLI_VERSION }}.${{ env.TS_SIG_FN }}"
-          cat "${{ env.TS_FILENAME }}-${{ env.TARI_CLI_VERSION }}.${{ env.TS_SIG_FN }}"
-          sha256sum --ignore-missing --check "${{ env.TS_FILENAME }}-${{ env.TARI_CLI_VERSION }}.${{ env.TS_SIG_FN }}"
+          find . -name "*.sha256" -type f -print | xargs cat >> "${{ env.TS_FILENAME }}-${{ env.TARI_VERSION }}.${{ env.TS_SIG_FN }}"
+          dos2unix --quiet "${{ env.TS_FILENAME }}-${{ env.TARI_VERSION }}.${{ env.TS_SIG_FN }}"
+          cat "${{ env.TS_FILENAME }}-${{ env.TARI_VERSION }}.${{ env.TS_SIG_FN }}"
+          sha256sum --ignore-missing --check "${{ env.TS_FILENAME }}-${{ env.TARI_VERSION }}.${{ env.TS_SIG_FN }}"
           ls -alhtR
 
       - name: Create release

@@ -1,12 +1,21 @@
 #!/usr/bin/env bash
-# Copyright 2024 The Tari Project
-# SPDX-License-Identifier: BSD-3-Clause
-
 #
 # Single script for Ubuntu 18.04 package setup, mostly used for cross-compiling
 #
 
 set -e
+
+# APT Proxy for quicker testing
+#export HTTP_PROXY_APT=http://apt-proxy.local:3142
+if [ ! -z "${HTTP_PROXY_APT}" ] && [ -d "/etc/apt/apt.conf.d/" ]; then
+  echo "Setup apt proxy - ${HTTP_PROXY_APT}"
+  cat << APT-EoF > /etc/apt/apt.conf.d/proxy.conf
+Acquire {
+  HTTP::proxy "${HTTP_PROXY_APT}";
+  #HTTPS::proxy "http://127.0.0.1:8080";
+}
+APT-EoF
+fi
 
 USAGE="Usage: $0 {target build}
  where target build is one of the following:
@@ -45,7 +54,6 @@ elif [ "${nativeRunTime}" == "aarch64" ]; then
   nativeArch=arm64
 elif [ "${nativeRunTime}" == "riscv64" ]; then
   nativeArch=riscv64
-  echo "ToDo!"
 else
   echo "!!Unsupport platform!!"
   exit 1
@@ -60,14 +68,12 @@ elif [ "${targetBuild}" == "x86_64-unknown-linux-gnu" ]; then
 elif [ "${targetBuild}" == "riscv64gc-unknown-linux-gnu" ]; then
   targetArch=riscv64
   targetPlatform=riscv64
-  echo "ToDo!"
 else
   echo "!!Unsupport platform!!"
   exit 1
 fi
 
 crossArch=${CROSS_DEB_ARCH}
-
 apt-get update
 
 # Base install packages
@@ -79,13 +85,14 @@ apt-get install --no-install-recommends --assume-yes \
   gpg \
   bash \
   less \
-  pkg-config \
   openssl \
   libssl-dev \
+  pkg-config \
   libsqlite3-dev \
   libsqlite3-0 \
   libreadline-dev \
   git \
+  make \
   cmake \
   dh-autoreconf \
   clang \
@@ -166,27 +173,31 @@ deb [arch=amd64] http://security.ubuntu.com/ubuntu/ ${ubuntu_tag}-security multi
 EoF
   fi
 
+  dpkg --print-architecture
   dpkg --add-architecture ${CROSS_DEB_ARCH}
+  dpkg --print-architecture
   apt-get update
 
-  apt-get install --assume-yes openssl:${CROSS_DEB_ARCH}
-  apt-get install --assume-yes libssl-dev:${CROSS_DEB_ARCH}
-
   # scripts/install_ubuntu_dependencies-cross_compile.sh x86-64
+#    pkg-config-${targetPlatform}-linux-gnu \
   apt-get --assume-yes install \
-    pkg-config-${targetPlatform}-linux-gnu \
     gcc-${targetPlatform}-linux-gnu \
     g++-${targetPlatform}-linux-gnu
 
   # packages needed for Ledger and hidapi
   apt-get --assume-yes install \
     libudev-dev:${CROSS_DEB_ARCH} \
-    libhidapi-dev:${CROSS_DEB_ARCH}
+    libhidapi-dev:${CROSS_DEB_ARCH} \
+    libssl-dev:${CROSS_DEB_ARCH}
 
 fi
+
+rustup show
 
 rustup target add ${targetBuild}
 rustup toolchain install stable-${targetBuild} --force-non-host
 
 rustup target list --installed
 rustup toolchain list
+
+rustup show
