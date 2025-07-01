@@ -3,7 +3,7 @@ members = ["crates/tari_deploy", "crates/cli"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 authors = ["The Tari Development Community"]
 repository = "https://github.com/tari-project/tari-cli"
@@ -20,4 +20,5 @@ url = { version = "2.5.3", features = ["default", "serde"] }
 tari_wallet_daemon_client = { git = "https://github.com/tari-project/tari-ootle.git", branch = "development" }
 tari_engine = { git = "https://github.com/tari-project/tari-ootle.git", branch = "development" }
 tari_engine_types = { git = "https://github.com/tari-project/tari-ootle.git", branch = "development" }
+tari_ootle_common_types = { git = "https://github.com/tari-project/tari-ootle.git", branch = "development" }
 tari_template_lib = { git = "https://github.com/tari-project/tari-ootle.git", branch = "development" }

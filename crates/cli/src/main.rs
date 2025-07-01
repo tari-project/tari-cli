@@ -4,7 +4,7 @@
 use clap::Parser;
 use std::process::exit;
 
-use crate::cli::arguments::Cli;
+use crate::cli::command::Cli;
 
 mod cli;
 mod git;

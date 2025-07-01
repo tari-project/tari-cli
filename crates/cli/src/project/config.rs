@@ -3,6 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 use tari_deploy::NetworkConfig;
+use tari_wallet_daemon_client::ComponentAddressOrName;
 use thiserror::Error;
 use url::Url;
 
@@ -14,20 +15,31 @@ pub enum Error {
 
 /// Project configuration.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Config {
+pub struct ProjectConfig {
     network: NetworkConfig,
+    default_account: Option<String>,
 }
 
-impl Config {
+impl ProjectConfig {
     pub fn network(&self) -> &NetworkConfig {
         &self.network
     }
+
+    pub fn parsed_default_account(&self) -> anyhow::Result<Option<ComponentAddressOrName>> {
+        let acc = self
+            .default_account
+            .as_ref()
+            .map(|s| s.parse())
+            .transpose()?;
+        Ok(acc)
+    }
 }
 
-impl Default for Config {
+impl Default for ProjectConfig {
     fn default() -> Self {
         Self {
             network: NetworkConfig::new(Url::parse("http://127.0.0.1:9000").unwrap()),
+            default_account: None,
         }
     }
 }

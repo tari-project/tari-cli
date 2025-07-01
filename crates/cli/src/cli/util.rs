@@ -22,12 +22,16 @@ pub async fn path_metadata(path: &PathBuf) -> io::Result<Metadata> {
     fs::metadata(path).await
 }
 
-pub fn cli_select<T: ToString + Clone>(prompt: &str, items: &[T]) -> anyhow::Result<T> {
+pub fn cli_select<'a, T: ToString>(prompt: &str, items: &'a [T]) -> anyhow::Result<&'a T> {
     let selection = FuzzySelect::new()
         .with_prompt(prompt)
         .highlight_matches(true)
         .items(items)
         .interact()?;
 
-    Ok(items[selection].clone())
+    Ok(&items[selection])
+}
+
+pub fn human_bytes(n: usize) -> String {
+    human_bytes::human_bytes(n as f64)
 }

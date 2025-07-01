@@ -5,6 +5,7 @@ use std::{path::PathBuf, string::ToString};
 
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
+use tari_wallet_daemon_client::ComponentAddressOrName;
 use tokio::{fs, io::AsyncWriteExt};
 
 pub const VALID_OVERRIDE_KEYS: &[&str] = &[
@@ -14,14 +15,16 @@ pub const VALID_OVERRIDE_KEYS: &[&str] = &[
     "wasm_template_repository.url",
     "wasm_template_repository.branch",
     "wasm_template_repository.folder",
+    "default_account",
 ];
 
 /// CLI configuration.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Config {
     pub project_template_repository: TemplateRepository,
     pub wasm_template_repository: TemplateRepository,
+    pub default_account: Option<ComponentAddressOrName>,
 }
 
 /// Repository that holds templates to generate project and Tari templates.
@@ -46,6 +49,7 @@ impl Default for Config {
                 branch: "main".to_string(),
                 folder: "wasm_templates".to_string(),
             },
+            default_account: None,
         }
     }
 }
@@ -53,7 +57,7 @@ impl Default for Config {
 impl Config {
     pub async fn open(path: &PathBuf) -> anyhow::Result<Self> {
         let content = fs::read_to_string(path).await?;
-        Ok(toml::from_str::<Config>(content.as_str())?)
+        Ok(toml::from_str(content.as_str())?)
     }
 
     pub async fn write_to_file(&self, path: &PathBuf) -> anyhow::Result<()> {
@@ -96,6 +100,9 @@ impl Config {
             }
             "wasm_template_repository.folder" => {
                 self.wasm_template_repository.folder = value.to_string();
+            }
+            "default_account" => {
+                self.default_account = Some(value.parse()?);
             }
             _ => {}
         }

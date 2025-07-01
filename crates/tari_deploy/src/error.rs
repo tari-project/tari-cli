@@ -3,6 +3,7 @@
 
 use std::io;
 use tari_engine::template::TemplateLoaderError;
+use tari_template_lib::models::Amount;
 use tari_template_lib::types::HashParseError;
 use tari_wallet_daemon_client::error::WalletDaemonClientError;
 use thiserror::Error;
@@ -20,8 +21,10 @@ pub enum Error {
     IO(#[from] io::Error),
     #[error("Invalid hash error: {0}")]
     InvalidHash(#[from] HashParseError),
-    #[error("Insufficient balance in Tari L2 wallet! Current balance: {0}, Estimated Fee: {1}")]
-    InsufficientBalance(u64, u64),
+    #[error(
+        "Insufficient balance in Tari L2 wallet! Current balance: {current}, Estimated Fee: {fee}"
+    )]
+    InsufficientBalance { current: Amount, fee: Amount },
     #[error("Waiting for transaction timed out! Transaction ID: {0}")]
     WaitForTransactionTimeout(String),
     #[error("Invalid transaction: {0}!\n{1}")]
@@ -30,4 +33,6 @@ pub enum Error {
     MissingTransactionResult(String),
     #[error("Missing published template in substates!")]
     MissingPublishedTemplate,
+    #[error("Invalid response: {0}")]
+    InvalidResponse(String),
 }

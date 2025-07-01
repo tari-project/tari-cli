@@ -4,10 +4,10 @@
 use crate::cli::commands::create::CreateArgs;
 use crate::cli::commands::deploy;
 use crate::cli::commands::deploy::DeployArgs;
-use crate::cli::commands::new::NewArgs;
+use crate::cli::commands::generate::GenerateArgs;
 use crate::{
     cli::{
-        commands::{create, new},
+        commands::{create, generate},
         config::{Config, TemplateRepository},
         util,
     },
@@ -115,20 +115,24 @@ pub struct Cli {
     args: CommonArguments,
 
     #[command(subcommand)]
-    command: Commands,
+    command: Command,
 }
 
 #[derive(Clone, Subcommand)]
-pub enum Commands {
-    /// Creates a new Tari templates project
+pub enum Command {
+    /// Creates a new workspace for your Tari templates project.
+    #[clap(alias = "new")]
     Create {
         #[clap(flatten)]
         args: CreateArgs,
     },
-    /// Creates a new Tari wasm template project
-    New {
+    /// Generates a new Tari wasm template crate.
+    /// NOTE this command does not add the new template to an existing workspace, you may also use this command independent of a workspace.
+    /// Use `create`/`new` if you want to start a new Tari template project with a workspace.
+    #[clap(alias = "gen")]
+    Generate {
         #[clap(flatten)]
-        args: NewArgs,
+        args: GenerateArgs,
     },
     /// Deploying Tari template to a network
     Deploy {
@@ -154,17 +158,22 @@ impl Cli {
         .await?;
 
         // loading/creating config
-        let mut config = if !util::file_exists(&self.args.config_file_path).await? {
+        let path = &self.args.config_file_path;
+        let mut config = if !util::file_exists(path).await? {
+            println!(
+                "Existing config not found. Creating a new config at {}",
+                path.display()
+            );
             let cfg = Config::default();
-            cfg.write_to_file(&self.args.config_file_path).await?;
+            cfg.write_to_file(path).await?;
             cfg
         } else {
-            match Config::open(&self.args.config_file_path).await {
+            match Config::open(path).await {
                 Ok(cfg) => cfg,
                 Err(error) => {
                     println!("Failed to open config file: {error:?}, creating default...");
                     let cfg = Config::default();
-                    cfg.write_to_file(&self.args.config_file_path).await?;
+                    cfg.write_to_file(path).await?;
                     cfg
                 }
             }
@@ -236,11 +245,11 @@ impl Cli {
         )?;
 
         match &self.command {
-            Commands::Create { args } => {
+            Command::Create { args } => {
                 create::handle(config, project_template_repo, wasm_template_repo, args).await
             }
-            Commands::New { args } => new::handle(config, wasm_template_repo, args).await,
-            Commands::Deploy { args } => deploy::handle(args).await,
+            Command::Generate { args } => generate::handle(config, wasm_template_repo, args).await,
+            Command::Deploy { args } => deploy::handle(config, args).await,
         }
     }
 }

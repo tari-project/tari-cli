@@ -8,6 +8,7 @@ license.workspace = true
 
 [dependencies]
 tari_wallet_daemon_client = { workspace = true }
+tari_ootle_common_types = { workspace = true }
 tari_engine = { workspace = true }
 tari_engine_types = { workspace = true }
 tari_template_lib = { workspace = true }
