@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 use crate::error::Error;
-use crate::NetworkConfig;
+use crate::{DeployerError, NetworkConfig};
+use std::borrow::Cow;
 use std::path::PathBuf;
 use std::time::Duration;
 use tari_engine::template::LoadedTemplate;
@@ -10,12 +11,14 @@ use tari_engine::wasm::WasmModule;
 use tari_engine_types::commit_result::TransactionResult;
 use tari_engine_types::hashing::template_hasher32;
 use tari_engine_types::substate::SubstateId;
+use tari_ootle_common_types::optional::Optional;
 use tari_template_lib::constants::XTR;
+use tari_template_lib::models::Amount;
 use tari_template_lib::prelude::TemplateAddress;
 use tari_template_lib::types::Hash;
 use tari_wallet_daemon_client::types::{
     AccountsGetBalancesRequest, AuthLoginAcceptRequest, AuthLoginRequest, AuthLoginResponse,
-    PublishTemplateRequest, TransactionWaitResultRequest,
+    PublishTemplateRequest, TransactionWaitResultRequest, WalletGetInfoResponse,
 };
 use tari_wallet_daemon_client::{ComponentAddressOrName, WalletDaemonClient};
 use tokio::fs;
@@ -49,11 +52,11 @@ impl TemplateDeployer {
         &self,
         account: &ComponentAddressOrName,
         template: Template,
-        max_fee: u64,
+        max_fee: Amount,
         wait_timeout: Option<Duration>,
     ) -> Result<TemplateAddress> {
         let publish_template_request = self
-            .publish_template_request(account, &template, max_fee)
+            .create_publish_template_request(account, &template, max_fee)
             .await?;
         self.check_balance_to_deploy(account, &template).await?;
         self.publish_template(
@@ -69,23 +72,42 @@ impl TemplateDeployer {
         &self,
         account: &ComponentAddressOrName,
         template: &Template,
-    ) -> Result<u64> {
+    ) -> Result<Amount> {
         let mut request = self
-            .publish_template_request(account, template, 1_000_000)
+            .create_publish_template_request(account, template, Amount::new(1_000_000))
             .await?;
         self.get_publish_fee(&mut request).await
     }
 
+    pub async fn get_default_account(&self) -> Result<Option<ComponentAddressOrName>> {
+        let mut client = self.wallet_daemon_client().await?;
+        let account = client.accounts_get_default().await.optional()?;
+        let address = account.map(|a| {
+            a.account
+                .address
+                .as_component_address()
+                .expect("substate not account address??")
+        });
+        Ok(address.map(Into::into))
+    }
+
+    pub async fn get_wallet_info(&self) -> Result<WalletGetInfoResponse> {
+        let mut client = self.wallet_daemon_client().await?;
+        let info = client.get_wallet_info().await?;
+        Ok(info)
+    }
+
     /// Get publish fee based on a [`PublishTemplateRequest`].
-    async fn get_publish_fee(&self, request: &mut PublishTemplateRequest) -> Result<u64> {
+    async fn get_publish_fee(&self, request: &mut PublishTemplateRequest) -> Result<Amount> {
         let mut client = self.wallet_daemon_client().await?;
         request.dry_run = true;
         let response = client.publish_template(request).await?;
-        if let Some(fee) = response.dry_run_fee {
-            return Ok(fee.value() as u64);
-        }
-
-        Ok(0)
+        let fee = response.dry_run_fee.ok_or_else(|| {
+            DeployerError::InvalidResponse(
+                "Wallet daemon returned an empty dry run fee".to_string(),
+            )
+        })?;
+        Ok(fee)
     }
 
     /// Check if we have enough balance or not to deploy the template.
@@ -93,16 +115,23 @@ impl TemplateDeployer {
         &self,
         account: &ComponentAddressOrName,
         template: &Template,
-    ) -> Result<()> {
+    ) -> Result<CheckBalanceResult> {
         let mut request = self
-            .publish_template_request(account, template, 1_000_000)
+            .create_publish_template_request(account, template, Amount::new(1_000_000))
             .await?;
-        let fee = self.get_publish_fee(&mut request).await?;
-        let wallet_balance = self.wallet_balance(account).await?;
-        if fee > wallet_balance {
-            return Err(Error::InsufficientBalance(wallet_balance, fee));
+        let bin_size = request.binary.len();
+        let max_fee = self.get_publish_fee(&mut request).await?;
+        let wallet_balance = self.wallet_xtr_balance(account).await?;
+        if max_fee > wallet_balance {
+            return Err(Error::InsufficientBalance {
+                current: wallet_balance,
+                fee: max_fee,
+            });
         }
-        Ok(())
+        Ok(CheckBalanceResult {
+            max_fee,
+            binary_size: bin_size,
+        })
     }
 
     /// Publishing a template on Ootle (Layer-2).
@@ -158,38 +187,42 @@ impl TemplateDeployer {
         result.ok_or(Error::MissingPublishedTemplate)
     }
 
-    async fn publish_template_request(
+    async fn create_publish_template_request(
         &self,
         account: &ComponentAddressOrName,
         template: &Template,
-        max_fee: u64,
+        max_fee: Amount,
     ) -> Result<PublishTemplateRequest> {
+        assert!(max_fee.is_positive(), "Max fee must be positive!");
         let (binary, _, _) = self.validate_and_load_wasm_template(template).await?;
         Ok(PublishTemplateRequest {
-            binary,
+            binary: binary.into_owned(),
             fee_account: Some(account.clone()),
-            max_fee,
+            max_fee: max_fee.as_u64_checked().expect("max_fee u64 overflow"),
             detect_inputs: true,
             dry_run: false,
         })
     }
 
     /// Validating provided wasm template on the given path.
-    async fn validate_and_load_wasm_template(
+    async fn validate_and_load_wasm_template<'a>(
         &self,
-        params: &Template,
-    ) -> Result<(Vec<u8>, LoadedTemplate, Hash)> {
+        params: &'a Template,
+    ) -> Result<(Cow<'a, Vec<u8>>, LoadedTemplate, Hash)> {
         let wasm_code = match params {
-            Template::Path { path } => fs::read(path).await?,
-            Template::Binary { bin } => bin.clone(),
+            Template::Path { path } => {
+                let bin = fs::read(path).await?;
+                Cow::Owned(bin)
+            }
+            Template::Binary { bin } => Cow::Borrowed(bin),
         };
         let template = WasmModule::load_template_from_code(wasm_code.as_slice())?;
         let wasm_hash: Hash = template_hasher32().chain(&wasm_code).result();
         Ok((wasm_code, template, wasm_hash))
     }
 
-    /// Get available wallet balance.
-    async fn wallet_balance(&self, account: &ComponentAddressOrName) -> Result<u64> {
+    /// Get available wallet XTR balance.
+    async fn wallet_xtr_balance(&self, account: &ComponentAddressOrName) -> Result<Amount> {
         let mut client = self.wallet_daemon_client().await?;
         let balances_response = client
             .get_account_balances(AccountsGetBalancesRequest {
@@ -197,15 +230,14 @@ impl TemplateDeployer {
                 refresh: false,
             })
             .await?;
-        let mut account_balance = 0u64;
-        for entry in balances_response.balances {
-            if entry.resource_address == XTR {
-                account_balance = entry.balance.value() as u64;
-                break;
-            }
-        }
+        let balance = balances_response
+            .balances
+            .iter()
+            .find(|b| b.resource_address == XTR)
+            .map(|b| b.balance)
+            .unwrap_or_default();
 
-        Ok(account_balance)
+        Ok(balance)
     }
 
     /// Returns a new wallet daemon client.
@@ -232,4 +264,9 @@ impl TemplateDeployer {
 
         Ok(client)
     }
+}
+
+pub struct CheckBalanceResult {
+    pub max_fee: Amount,
+    pub binary_size: usize,
 }

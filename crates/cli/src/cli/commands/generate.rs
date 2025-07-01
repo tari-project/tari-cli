@@ -4,7 +4,7 @@
 use std::path::PathBuf;
 
 use anyhow::anyhow;
-use cargo_generate::{GenerateArgs, TemplatePath};
+use cargo_generate::{GenerateArgs as CargoGenerateArgs, TemplatePath};
 use cargo_toml::{Manifest, Resolver, Workspace};
 use clap::Parser;
 use tokio::fs;
@@ -19,20 +19,23 @@ use crate::{
 const DEFAULT_TEMPLATES_DIR: &str = "templates";
 
 #[derive(Clone, Parser, Debug)]
-pub struct NewArgs {
-    /// Name of the project
-    #[arg(value_parser = crate::cli::arguments::project_name_parser)]
+pub struct GenerateArgs {
+    /// Name of the new wasm template crate
+    #[arg(value_parser = crate::cli::command::project_name_parser)]
     pub name: String,
 
-    /// (Optional) Selected wasm template (ID).
-    /// It will be prompted if not set.
+    /// (Optional) The wasm template short name (e.g. "meme_coin", "fungible" etc.).
+    /// You wil be prompted to select a template if not set.
     #[arg(short = 't', long)]
     pub template: Option<String>,
 
-    /// Target folder where the new project will be generated.
-    #[arg(long, value_name = "PATH", default_value = crate::cli::arguments::default_target_dir().into_os_string()
-    )]
-    pub target: PathBuf,
+    /// Directory where the new generated project will be output.
+    #[arg(long, short = 'o', value_name = "PATH", default_value = crate::cli::command::default_target_dir().into_os_string())]
+    pub output: PathBuf,
+
+    /// Enables more verbose output.
+    #[arg(long, short, action)]
+    pub verbose: bool,
 }
 
 /// Handle `new` command.
@@ -40,7 +43,7 @@ pub struct NewArgs {
 pub async fn handle(
     config: Config,
     wasm_template_repo: GitRepository,
-    args: &NewArgs,
+    args: &GenerateArgs,
 ) -> anyhow::Result<()> {
     // selecting wasm template
     let templates = loading!(
@@ -68,7 +71,7 @@ pub async fn handle(
                         .collect(),
                 )
             })?,
-        None => &util::cli_select("🔎 Select WASM template", templates.as_slice())?,
+        None => util::cli_select("🔎 Select WASM template", templates.as_slice())?,
     };
 
     let template_path = template
@@ -77,27 +80,28 @@ pub async fn handle(
         .ok_or(anyhow!("Invalid template path!"))?
         .to_string();
 
-    let cargo_toml_file = args.target.join("Cargo.toml");
+    let cargo_toml_file = args.output.join("Cargo.toml");
     let is_cargo_project = util::file_exists(&cargo_toml_file).await?;
 
     // use '/templates' directory if exists
-    let has_templates_sub_dir = util::dir_exists(&args.target.join(DEFAULT_TEMPLATES_DIR)).await?;
-    let target = if has_templates_sub_dir {
-        args.target.join(DEFAULT_TEMPLATES_DIR)
+    let has_templates_sub_dir = util::dir_exists(&args.output.join(DEFAULT_TEMPLATES_DIR)).await?;
+    let output = if has_templates_sub_dir {
+        args.output.join(DEFAULT_TEMPLATES_DIR)
     } else {
-        args.target.clone()
+        args.output.clone()
     };
 
     // generate new project
-    let generate_args = GenerateArgs {
+    let generate_args = CargoGenerateArgs {
         name: Some(args.name.to_string()),
-        destination: Some(target.clone()),
+        destination: Some(output.clone()),
         define: vec![format!("in_cargo_workspace={}", is_cargo_project)],
         template_path: TemplatePath {
             path: Some(template_path),
             ..TemplatePath::default()
         },
-        ..GenerateArgs::default()
+        verbose: args.verbose,
+        ..CargoGenerateArgs::default()
     };
     loading!(
         "Generate new project",
@@ -117,7 +121,7 @@ pub async fn handle(
         )?;
     } else {
         // git init as new project is a separate one
-        if let Err(error) = GitRepository::new(target.join(args.name.clone())).init() {
+        if let Err(error) = GitRepository::new(output.join(args.name.clone())).init() {
             println!("⚠️ Git repository already initialized: {error:?}");
         }
     }
