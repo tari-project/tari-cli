@@ -17,8 +17,8 @@ env:
   TS_BUNDLE_ID_BASE: "com.tari.cli.pkg"
   TS_SIG_FN: "sha256-unsigned.txt"
   ## Must be a JSON string
-  TS_FILES: '["tari-cli"]'
-  TS_FEATURES: "default"
+  TS_FILES: '["tari"]'
+  TS_FEATURES: ""
   TS_LIBRARIES: ""
   TS_DESCRIPTION: "Tari Ootle Cli"
   TS_URL: "https://tari.com"

@@ -59,10 +59,6 @@ impl Template {
     pub fn extra(&self) -> &HashMap<String, String> {
         &self.extra
     }
-
-    pub fn description(&self) -> &str {
-        &self.description
-    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

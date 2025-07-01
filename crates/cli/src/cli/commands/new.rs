@@ -57,15 +57,17 @@ pub async fn handle(
     let template = match &args.template {
         Some(template_id) => templates
             .iter()
-            .filter(|template| template.name().to_lowercase() == template_id.to_lowercase())
+            .filter(|template| template.name().eq_ignore_ascii_case(template_id))
             .last()
-            .ok_or(CreateHandlerError::TemplateNotFound(
-                template_id.to_string(),
-                templates
-                    .iter()
-                    .map(|template| template.id().to_string())
-                    .collect(),
-            ))?,
+            .ok_or_else(|| {
+                CreateHandlerError::TemplateNotFound(
+                    template_id.to_string(),
+                    templates
+                        .iter()
+                        .map(|template| template.id().to_string())
+                        .collect(),
+                )
+            })?,
         None => &util::cli_select("🔎 Select WASM template", templates.as_slice())?,
     };
 
