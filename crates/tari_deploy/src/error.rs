@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 use std::io;
-use tari_dan_engine::template::TemplateLoaderError;
+use tari_engine::template::TemplateLoaderError;
 use tari_template_lib::types::HashParseError;
 use tari_wallet_daemon_client::error::WalletDaemonClientError;
 use thiserror::Error;
