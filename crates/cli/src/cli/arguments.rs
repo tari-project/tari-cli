@@ -66,7 +66,7 @@ pub fn config_override_parser(config_override: &str) -> Result<ConfigOverride, S
     let (key, value) = (split.first().unwrap(), split.get(1).unwrap());
 
     if !Config::is_override_key_valid(key) {
-        return Err(format!("Override key invalid: {}", key));
+        return Err(format!("Override key invalid: {key}"));
     }
 
     Ok(ConfigOverride {

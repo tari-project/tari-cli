@@ -99,8 +99,7 @@ pub async fn handle(args: &DeployArgs) -> anyhow::Result<()> {
     if !args.yes {
         let confirmation = Confirm::new()
             .with_prompt(format!(
-                "❓Deploying this template costs {} {TOKEN_SYMBOL} (estimated), are you sure to continue?",
-                max_fee
+                "❓Deploying this template costs {max_fee} {TOKEN_SYMBOL} (estimated), are you sure to continue?",
             ))
             .interact()?;
         if !confirmation {
@@ -114,7 +113,7 @@ pub async fn handle(args: &DeployArgs) -> anyhow::Result<()> {
         deployer.deploy(&account, template, max_fee, None).await
     )?;
 
-    println!("⭐ Your new template's address: {}", template_address);
+    println!("⭐ Your new template's address: {template_address}");
 
     Ok(())
 }
@@ -143,7 +142,7 @@ async fn build_project(dir: &Path, name: String) -> anyhow::Result<PathBuf> {
         .join("target")
         .join("wasm32-unknown-unknown")
         .join("release")
-        .join(format!("{}.wasm", name));
+        .join(format!("{name}.wasm"));
     if !util::file_exists(&output_bin).await? {
         return Err(anyhow!(
             "Binary is not present after build at {:?}\n\nBuild Output:\n{}",

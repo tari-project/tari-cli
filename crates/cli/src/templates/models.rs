@@ -23,7 +23,7 @@ impl Display for Template {
             .inline(format!("**{}**", self.name).as_str())
             .to_string();
         let formatted_description = skin.inline(self.description.as_str()).to_string();
-        write!(f, "{} - {}", formatted_name, formatted_description)
+        write!(f, "{formatted_name} - {formatted_description}")
     }
 }
 
@@ -58,6 +58,12 @@ impl Template {
 
     pub fn extra(&self) -> &HashMap<String, String> {
         &self.extra
+    }
+
+    // Only currently used in tests
+    #[cfg(test)]
+    pub fn description(&self) -> &str {
+        &self.description
     }
 }
 

@@ -77,7 +77,7 @@ impl GitRepository {
         let fetch_commit = repo.reference_to_annotated_commit(&fetch_head)?;
 
         // pull changes
-        let refname = format!("refs/heads/{}", current_branch_name);
+        let refname = format!("refs/heads/{current_branch_name}");
         repo.reference(
             &refname,
             fetch_commit.id(),

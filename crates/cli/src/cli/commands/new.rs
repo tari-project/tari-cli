@@ -58,7 +58,7 @@ pub async fn handle(
         Some(template_id) => templates
             .iter()
             .filter(|template| template.name().eq_ignore_ascii_case(template_id))
-            .last()
+            .next_back()
             .ok_or_else(|| {
                 CreateHandlerError::TemplateNotFound(
                     template_id.to_string(),

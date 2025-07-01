@@ -118,21 +118,22 @@ mod tests {
     async fn generate_template(dir: &Path, template: &TemplateToGenerate<'_>) -> PathBuf {
         let template_dir = dir.join(template.name);
         fs::create_dir_all(template_dir.clone()).await.unwrap();
-        let extra_str = if let Some(extra) = &template.extra {
-            let values = extra.iter().fold(String::new(), |mut value, (k, v)| {
-                value.push_str(format!("{} = \"{}\"\n", k, v).as_str());
-                value
-            });
-            format!(
-                r#"
+        let extra_str = template
+            .extra
+            .as_ref()
+            .map(|extra| {
+                let values = extra.iter().fold(String::new(), |mut value, (k, v)| {
+                    value.push_str(format!("{k} = \"{v}\"\n").as_str());
+                    value
+                });
+                format!(
+                    r#"
             [extra]
-            {}
+            {values}
             "#,
-                values
-            )
-        } else {
-            String::default()
-        };
+                )
+            })
+            .unwrap_or_default();
         let template_toml = format!(
             r#"
         name = "{}"
