@@ -2,18 +2,17 @@
   {
     "name": "linux-x86_64",
     "runs-on": "ubuntu-22.04",
-    "rust": "1.82",
+    "rust": "stable",
     "target": "x86_64-unknown-linux-gnu",
     "cross": false,
     "features": ""
   },
   {
     "name": "linux-arm64",
-    "runs-on": "ubuntu-20.04",
-    "rust": "1.82",
+    "runs-on": "ubuntu-22.04-arm",
+    "rust": "stable",
     "target": "aarch64-unknown-linux-gnu",
-    "cross": true,
-    "flags": "",
+    "cross": false,
     "build_enabled": true,
     "best_effort": true
   },
@@ -23,15 +22,13 @@
     "rust": "stable",
     "target": "riscv64gc-unknown-linux-gnu",
     "cross": true,
-    "flags": "",
     "build_enabled": true,
     "best_effort": true
   },
-
   {
     "name": "macos-x86_64",
-    "runs-on": "macos-12",
-    "rust": "1.82",
+    "runs-on": "macos-13",
+    "rust": "stable",
     "target": "x86_64-apple-darwin",
     "cross": false,
     "features": ""
@@ -39,7 +36,7 @@
   {
     "name": "macos-arm64",
     "runs-on": "macos-14",
-    "rust": "1.82",
+    "rust": "stable",
     "target": "aarch64-apple-darwin",
     "cross": false,
     "features": "",
@@ -48,8 +45,8 @@
   },
   {
     "name": "windows-x64",
-    "runs-on": "windows-2019",
-    "rust": "1.82",
+    "runs-on": "windows-2022",
+    "rust": "stable",
     "target": "x86_64-pc-windows-msvc",
     "cross": false,
     "features": ""
@@ -57,10 +54,9 @@
   {
     "name": "windows-arm64",
     "runs-on": "windows-latest",
-    "rust": "1.82",
+    "rust": "stable",
     "target": "aarch64-pc-windows-msvc",
     "cross": false,
-    "target_bins": "tari",
     "features": "",
     "build_enabled": true,
     "best_effort": true
