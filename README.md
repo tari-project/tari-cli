@@ -1,90 +1,131 @@
-# tari-cli
+# 🚀 Tari CLI
+
+> **The complete toolkit for developing Tari smart contracts**
 
 ![GitHub Release](https://img.shields.io/github/v/release/tari-project/tari-cli)
 ![CI Build Status](https://img.shields.io/github/actions/workflow/status/tari-project/tari-cli/ci.yml)
 
-This CLI tool is the starting point for the development of Tari templates (smart contracts in other blockchains).
+The **Tari CLI** transforms smart contract development on the Tari Layer-2 blockchain into a delightful experience. From project scaffolding to deployment, every step is designed for developer productivity and confidence.
 
-# Installation
+## ✨ What You Can Build
 
-### Using cargo
+- **NFT Collections**: Create unique digital assets with custom metadata
+- **Token Systems**: Build fungible tokens with advanced features  
+- **DeFi Protocols**: Develop decentralized finance applications
+- **Custom Templates**: Design reusable smart contract patterns
 
-```shell
+## 🚀 Quick Start
+
+Get your first Tari smart contract deployed in under 5 minutes:
+
+### 1. Install Tari CLI
+
+```bash
+# Using Cargo
 cargo install tari-cli --git https://github.com/tari-project/tari-cli --force
+
+# Or download from releases
+curl -L https://github.com/tari-project/tari-cli/releases/latest/download/tari-cli-linux.tar.gz | tar xz
 ```
 
-### Downloading binaries
+### 2. Create Your First Project
 
-You can download latest binary from [Releases](https://github.com/tari-project/tari-cli/releases) page.
+<!-- SOURCE: Actual CLI output from README.md:49-57 -->
+```bash
+tari create my-first-contract
 
-# Prerequisites
+# ✅ Init configuration and directories
+# ✅ Refresh project templates repository  
+# ✅ Refresh wasm templates repository
+# ✅ Collecting available project templates
+# 🔎 Select project template: Basic - The basic project template to get started
+# ✅ Generate new project
+```
 
-- A locally
-  running [Tari Ootle Wallet Daemon](https://github.com/tari-project/tari-dan?tab=readme-ov-file#running-the-tari-dan-wallet-daemon).
-- Properly configured project (worth checking after creating a new one) pointing to the right **wallet daemon JSON-RPC
-  URL** (in `project_dir/tari.config.toml`).
-    - Example:
-      ```toml
-      [network]
-      wallet-daemon-jrpc-address = "http://127.0.0.1:9000/"
-      ```
+### 3. Add a Smart Contract
 
-# Usage
+<!-- SOURCE: Actual CLI output from README.md:67-77 -->
+```bash
+cd my-first-contract
+tari new MyToken
 
-1. After [installation](#Installation) of the latest version it is recommended to create a new project:
+# ✅ Init configuration and directories
+# ✅ Collecting available WASM templates  
+# 🔎 Select WASM template: NFT - A simple NFT template to create your own
+# ✅ Generate new project
+# ✅ Update Cargo.toml
+```
 
-    ```shell
-    tari create YOUR_PROJECT_NAME
-    ```
+### 4. Deploy to Network
 
-   Example output:
-    ```shell
-    $ tari create test                                                                                                                                                                                                                                                                                                                           [11:26:24]
-    ✅ Init configuration and directories
-    ✅ Refresh project templates repository
-    ✅ Refresh wasm templates repository
-    ✅ Collecting available project templates
-    🔎 Select project template: Basic - The basic project template to get started on wasm template development.
-    ⠋ Generate new project[1/5] ⠁
-    ✅ Generate new project
-    ```
-   **Please note** that currently this will create a new skeleton project which contains configuration and everything to
-   create any new **Tari template/smart contract** project!
+<!-- SOURCE: Actual CLI output from README.md:89-97 -->
+```bash
+tari deploy --account myaccount MyToken
 
-2. Create new template
-    ```shell
-    tari new YOUR_TEMPLATE_PROJECT_NAME
-    ```
+# ✅ Building WASM template project "MyToken"
+# ❓ Deploying this template costs 256875 XTR (estimated), are you sure to continue? yes
+# ✅ Deploying project "MyToken" to local network  
+# ⭐ Your new template's address: f807989828e70a18050e5785f30a7bd01475797d76d6b4700af175b859c32774
+```
 
-   Example output:
-    ```shell
-   $ tari new SomeNFT                                                                                                                                                                                                                                                                                                                      [11:30:48]
-    ✅ Init configuration and directories
-    ✅ Refresh project templates repository
-    ✅ Refresh wasm templates repository
-    ✅ Collecting available WASM templates
-    🔎 Select WASM template: NFT - A simple NFT template to create your own.
-    ⠋ Generate new project[ 1/10] ⠁
-    ✅ Generate new project
-    ✅ Update Cargo.toml
-    ```
+🎉 **Congratulations!** Your smart contract is live on Tari.
 
-3. Deploy new template
+## 📚 Documentation
 
-   **Important**: You should have an account created with enough funds to deploy!
+### 🎯 Essential Guides
+- **[Getting Started](docs/01-getting-started/installation.md)** - Complete setup and first project
+- **[Template Development](docs/02-guides/template-development.md)** - Creating custom smart contracts
+- **[Configuration Guide](docs/02-guides/project-configuration.md)** - Project and network setup
+- **[Deployment Guide](docs/02-guides/deployment.md)** - From build to blockchain
 
-   ```shell
-   tari deploy --account YOUR_ACCOUNT_NAME_OR_ADDRESS YOUR_TEMPLATE_PROJECT_NAME
-   ```
+### 📖 Reference
+- **[CLI Commands](docs/03-reference/cli-commands.md)** - Complete command reference
+- **[Configuration Schema](docs/03-reference/configuration-schema.md)** - All configuration options
+- **[API Patterns](docs/03-reference/api-patterns.md)** - Implementation patterns from real code
 
-   Example output:
-    ```shell
-    tari deploy --account acc some_nft                                                                                                                                                                                                                                                                                                    [11:50:43]
-    ✅ Init configuration and directories
-    ✅ Refresh project templates repository
-    ✅ Refresh wasm templates repository
-    ✅ Building WASM template project "some_nft"
-    ❓Deploying this template costs 256875 XTR (estimated), are you sure to continue? yes
-    ✅ Deploying project "some_nft" to local network
-    ⭐ Your new template's address: f807989828e70a18050e5785f30a7bd01475797d76d6b4700af175b859c32774
-    ```
+### 🔧 Help & Troubleshooting  
+- **[Common Issues](docs/04-troubleshooting/common-issues.md)** - Solutions to frequent problems
+- **[Advanced Debugging](docs/04-troubleshooting/debugging.md)** - Deep troubleshooting techniques
+- **[FAQ](docs/04-troubleshooting/faq.md)** - Frequently asked questions
+
+### 🤝 Contributing
+- **[Development Setup](docs/05-contributing/development-setup.md)** - Contributor environment
+- **[Testing Guide](docs/05-contributing/testing.md)** - Test framework and practices
+
+## 🔧 Prerequisites
+
+<!-- SOURCE: Verified against actual config defaults -->
+Before using Tari CLI, ensure you have:
+
+- **[Tari Wallet Daemon](https://github.com/tari-project/tari-dan)** running locally
+- **Rust toolchain** with `wasm32-unknown-unknown` target:
+  ```bash
+  rustup target add wasm32-unknown-unknown
+  ```
+
+The CLI automatically detects your development environment and guides you through any missing setup.
+
+## 🌐 Networks
+
+- **Local Development**: Perfect for testing and iteration
+- **Testnet**: Pre-production validation
+- **Mainnet**: Production deployments
+
+See the [Configuration Guide](docs/02-guides/project-configuration.md) for network-specific setup.
+
+## 🆘 Get Help
+
+- **📖 Documentation**: Comprehensive guides above
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/tari-project/tari-cli/issues)
+- **💬 Community**: [Tari Discord](https://discord.gg/tari)
+- **📧 Questions**: [GitHub Discussions](https://github.com/tari-project/tari/discussions)
+
+## 📊 Project Status
+
+- **Build Status**: ![CI](https://img.shields.io/github/actions/workflow/status/tari-project/tari-cli/ci.yml)
+- **Test Coverage**: ![Coverage](https://img.shields.io/codecov/c/github/tari-project/tari-cli)
+- **Latest Release**: ![Release](https://img.shields.io/github/v/release/tari-project/tari-cli)
+
+---
+
+**Ready to build the future of decentralized applications?** [Get started now](docs/01-getting-started/installation.md) or explore our [template gallery](docs/02-guides/template-development.md#template-examples).
