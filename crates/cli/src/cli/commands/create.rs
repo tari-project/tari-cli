@@ -95,7 +95,6 @@ pub async fn handle(
             path: Some(template_path),
             ..TemplatePath::default()
         },
-        init: true, // Avoid workspace member processing since templates generate workspaces, not packages
         ..CargoGenerateArgs::default()
     };
     loading!(
