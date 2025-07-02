@@ -13,6 +13,7 @@ path = "src/main.rs"
 [dependencies]
 tari_deploy = { workspace = true }
 tari_wallet_daemon_client = { workspace = true }
+
 anyhow = "1.0.93"
 clap = { version = "4.5.20", features = ["derive", "string"] }
 dirs-next = "2.0.0"

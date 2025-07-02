@@ -1,13 +1,13 @@
 // Copyright 2024 The Tari Project
 // SPDX-License-Identifier: BSD-3-Clause
 
+use crate::cli::commands::add::AddArgs;
 use crate::cli::commands::create::CreateArgs;
 use crate::cli::commands::deploy;
 use crate::cli::commands::deploy::DeployArgs;
-use crate::cli::commands::generate::GenerateArgs;
 use crate::{
     cli::{
-        commands::{create, generate},
+        commands::{add, create},
         config::{Config, TemplateRepository},
         util,
     },
@@ -43,7 +43,7 @@ pub fn default_base_dir() -> PathBuf {
         .join(DEFAULT_DATA_FOLDER_NAME)
 }
 
-pub fn default_target_dir() -> PathBuf {
+pub fn default_output_dir() -> PathBuf {
     env::current_dir().unwrap()
 }
 
@@ -126,13 +126,13 @@ pub enum Command {
         #[clap(flatten)]
         args: CreateArgs,
     },
-    /// Generates a new Tari wasm template crate.
+    /// Generates and adds a new Tari wasm template crate.
     /// NOTE this command does not add the new template to an existing workspace, you may also use this command independent of a workspace.
     /// Use `create`/`new` if you want to start a new Tari template project with a workspace.
-    #[clap(alias = "gen")]
-    Generate {
+    #[clap(alias = "generate", alias = "gen")]
+    Add {
         #[clap(flatten)]
-        args: GenerateArgs,
+        args: AddArgs,
     },
     /// Deploying Tari template to a network
     Deploy {
@@ -207,25 +207,22 @@ impl Cli {
             .join(repo_name);
         let mut repo = GitRepository::new(repo_folder_path.clone());
 
-        match util::dir_exists(&repo_folder_path).await? {
-            true => {
-                repo.load()?;
-                let current_branch = repo.current_branch_name()?;
-                if current_branch != template_repo.branch {
-                    repo.pull_changes(Some(template_repo.branch.clone()))?;
-                } else {
-                    repo.pull_changes(None)?;
-                }
+        if util::dir_exists(&repo_folder_path).await? {
+            repo.load()?;
+            let current_branch = repo.current_branch_name()?;
+            if current_branch != template_repo.branch {
+                repo.pull_changes(Some(template_repo.branch.clone()))?;
+            } else {
+                repo.pull_changes(None)?;
             }
-            false => {
-                repo.clone_and_checkout(template_repo.url.as_str(), template_repo.branch.as_str())?;
-            }
+        } else {
+            repo.clone_and_checkout(template_repo.url.as_str(), template_repo.branch.as_str())?;
         }
 
         Ok(repo)
     }
 
-    pub async fn handle_command(&self) -> anyhow::Result<()> {
+    pub async fn handle_command(self) -> anyhow::Result<()> {
         // init config and dirs
         let config = loading!(
             "Init configuration and directories",
@@ -244,11 +241,13 @@ impl Cli {
                 .await
         )?;
 
-        match &self.command {
+        match self.command {
             Command::Create { args } => {
                 create::handle(config, project_template_repo, wasm_template_repo, args).await
             }
-            Command::Generate { args } => generate::handle(config, wasm_template_repo, args).await,
+            Command::Add { args } => {
+                add::handle(config, wasm_template_repo.local_folder().clone(), args).await
+            }
             Command::Deploy { args } => deploy::handle(config, args).await,
         }
     }

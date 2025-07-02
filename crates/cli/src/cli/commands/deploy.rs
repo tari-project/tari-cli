@@ -46,19 +46,26 @@ pub struct DeployArgs {
     pub max_fee: Option<u64>,
 
     /// Project folder where we have the project configuration file (tari.config.toml).
-    #[arg(long, value_name = "PATH", default_value = crate::cli::command::default_target_dir().into_os_string()
+    #[arg(long, value_name = "PATH", default_value = crate::cli::command::default_output_dir().into_os_string()
     )]
     pub project_folder: PathBuf,
 }
 
-pub async fn handle(config: Config, args: &DeployArgs) -> anyhow::Result<()> {
+pub async fn handle(config: Config, args: DeployArgs) -> anyhow::Result<()> {
     // load network config from project config file
     let project_config = load_project_config(&args.project_folder).await?;
 
     // lookup project name and dir
     let mut crate_dir = None;
     let mut crate_name = String::new();
-    let workspace_cargo_toml = Manifest::from_path(args.project_folder.join("Cargo.toml"))?;
+    let cargo_path = args.project_folder.join("Cargo.toml");
+    if !cargo_path.exists() {
+        return Err(anyhow!(
+            "Project folder does not contain Cargo.toml file at {}",
+            cargo_path.display()
+        ));
+    }
+    let workspace_cargo_toml = Manifest::from_path(cargo_path)?;
     let crates = workspace_cargo_toml
         .workspace
         .ok_or(anyhow!("Project is not a Cargo workspace project!"))?
@@ -202,12 +209,17 @@ async fn build_project(dir: &Path, name: &str) -> anyhow::Result<PathBuf> {
 
 async fn load_project_config(project_folder: &Path) -> anyhow::Result<project::ProjectConfig> {
     let config_file = project_folder.join(project::CONFIG_FILE_NAME);
-    Ok(toml::from_str(
+    toml::from_str(
         fs::read_to_string(&config_file)
             .await
             .map_err(|error| {
-                anyhow!("Failed to load project config file (at {config_file:?}): {error:?}")
+                anyhow!(
+                    "Failed to load project config file (at {}): {}",
+                    config_file.display(),
+                    error
+                )
             })?
             .as_str(),
-    )?)
+    )
+    .context("parsing config toml")
 }

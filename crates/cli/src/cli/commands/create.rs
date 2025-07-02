@@ -3,8 +3,9 @@
 
 use std::path::PathBuf;
 
-use crate::cli::commands::generate;
-use crate::cli::commands::generate::GenerateArgs;
+use crate::cli::commands::add;
+use crate::cli::commands::add::AddArgs;
+use crate::git::find_git_root;
 use crate::{
     cli::{config::Config, util},
     git::repository::GitRepository,
@@ -32,8 +33,12 @@ pub struct CreateArgs {
     pub template: Option<String>,
 
     /// Directory where the new generated project will be output.
-    #[arg(long, short = 'o', value_name = "PATH", default_value = crate::cli::command::default_target_dir().into_os_string())]
+    #[arg(long, short = 'o', value_name = "PATH", default_value = crate::cli::command::default_output_dir().into_os_string())]
     pub output: PathBuf,
+
+    /// Skip git init.
+    #[arg(long, default_value = "false")]
+    pub skip_init: bool,
 
     /// Enables more verbose output.
     #[arg(long, short = 'v')]
@@ -52,8 +57,35 @@ pub async fn handle(
     config: Config,
     project_template_repo: GitRepository,
     wasm_template_repo: GitRepository,
-    args: &CreateArgs,
+    args: CreateArgs,
 ) -> anyhow::Result<()> {
+    // is the output a git repository?
+    let project_root = if let Some(root) = find_git_root(&args.output) {
+        if args.verbose {
+            md_println!(
+                "ℹ️ Output directory `{}` is a git repository.",
+                root.display()
+            );
+        }
+        md_println!(
+            "⚠️ Creating a new project `{}` in the git repository `{}`. You may want to use `tari add` instead.",
+            args.name,
+            root.display()
+        );
+
+        root
+    } else {
+        if args.verbose {
+            md_println!(
+                "ℹ️ Output directory `{}` is not a git repository.",
+                args.output.display()
+            );
+        }
+        let path = args.output.join(args.name.as_str());
+        fs::create_dir_all(&path).await?;
+        path
+    };
+
     // selecting project template
     let templates = loading!(
         "Collecting available project templates",
@@ -69,7 +101,7 @@ pub async fn handle(
     let template = match &args.template {
         Some(template_id) => templates
             .iter()
-            .filter(|template| template.id().to_lowercase() == template_id.to_lowercase())
+            .filter(|template| template.id().eq_ignore_ascii_case(template_id))
             .next_back()
             .ok_or(CreateHandlerError::TemplateNotFound(
                 template_id.to_string(),
@@ -84,17 +116,18 @@ pub async fn handle(
     let template_path = template
         .path()
         .to_str()
-        .ok_or(anyhow!("Invalid template path!"))?
+        .ok_or(anyhow!("template path must be a utf-8 string!"))?
         .to_string();
 
     // generate new project
     let generate_args = CargoGenerateArgs {
         name: Some(args.name.to_string()),
-        destination: Some(args.output.clone()),
+        destination: Some(project_root.clone()),
         template_path: TemplatePath {
             path: Some(template_path),
             ..TemplatePath::default()
         },
+        init: true,
         ..CargoGenerateArgs::default()
     };
     loading!(
@@ -102,18 +135,16 @@ pub async fn handle(
         cargo_generate::generate(generate_args)
     )?;
 
-    let final_path = args.output.join(args.name.as_str());
-
     // create templates dir if set
     if let Some(templates_dir) = template
         .extra()
         .get(PROJECT_TEMPLATE_EXTRA_TEMPLATES_FIELD_NAME)
     {
-        util::create_dir(&final_path.join(templates_dir)).await?;
+        util::create_dir(&project_root.join(templates_dir)).await?;
     }
 
     // init project config file (remove if exists already somehow)
-    let project_config_file = final_path.join(project::CONFIG_FILE_NAME);
+    let project_config_file = project_root.join(project::CONFIG_FILE_NAME);
     if util::file_exists(&project_config_file).await? {
         fs::remove_file(&project_config_file).await?;
     }
@@ -128,18 +159,16 @@ pub async fn handle(
         .extra()
         .get(PROJECT_TEMPLATE_EXTRA_INIT_WASM_TEMPLATES_FIELD_NAME)
     {
-        let wasm_templates = wasm_templates.replace(" ", "");
-        let wasm_template_names = wasm_templates.split(',').collect::<Vec<_>>();
+        let wasm_template_names = wasm_templates.split(',').map(|s| s.trim());
         for wasm_template_name in wasm_template_names {
-            let wasm_template_repo = GitRepository::new(wasm_template_repo.local_folder().clone());
             md_println!("\n⚙️ Generating WASM project: **{}**", wasm_template_name);
-            generate::handle(
+            add::handle(
                 config.clone(),
-                wasm_template_repo,
-                &GenerateArgs {
+                wasm_template_repo.local_folder().clone(),
+                AddArgs {
                     name: wasm_template_name.to_string(),
                     template: Some(wasm_template_name.to_string()),
-                    output: final_path.clone(),
+                    output: project_root.clone(),
                     verbose: args.verbose,
                 },
             )
@@ -147,9 +176,11 @@ pub async fn handle(
         }
     }
 
-    // git init
-    let mut new_repo = GitRepository::new(final_path);
-    new_repo.init()?;
+    if !args.skip_init {
+        // git init - cargo generate should do it already, but just in case
+        let mut new_repo = GitRepository::new(project_root);
+        new_repo.init()?;
+    }
 
     Ok(())
 }

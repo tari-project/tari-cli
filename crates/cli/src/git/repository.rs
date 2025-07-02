@@ -23,7 +23,7 @@ pub enum Error {
     RefIsNotBranch,
 }
 
-pub type GitRepositoryResult<T> = Result<T, Error>;
+pub type Result<T> = std::result::Result<T, Error>;
 
 impl GitRepository {
     pub fn new(local_folder: PathBuf) -> Self {
@@ -34,20 +34,19 @@ impl GitRepository {
     }
 
     /// Initializes a git repository in [`local_folder`].
-    pub fn init(&mut self) -> GitRepositoryResult<()> {
+    pub fn init(&mut self) -> Result<()> {
         self.repository = Some(Repository::init(&self.local_folder)?);
         Ok(())
     }
 
     /// Loads an existing git repository from [`local_folder`].
-    pub fn load(&mut self) -> GitRepositoryResult<()> {
+    pub fn load(&mut self) -> Result<()> {
         self.repository = Some(Repository::open(&self.local_folder).map_err(Error::Git2)?);
-
         Ok(())
     }
 
     /// Does a clone and checkout operation in [`local_folder`] based on the given repository [`url`] and [`branch`].
-    pub fn clone_and_checkout(&mut self, url: &str, branch: &str) -> GitRepositoryResult<()> {
+    pub fn clone_and_checkout(&mut self, url: &str, branch: &str) -> Result<()> {
         self.repository = Some(
             RepoBuilder::new()
                 .branch(branch)
@@ -60,7 +59,7 @@ impl GitRepository {
 
     /// Pulling latest changes on an optional branch (default is the current one).
     /// Note: this method always force checkout to latest head.
-    pub fn pull_changes(&self, branch: Option<String>) -> GitRepositoryResult<()> {
+    pub fn pull_changes(&self, branch: Option<String>) -> Result<()> {
         let repo = self.repository()?;
         let current_branch_name = if let Some(branch) = branch {
             branch
@@ -97,7 +96,7 @@ impl GitRepository {
 
     /// Gives back the actual repository if initialized using any of the methods
     /// ([`Self::init`], [`Self::load`] or [`Self::clone_and_checkout`]).
-    fn repository(&self) -> GitRepositoryResult<&Repository> {
+    fn repository(&self) -> Result<&Repository> {
         if self.repository.is_none() {
             return Err(Error::RepositoryNotInitialized);
         }
@@ -106,7 +105,7 @@ impl GitRepository {
     }
 
     /// Returns current branch name.
-    pub fn current_branch_name(&self) -> GitRepositoryResult<String> {
+    pub fn current_branch_name(&self) -> Result<String> {
         let repo = self.repository()?;
         let head = repo.head()?;
         if head.is_branch() {

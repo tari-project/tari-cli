@@ -47,5 +47,6 @@ macro_rules! md_println {
         let mut skin = termimad::MadSkin::default();
         skin.bold.set_fg(termimad::crossterm::style::Color::Magenta);
         skin.print_inline(format!($text, $($args)*).as_str());
+        println!();
     }};
 }
