@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*"
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -22,10 +23,6 @@ jobs:
             os: windows-latest
             name: windows-x86_64
             archive: zip
-          - target: x86_64-apple-darwin
-            os: macos-latest
-            name: macos-x86_64
-            archive: tar.gz
           - target: aarch64-apple-darwin
             os: macos-14
             name: macos-aarch64
@@ -42,6 +39,22 @@ jobs:
 
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
+
+      - name: Install dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt install libdbus-1-dev pkg-config
+
+      - name: Install dependencies (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: brew install pkg-config openssl
+
+      - name: Install dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          vcpkg install openssl:x64-windows-static
+          echo "VCPKG_ROOT=C:\vcpkg" >> $GITHUB_ENV
+          echo "OPENSSL_DIR=C:\vcpkg\packages\openssl_x64-windows-static" >> $GITHUB_ENV
 
       - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }}
