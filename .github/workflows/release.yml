@@ -23,10 +23,6 @@ jobs:
             os: windows-latest
             name: windows-x86_64
             archive: zip
-          - target: x86_64-apple-darwin
-            os: macos-latest
-            name: macos-x86_64
-            archive: tar.gz
           - target: aarch64-apple-darwin
             os: macos-14
             name: macos-aarch64
@@ -54,7 +50,11 @@ jobs:
 
       - name: Install dependencies (Windows)
         if: matrix.os == 'windows-latest'
-        run: vcpkg install openssl:x64-windows-static
+        shell: bash
+        run: |
+          vcpkg install openssl:x64-windows-static
+          echo "VCPKG_ROOT=C:\vcpkg" >> $GITHUB_ENV
+          echo "OPENSSL_DIR=C:\vcpkg\packages\openssl_x64-windows-static" >> $GITHUB_ENV
 
       - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }}
