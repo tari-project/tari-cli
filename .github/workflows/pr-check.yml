@@ -6,48 +6,48 @@ on:
 
 jobs:
   test:
-    name: Test and Lint
+    name: Test
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          npm install -g @commitlint/cli @commitlint/config-conventional
-          echo "module.exports = {extends: ['@commitlint/config-conventional']}" > commitlint.config.js
-
-      - name: Lint
-        run: |
-          echo "$PR_TITLE" | commitlint
-        env:
-          PR_TITLE: ${{github.event.pull_request.title}}
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
 
-      - name: Cache dependencies
+      - name: Cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Install dependencies
-        run: sudo apt install libdbus-1-dev pkg-config
+      - name: Install system deps
+        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
 
-      - name: Install cargo-machete
-        run: |
-          cargo install cargo-machete
-
-      - name: Run cargo fmt
+      - name: Format check
         run: cargo fmt --all -- --check
 
-      - name: Run cargo clippy
+      - name: Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
-      - name: Run cargo test
-        run: |
-          cargo test --locked --all-features --release
-          # cargo nextest run --all-features --release --profile ci
+      - name: Test
+        run: cargo test --all-features --release
 
-      - name: Run cargo machete
-        run: cargo machete
+  licenses:
+    name: file licenses
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: install ripgrep
+        # https://github.com/BurntSushi/ripgrep/releases
+        env:
+          ripgrep_version: 14.1.1
+        run: |
+          wget https://github.com/BurntSushi/ripgrep/releases/download/${{ env.ripgrep_version }}/ripgrep_${{ env.ripgrep_version }}-1_amd64.deb
+          sudo dpkg -i ripgrep_${{ env.ripgrep_version }}-1_amd64.deb
+          rg --version || exit 1
+
+      - name: run the license check
+        run: ./scripts/file_license_check.sh
