@@ -3,7 +3,7 @@ members = ["crates/tari_deploy", "crates/cli"]
 resolver = "2"
 
 [workspace.package]
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 authors = ["The Tari Development Community"]
 repository = "https://github.com/tari-project/tari-cli"
