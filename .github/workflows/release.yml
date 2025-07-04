@@ -43,6 +43,18 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
 
+      - name: Install dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt install libdbus-1-dev pkg-config
+
+      - name: Install dependencies (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: brew install pkg-config openssl
+
+      - name: Install dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: vcpkg install openssl:x64-windows-static
+
       - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }}
 
