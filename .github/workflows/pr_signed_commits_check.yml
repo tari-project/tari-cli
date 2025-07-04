@@ -2,10 +2,7 @@
 # Checks if the comments are signed or not
 name: PR - Signed commits check
 
-'on':
-  pull_request_target
-
-permissions: {}
+"on": pull_request_target
 
 jobs:
   check-signed-commits:
