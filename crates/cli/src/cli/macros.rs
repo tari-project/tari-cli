@@ -6,36 +6,32 @@ macro_rules! loading {
     ( $text:literal, $call:expr ) => {{
         let mut skin = termimad::MadSkin::default();
         skin.bold.set_fg(termimad::crossterm::style::Color::Magenta);
-        let mut loader =
-            spinners::Spinner::new(spinners::Spinners::Dots, skin.inline($text).to_string());
+        let mut loader = spinners::Spinner::new(spinners::Spinners::Dots, skin.inline($text).to_string());
         let result = match $call {
             Ok(res) => {
                 loader.stop_with_symbol("✅");
                 Ok(res)
-            }
+            },
             Err(error) => {
                 loader.stop_with_symbol("❌");
                 Err(error)
-            }
+            },
         };
         result
     }};
     ( $text:expr, $call:expr ) => {{
         let mut skin = termimad::MadSkin::default();
         skin.bold.set_fg(termimad::crossterm::style::Color::Magenta);
-        let mut loader = spinners::Spinner::new(
-            spinners::Spinners::Dots,
-            skin.inline($text.as_str()).to_string(),
-        );
+        let mut loader = spinners::Spinner::new(spinners::Spinners::Dots, skin.inline($text.as_str()).to_string());
         let result = match $call {
             Ok(res) => {
                 loader.stop_with_symbol("✅");
                 Ok(res)
-            }
+            },
             Err(error) => {
                 loader.stop_with_symbol("❌");
                 Err(error)
-            }
+            },
         };
         result
     }};

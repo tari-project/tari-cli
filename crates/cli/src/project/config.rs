@@ -26,11 +26,7 @@ impl ProjectConfig {
     }
 
     pub fn parsed_default_account(&self) -> anyhow::Result<Option<ComponentAddressOrName>> {
-        let acc = self
-            .default_account
-            .as_ref()
-            .map(|s| s.parse())
-            .transpose()?;
+        let acc = self.default_account.as_ref().map(|s| s.parse()).transpose()?;
         Ok(acc)
     }
 }

@@ -160,10 +160,7 @@ impl Cli {
         // loading/creating config
         let path = &self.args.config_file_path;
         let mut config = if !util::file_exists(path).await? {
-            println!(
-                "Existing config not found. Creating a new config at {}",
-                path.display()
-            );
+            println!("Existing config not found. Creating a new config at {}", path.display());
             let cfg = Config::default();
             cfg.write_to_file(path).await?;
             cfg
@@ -175,7 +172,7 @@ impl Cli {
                     let cfg = Config::default();
                     cfg.write_to_file(path).await?;
                     cfg
-                }
+                },
             }
         };
 
@@ -187,10 +184,7 @@ impl Cli {
         Ok(config)
     }
 
-    async fn refresh_template_repository(
-        &self,
-        template_repo: &TemplateRepository,
-    ) -> anyhow::Result<GitRepository> {
+    async fn refresh_template_repository(&self, template_repo: &TemplateRepository) -> anyhow::Result<GitRepository> {
         util::create_dir(&self.args.base_dir.join(TEMPLATE_REPOS_FOLDER_NAME)).await?;
         let repo_url_splitted: Vec<&str> = template_repo.url.split("/").collect();
         let repo_name = repo_url_splitted
@@ -237,17 +231,12 @@ impl Cli {
         )?;
         let wasm_template_repo = loading!(
             "Refresh wasm templates repository",
-            self.refresh_template_repository(&config.wasm_template_repository)
-                .await
+            self.refresh_template_repository(&config.wasm_template_repository).await
         )?;
 
         match self.command {
-            Command::Create { args } => {
-                create::handle(config, project_template_repo, wasm_template_repo, args).await
-            }
-            Command::Add { args } => {
-                add::handle(config, wasm_template_repo.local_folder().clone(), args).await
-            }
+            Command::Create { args } => create::handle(config, project_template_repo, wasm_template_repo, args).await,
+            Command::Add { args } => add::handle(config, wasm_template_repo.local_folder().clone(), args).await,
             Command::Deploy { args } => deploy::handle(config, args).await,
         }
     }

@@ -85,26 +85,26 @@ impl Config {
         match key {
             "project_template_repository.url" => {
                 self.project_template_repository.url = value.to_string();
-            }
+            },
             "project_template_repository.branch" => {
                 self.project_template_repository.branch = value.to_string();
-            }
+            },
             "project_template_repository.folder" => {
                 self.project_template_repository.folder = value.to_string();
-            }
+            },
             "wasm_template_repository.url" => {
                 self.wasm_template_repository.url = value.to_string();
-            }
+            },
             "wasm_template_repository.branch" => {
                 self.wasm_template_repository.branch = value.to_string();
-            }
+            },
             "wasm_template_repository.folder" => {
                 self.wasm_template_repository.folder = value.to_string();
-            }
+            },
             "default_account" => {
                 self.default_account = Some(value.parse()?);
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         Ok(self)

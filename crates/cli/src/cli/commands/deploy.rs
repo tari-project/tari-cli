@@ -71,12 +71,8 @@ pub async fn handle(config: Config, args: DeployArgs) -> anyhow::Result<()> {
         .ok_or(anyhow!("Project is not a Cargo workspace project!"))?
         .members;
     for project in crates {
-        let cargo_toml =
-            Manifest::from_path(args.project_folder.join(project.clone()).join("Cargo.toml"))?;
-        let curr_crate_name = cargo_toml
-            .package
-            .ok_or(anyhow!("No package details set!"))?
-            .name;
+        let cargo_toml = Manifest::from_path(args.project_folder.join(project.clone()).join("Cargo.toml"))?;
+        let curr_crate_name = cargo_toml.package.ok_or(anyhow!("No package details set!"))?.name;
         if curr_crate_name.eq_ignore_ascii_case(&args.template) {
             crate_dir = Some(args.project_folder.join(project));
             crate_name = curr_crate_name;
@@ -120,7 +116,7 @@ pub async fn handle(config: Config, args: DeployArgs) -> anyhow::Result<()> {
         Some(account) => {
             println!("🔍 Using account: {account}");
             account
-        }
+        },
         None => {
             let account = deployer.get_default_account().await?;
             let Some(account) = account else {
@@ -128,23 +124,15 @@ pub async fn handle(config: Config, args: DeployArgs) -> anyhow::Result<()> {
             };
             println!("❓ No Account specified. Using default account: {account}");
             account
-        }
+        },
     };
     let template = Template::Path { path: template_bin };
 
     // check balance and get max fee
-    let CheckBalanceResult {
-        max_fee,
-        binary_size,
-    } = deployer
-        .check_balance_to_deploy(&account, &template)
-        .await?;
+    let CheckBalanceResult { max_fee, binary_size } = deployer.check_balance_to_deploy(&account, &template).await?;
 
     if binary_size > MAX_WASM_SIZE {
-        println!(
-            "⚠️ WASM binary size exceeded: {}",
-            util::human_bytes(binary_size)
-        );
+        println!("⚠️ WASM binary size exceeded: {}", util::human_bytes(binary_size));
     } else {
         println!("✅ WASM size: {}", util::human_bytes(binary_size));
     }
