@@ -18,7 +18,7 @@ serde = { workspace = true }
 thiserror = { workspace = true }
 url = { workspace = true }
 
-hickory-proto = "=0.25.0-alpha.2"
+hickory-proto = "=0.26.0-alpha.1"
 tonic = { version = "0.12.3", features = ["tls"] }
 
 [package.metadata.cargo-machete]
