@@ -19,22 +19,14 @@ impl Display for Template {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut skin = MadSkin::default();
         skin.bold.set_fg(Color::Magenta);
-        let formatted_name = skin
-            .inline(format!("**{}**", self.name).as_str())
-            .to_string();
+        let formatted_name = skin.inline(format!("**{}**", self.name).as_str()).to_string();
         let formatted_description = skin.inline(self.description.as_str()).to_string();
         write!(f, "{formatted_name} - {formatted_description}")
     }
 }
 
 impl Template {
-    pub fn new(
-        path: PathBuf,
-        id: String,
-        name: String,
-        description: String,
-        extra: HashMap<String, String>,
-    ) -> Self {
+    pub fn new(path: PathBuf, id: String, name: String, description: String, extra: HashMap<String, String>) -> Self {
         Self {
             path,
             id,

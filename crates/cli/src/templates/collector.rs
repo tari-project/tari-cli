@@ -49,8 +49,8 @@ impl Collector {
                 } else if let Some(file_name) = entry.file_name().to_str() {
                     if file_name == TEMPLATE_DESCRIPTOR_FILE_NAME {
                         let toml_content = fs::read_to_string(&entry.path()).await?;
-                        let template_file: TemplateFile = toml::from_str(toml_content.as_str())
-                            .map_err(Error::TomlDeserialize)?;
+                        let template_file: TemplateFile =
+                            toml::from_str(toml_content.as_str()).map_err(Error::TomlDeserialize)?;
                         let template_id = match entry.path().parent() {
                             Some(dir) => {
                                 if dir.is_dir() {
@@ -66,7 +66,7 @@ impl Collector {
                                 } else {
                                     template_file.name.to_case(Case::Snake)
                                 }
-                            }
+                            },
                             None => template_file.name.to_case(Case::Snake),
                         };
                         let path = match entry.path().parent() {
@@ -102,11 +102,7 @@ mod tests {
     }
 
     impl<'a> TemplateToGenerate<'a> {
-        pub fn new(
-            name: &'a str,
-            description: &'a str,
-            extra: Option<HashMap<String, String>>,
-        ) -> Self {
+        pub fn new(name: &'a str, description: &'a str, extra: Option<HashMap<String, String>>) -> Self {
             Self {
                 name,
                 description,
@@ -143,12 +139,9 @@ mod tests {
         "#,
             template.name, template.description, extra_str
         );
-        fs::write(
-            template_dir.join(TEMPLATE_DESCRIPTOR_FILE_NAME),
-            template_toml,
-        )
-        .await
-        .unwrap();
+        fs::write(template_dir.join(TEMPLATE_DESCRIPTOR_FILE_NAME), template_toml)
+            .await
+            .unwrap();
         template_dir
     }
 
@@ -162,10 +155,7 @@ mod tests {
             TemplateToGenerate::new(
                 "template3",
                 "description3",
-                Some(HashMap::from([(
-                    "templates_dir".to_string(),
-                    "templates".to_string(),
-                )])),
+                Some(HashMap::from([("templates_dir".to_string(), "templates".to_string())])),
             ),
         ];
         for template in &templates_to_generate {
@@ -188,13 +178,12 @@ mod tests {
                             && curr_template.description() == template.description
                             && curr_template.extra().eq(extra)
                     }));
-                }
+                },
                 None => {
                     assert!(result.iter().any(|curr_template| {
-                        curr_template.name() == template.name
-                            && curr_template.description() == template.description
+                        curr_template.name() == template.name && curr_template.description() == template.description
                     }));
-                }
+                },
             }
         }
     }

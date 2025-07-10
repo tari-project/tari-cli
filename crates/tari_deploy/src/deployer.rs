@@ -13,12 +13,11 @@ use tari_engine_types::hashing::template_hasher32;
 use tari_engine_types::substate::SubstateId;
 use tari_ootle_common_types::optional::Optional;
 use tari_template_lib::constants::XTR;
-use tari_template_lib::models::Amount;
-use tari_template_lib::prelude::TemplateAddress;
 use tari_template_lib::types::Hash;
+use tari_template_lib::types::{Amount, TemplateAddress};
 use tari_wallet_daemon_client::types::{
-    AccountsGetBalancesRequest, AuthLoginAcceptRequest, AuthLoginRequest, AuthLoginResponse,
-    PublishTemplateRequest, TransactionWaitResultRequest, WalletGetInfoResponse,
+    AccountsGetBalancesRequest, AuthLoginAcceptRequest, AuthLoginRequest, AuthLoginResponse, PublishTemplateRequest,
+    TransactionWaitResultRequest, WalletGetInfoResponse,
 };
 use tari_wallet_daemon_client::{ComponentAddressOrName, WalletDaemonClient};
 use tokio::fs;
@@ -52,7 +51,7 @@ impl TemplateDeployer {
         &self,
         account: &ComponentAddressOrName,
         template: Template,
-        max_fee: Amount,
+        max_fee: u64,
         wait_timeout: Option<Duration>,
     ) -> Result<TemplateAddress> {
         let publish_template_request = self
@@ -68,13 +67,9 @@ impl TemplateDeployer {
 
     /// Get publish fee.
     /// It does not deploy anything, just gets the calculated fee for the template.
-    pub async fn publish_fee(
-        &self,
-        account: &ComponentAddressOrName,
-        template: &Template,
-    ) -> Result<Amount> {
+    pub async fn publish_fee(&self, account: &ComponentAddressOrName, template: &Template) -> Result<u64> {
         let mut request = self
-            .create_publish_template_request(account, template, Amount::new(1_000_000))
+            .create_publish_template_request(account, template, 1_000_000)
             .await?;
         self.get_publish_fee(&mut request).await
     }
@@ -98,15 +93,13 @@ impl TemplateDeployer {
     }
 
     /// Get publish fee based on a [`PublishTemplateRequest`].
-    async fn get_publish_fee(&self, request: &mut PublishTemplateRequest) -> Result<Amount> {
+    async fn get_publish_fee(&self, request: &mut PublishTemplateRequest) -> Result<u64> {
         let mut client = self.wallet_daemon_client().await?;
         request.dry_run = true;
         let response = client.publish_template(request).await?;
-        let fee = response.dry_run_fee.ok_or_else(|| {
-            DeployerError::InvalidResponse(
-                "Wallet daemon returned an empty dry run fee".to_string(),
-            )
-        })?;
+        let fee = response
+            .dry_run_fee
+            .ok_or_else(|| DeployerError::InvalidResponse("Wallet daemon returned an empty dry run fee".to_string()))?;
         Ok(fee)
     }
 
@@ -117,12 +110,12 @@ impl TemplateDeployer {
         template: &Template,
     ) -> Result<CheckBalanceResult> {
         let mut request = self
-            .create_publish_template_request(account, template, Amount::new(1_000_000))
+            .create_publish_template_request(account, template, 1_000_000)
             .await?;
         let bin_size = request.binary.len();
         let max_fee = self.get_publish_fee(&mut request).await?;
         let wallet_balance = self.wallet_xtr_balance(account).await?;
-        if max_fee > wallet_balance {
+        if wallet_balance < max_fee {
             return Err(Error::InsufficientBalance {
                 current: wallet_balance,
                 fee: max_fee,
@@ -151,20 +144,17 @@ impl TemplateDeployer {
             .await?;
 
         if tx_resp.timed_out {
-            return Err(Error::WaitForTransactionTimeout(
-                response.transaction_id.to_string(),
-            ));
+            return Err(Error::WaitForTransactionTimeout(response.transaction_id.to_string()));
         }
 
-        let finalize_result = tx_resp.result.ok_or(Error::MissingTransactionResult(
-            response.transaction_id.to_string(),
-        ))?;
+        let finalize_result = tx_resp
+            .result
+            .ok_or(Error::MissingTransactionResult(response.transaction_id.to_string()))?;
         if !matches!(finalize_result.result, TransactionResult::Accept(_)) {
             let error_status = match finalize_result.result {
-                TransactionResult::AcceptFeeRejectRest(_, reason)
-                | TransactionResult::Reject(reason) => {
+                TransactionResult::AcceptFeeRejectRest(_, reason) | TransactionResult::Reject(reason) => {
                     format!("⚠️ Status: {}\n⚠️ Reason: {}", tx_resp.status, reason)
-                }
+                },
                 TransactionResult::Accept(_) => String::new(), // does not happen here
             };
             return Err(Error::InvalidTransaction(
@@ -191,14 +181,13 @@ impl TemplateDeployer {
         &self,
         account: &ComponentAddressOrName,
         template: &Template,
-        max_fee: Amount,
+        max_fee: u64,
     ) -> Result<PublishTemplateRequest> {
-        assert!(max_fee.is_positive(), "Max fee must be positive!");
         let (binary, _, _) = self.validate_and_load_wasm_template(template).await?;
         Ok(PublishTemplateRequest {
             binary: binary.into_owned(),
             fee_account: Some(account.clone()),
-            max_fee: max_fee.as_u64_checked().expect("max_fee u64 overflow"),
+            max_fee,
             detect_inputs: true,
             dry_run: false,
         })
@@ -213,7 +202,7 @@ impl TemplateDeployer {
             Template::Path { path } => {
                 let bin = fs::read(path).await?;
                 Cow::Owned(bin)
-            }
+            },
             Template::Binary { bin } => Cow::Borrowed(bin),
         };
         let template = WasmModule::load_template_from_code(wasm_code.as_slice())?;
@@ -242,8 +231,7 @@ impl TemplateDeployer {
 
     /// Returns a new wallet daemon client.
     async fn wallet_daemon_client(&self) -> Result<WalletDaemonClient> {
-        let mut client =
-            WalletDaemonClient::connect(self.network.wallet_daemon_jrpc_address().clone(), None)?;
+        let mut client = WalletDaemonClient::connect(self.network.wallet_daemon_jrpc_address().clone(), None)?;
 
         // authentication
         let AuthLoginResponse { auth_token, .. } = client
@@ -267,6 +255,6 @@ impl TemplateDeployer {
 }
 
 pub struct CheckBalanceResult {
-    pub max_fee: Amount,
+    pub max_fee: u64,
     pub binary_size: usize,
 }

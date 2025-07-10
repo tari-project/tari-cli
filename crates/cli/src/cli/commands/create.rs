@@ -62,10 +62,7 @@ pub async fn handle(
     // is the output a git repository?
     let project_root = if let Some(root) = find_git_root(&args.output) {
         if args.verbose {
-            md_println!(
-                "ℹ️ Output directory `{}` is a git repository.",
-                root.display()
-            );
+            md_println!("ℹ️ Output directory `{}` is a git repository.", root.display());
         }
         md_println!(
             "⚠️ Creating a new project `{}` in the git repository `{}`. You may want to use `tari add` instead.",
@@ -105,10 +102,7 @@ pub async fn handle(
             .next_back()
             .ok_or(CreateHandlerError::TemplateNotFound(
                 template_id.to_string(),
-                templates
-                    .iter()
-                    .map(|template| template.id().to_string())
-                    .collect(),
+                templates.iter().map(|template| template.id().to_string()).collect(),
             ))?,
         None => util::cli_select("🔎 Select project template", templates.as_slice())?,
     };
@@ -130,16 +124,10 @@ pub async fn handle(
         init: true,
         ..CargoGenerateArgs::default()
     };
-    loading!(
-        "Generate new project",
-        cargo_generate::generate(generate_args)
-    )?;
+    loading!("Generate new project", cargo_generate::generate(generate_args))?;
 
     // create templates dir if set
-    if let Some(templates_dir) = template
-        .extra()
-        .get(PROJECT_TEMPLATE_EXTRA_TEMPLATES_FIELD_NAME)
-    {
+    if let Some(templates_dir) = template.extra().get(PROJECT_TEMPLATE_EXTRA_TEMPLATES_FIELD_NAME) {
         util::create_dir(&project_root.join(templates_dir)).await?;
     }
 

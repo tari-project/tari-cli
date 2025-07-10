@@ -41,11 +41,7 @@ pub struct AddArgs {
 
 /// Handle `add` command.
 /// Creates a new Tari WASM template project.
-pub async fn handle(
-    config: Config,
-    local_template_repo_dir: PathBuf,
-    args: AddArgs,
-) -> anyhow::Result<()> {
+pub async fn handle(config: Config, local_template_repo_dir: PathBuf, args: AddArgs) -> anyhow::Result<()> {
     // selecting wasm template
     let templates = loading!(
         "Collecting available **WASM** templates",
@@ -62,10 +58,7 @@ pub async fn handle(
             .ok_or_else(|| {
                 CreateHandlerError::TemplateNotFound(
                     template_id.to_string(),
-                    templates
-                        .iter()
-                        .map(|template| template.id().to_string())
-                        .collect(),
+                    templates.iter().map(|template| template.id().to_string()).collect(),
                 )
             })?,
         None => util::cli_select("🔎 Select WASM template", templates.as_slice())?,
@@ -107,20 +100,14 @@ pub async fn handle(
     };
 
     if args.verbose {
-        md_println!(
-            "ℹ️ Output directory for the new project is `{}`",
-            output.display()
-        );
+        md_println!("ℹ️ Output directory for the new project is `{}`", output.display());
     }
 
     // generate new project
     let generate_args = CargoGenerateArgs {
         name: Some(args.name.clone()),
         destination: Some(output.clone()),
-        define: vec![format!(
-            "in_cargo_workspace={}",
-            workspace_toml_file.is_some()
-        )],
+        define: vec![format!("in_cargo_workspace={}", workspace_toml_file.is_some())],
         template_path: TemplatePath {
             path: Some(template_path),
             ..TemplatePath::default()
@@ -128,10 +115,7 @@ pub async fn handle(
         verbose: args.verbose,
         ..CargoGenerateArgs::default()
     };
-    loading!(
-        "Generate new project",
-        cargo_generate::generate(generate_args)
-    )?;
+    loading!("Generate new project", cargo_generate::generate(generate_args))?;
 
     // check if target is a cargo project and update Cargo.toml if exists
     if let Some(workspace_toml_file) = workspace_toml_file {
@@ -155,10 +139,7 @@ pub async fn handle(
 }
 
 /// Updates Cargo.toml to make sure we have the new project in workspace members.
-async fn add_members_to_workspace(
-    cargo_toml_file: &PathBuf,
-    project_path: String,
-) -> anyhow::Result<()> {
+async fn add_members_to_workspace(cargo_toml_file: &PathBuf, project_path: String) -> anyhow::Result<()> {
     let mut cargo_toml = Manifest::from_path(cargo_toml_file)?;
     cargo_toml.workspace = match cargo_toml.workspace {
         Some(mut workspace) => {
@@ -171,7 +152,7 @@ async fn add_members_to_workspace(
                 workspace.members.push(project_path);
             }
             Some(workspace)
-        }
+        },
         None => {
             md_println!(
                 "⚠️ Cargo toml is not a workspace. Creating a new workspace in `{}`",
@@ -187,7 +168,7 @@ async fn add_members_to_workspace(
                 dependencies: Default::default(),
                 lints: None,
             })
-        }
+        },
     };
     fs::write(&cargo_toml_file, toml::to_string(&cargo_toml)?).await?;
     Ok(())
