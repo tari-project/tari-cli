@@ -78,10 +78,8 @@ impl TemplateDeployer {
         let mut client = self.wallet_daemon_client().await?;
         let account = client.accounts_get_default().await.optional()?;
         let address = account.map(|a| {
-            a.account
-                .address
-                .as_component_address()
-                .expect("substate not account address??")
+            *a.account
+                .component_address()
         });
         Ok(address.map(Into::into))
     }

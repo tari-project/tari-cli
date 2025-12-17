@@ -4,14 +4,7 @@
 use serde::{Deserialize, Serialize};
 use tari_deploy::NetworkConfig;
 use tari_wallet_daemon_client::ComponentAddressOrName;
-use thiserror::Error;
 use url::Url;
-
-#[derive(Error, Debug)]
-pub enum Error {
-    #[error("URL parsing error: {0}")]
-    Parse(#[from] url::ParseError),
-}
 
 /// Project configuration.
 #[derive(Clone, Debug, Serialize, Deserialize)]
