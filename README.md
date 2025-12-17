@@ -25,7 +25,7 @@ Get your first Tari smart contract deployed in under 5 minutes:
 cargo install tari-cli --git https://github.com/tari-project/tari-cli --force
 
 # Or download from releases
-curl -L https://github.com/tari-project/tari-cli/releases/latest/download/tari-cli-linux.tar.gz | tar xz
+curl -L https://github.com/tari-project/tari-cli/releases/download/latest/tari-linux-x86_64.tar.gz | tar xz
 ```
 
 ### 2. Create Your First Project
