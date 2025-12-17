@@ -21,7 +21,7 @@ const MAX_WASM_SIZE: usize = 5 * 1000 * 1000; // 5 MB
 pub struct DeployArgs {
     /// Template project to deploy
     #[arg()]
-    pub template: String,
+    pub template: Option<String>,
 
     /// Account to be used for deployment fees.
     #[arg(short = 'a', long)]
@@ -46,15 +46,18 @@ pub struct DeployArgs {
     pub max_fee: Option<u64>,
 
     /// Project folder where we have the project configuration file (tari.config.toml).
-    #[arg(long, value_name = "PATH", default_value = crate::cli::command::default_output_dir().into_os_string()
-    )]
+    #[arg(long, value_name = "PATH", default_value = crate::cli::command::default_output_dir().into_os_string())]
     pub project_folder: PathBuf,
+
+    /// (Optional) Path to the compiled WASM binary.
+    /// If not set, the project will be built before deployment.
+    #[arg(long, alias = "bin")]
+    pub binary: Option<PathBuf>,
 }
 
-pub async fn handle(config: Config, args: DeployArgs) -> anyhow::Result<()> {
-    // load network config from project config file
-    let project_config = load_project_config(&args.project_folder).await?;
-
+pub async fn build_template(
+    args: &DeployArgs,
+) -> anyhow::Result<PathBuf> {
     // lookup project name and dir
     let mut crate_dir = None;
     let mut crate_name = String::new();
@@ -70,16 +73,20 @@ pub async fn handle(config: Config, args: DeployArgs) -> anyhow::Result<()> {
         .workspace
         .ok_or(anyhow!("Project is not a Cargo workspace project!"))?
         .members;
+    let target_template = args
+        .template
+        .as_ref()
+        .ok_or(anyhow!("No template project name provided!"))?;
     for project in crates {
         let cargo_toml = Manifest::from_path(args.project_folder.join(project.clone()).join("Cargo.toml"))?;
         let curr_crate_name = cargo_toml.package.ok_or(anyhow!("No package details set!"))?.name;
-        if curr_crate_name.eq_ignore_ascii_case(&args.template) {
+        if curr_crate_name.eq_ignore_ascii_case(&target_template) {
             crate_dir = Some(args.project_folder.join(project));
             crate_name = curr_crate_name;
         }
     }
     let Some(crate_dir) = crate_dir else {
-        return Err(anyhow!("Project \"{}\" not found!", args.template));
+        return Err(anyhow!("Project \"{}\" not found!", target_template));
     };
 
     // build
@@ -87,6 +94,29 @@ pub async fn handle(config: Config, args: DeployArgs) -> anyhow::Result<()> {
         format!("Building WASM template project **{}**", crate_name),
         build_project(&crate_dir, &crate_name).await
     )?;
+
+    Ok(template_bin)
+}
+
+pub async fn handle(config: Config, mut args: DeployArgs) -> anyhow::Result<()> {
+    if args.binary.is_none() && args.template.is_none() {
+        return Err(anyhow!(
+            "Either a template name or a binary path must be provided for deployment!"
+        ));
+    }
+
+    // load network config from project config file
+    let project_config = load_project_config(&args.project_folder).await?;
+
+    let template_bin = match args.binary.take() {
+        Some(bin_path) => {
+            println!("📦 Using provided WASM binary at {}", bin_path.display());
+            bin_path
+        }
+        None => {
+            build_template(&args).await?
+        }
+    };
 
     // template deployer
     let deployer = TemplateDeployer::new(project_config.network().clone());
@@ -150,7 +180,7 @@ pub async fn handle(config: Config, args: DeployArgs) -> anyhow::Result<()> {
 
     // deploy
     let template_address = loading!(
-        format!("Deploying template **{crate_name}**. This may take while..."),
+        format!("Publishing template. This may take while..."),
         deployer.deploy(&account, template, max_fee, None).await
     )?;
 
@@ -197,6 +227,10 @@ async fn build_project(dir: &Path, name: &str) -> anyhow::Result<PathBuf> {
 
 async fn load_project_config(project_folder: &Path) -> anyhow::Result<project::ProjectConfig> {
     let config_file = project_folder.join(project::CONFIG_FILE_NAME);
+    if !config_file.exists() {
+        return Ok(project::ProjectConfig::default());
+    }
+    
     toml::from_str(
         fs::read_to_string(&config_file)
             .await
