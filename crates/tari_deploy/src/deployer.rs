@@ -12,7 +12,7 @@ use tari_engine_types::commit_result::TransactionResult;
 use tari_engine_types::hashing::template_hasher32;
 use tari_engine_types::substate::SubstateId;
 use tari_ootle_common_types::optional::Optional;
-use tari_template_lib::constants::XTR;
+use tari_template_lib::prelude::XTR;
 use tari_template_lib::types::Hash;
 use tari_template_lib::types::{Amount, TemplateAddress};
 use tari_wallet_daemon_client::types::{
@@ -77,10 +77,7 @@ impl TemplateDeployer {
     pub async fn get_default_account(&self) -> Result<Option<ComponentAddressOrName>> {
         let mut client = self.wallet_daemon_client().await?;
         let account = client.accounts_get_default().await.optional()?;
-        let address = account.map(|a| {
-            *a.account
-                .component_address()
-        });
+        let address = account.map(|a| *a.account.component_address());
         Ok(address.map(Into::into))
     }
 

@@ -16,8 +16,8 @@ use crate::{
 };
 use anyhow::anyhow;
 use clap::{
-    builder::{styling::AnsiColor, Styles},
     Parser, Subcommand,
+    builder::{Styles, styling::AnsiColor},
 };
 use convert_case::{Case, Casing};
 use std::{env, path::PathBuf};
@@ -108,7 +108,7 @@ pub struct CommonArguments {
 #[command(
     version,
     about = "🚀 Tari CLI 🚀",
-    long_about = "🚀 Tari CLI 🚀\nHelps you manage the flow of developing Tari templates."
+    long_about = "🚀 Tari Ootle CLI 🚀\nDevelop and deploy Tari templates."
 )]
 pub struct Cli {
     #[clap(flatten)]
@@ -120,7 +120,7 @@ pub struct Cli {
 
 #[derive(Clone, Subcommand)]
 pub enum Command {
-    /// Creates a new workspace for your Tari templates project.
+    /// Creates a new workspace for your Tari template project.
     #[clap(alias = "new")]
     Create {
         #[clap(flatten)]
