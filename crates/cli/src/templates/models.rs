@@ -4,7 +4,7 @@
 use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
-use termimad::{crossterm::style::Color, MadSkin};
+use termimad::{MadSkin, crossterm::style::Color};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Template {

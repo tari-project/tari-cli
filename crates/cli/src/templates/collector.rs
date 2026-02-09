@@ -46,41 +46,37 @@ impl Collector {
             while let Some(entry) = entries_stream.next_entry().await? {
                 if entry.path().is_dir() {
                     Box::pin(Self::collect_templates(&entry.path(), result)).await?;
-                } else if let Some(file_name) = entry.file_name().to_str() {
-                    if file_name == TEMPLATE_DESCRIPTOR_FILE_NAME {
-                        let toml_content = fs::read_to_string(&entry.path()).await?;
-                        let template_file: TemplateFile =
-                            toml::from_str(toml_content.as_str()).map_err(Error::TomlDeserialize)?;
-                        let template_id = match entry.path().parent() {
-                            Some(dir) => {
-                                if dir.is_dir() {
-                                    if let Some(dir_name) = dir.file_name() {
-                                        if let Some(dir_name) = dir_name.to_str() {
-                                            dir_name.to_case(Case::Snake)
-                                        } else {
-                                            template_file.name.to_case(Case::Snake)
-                                        }
-                                    } else {
-                                        template_file.name.to_case(Case::Snake)
-                                    }
-                                } else {
-                                    template_file.name.to_case(Case::Snake)
-                                }
-                            },
-                            None => template_file.name.to_case(Case::Snake),
-                        };
-                        let path = match entry.path().parent() {
-                            Some(curr_path) => curr_path.to_path_buf(),
-                            None => entry.path(),
-                        };
-                        result.push(Template::new(
-                            path,
-                            template_id,
-                            template_file.name,
-                            template_file.description,
-                            template_file.extra.unwrap_or_default(),
-                        ));
-                    }
+                    continue;
+                }
+
+                if let Some(file_name) = entry.file_name().to_str()
+                    && file_name == TEMPLATE_DESCRIPTOR_FILE_NAME
+                {
+                    let toml_content = fs::read_to_string(&entry.path()).await?;
+                    let template_file: TemplateFile =
+                        toml::from_str(toml_content.as_str()).map_err(Error::TomlDeserialize)?;
+
+                    let template_id = entry
+                        .path()
+                        .parent()
+                        .filter(|dir| dir.is_dir())
+                        .and_then(|dir| dir.file_name())
+                        .and_then(|dir_name| dir_name.to_str().map(|dir_name| dir_name.to_case(Case::Snake)))
+                        .unwrap_or_else(|| template_file.name.to_case(Case::Snake));
+
+                    let path = entry
+                        .path()
+                        .parent()
+                        .map(|curr_path| curr_path.to_path_buf())
+                        .unwrap_or_else(|| entry.path());
+
+                    result.push(Template::new(
+                        path,
+                        template_id,
+                        template_file.name,
+                        template_file.description,
+                        template_file.extra.unwrap_or_default(),
+                    ));
                 }
             }
         }

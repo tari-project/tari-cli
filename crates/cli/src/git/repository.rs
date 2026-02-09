@@ -3,7 +3,7 @@
 
 use std::path::PathBuf;
 
-use git2::{build::RepoBuilder, Repository};
+use git2::{Repository, build::RepoBuilder};
 use thiserror::Error;
 
 pub struct GitRepository {

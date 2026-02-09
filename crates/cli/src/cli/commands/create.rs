@@ -98,8 +98,7 @@ pub async fn handle(
     let template = match &args.template {
         Some(template_id) => templates
             .iter()
-            .filter(|template| template.id().eq_ignore_ascii_case(template_id))
-            .next_back()
+            .rfind(|template| template.id().eq_ignore_ascii_case(template_id))
             .ok_or(CreateHandlerError::TemplateNotFound(
                 template_id.to_string(),
                 templates.iter().map(|template| template.id().to_string()).collect(),

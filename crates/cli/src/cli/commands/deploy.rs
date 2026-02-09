@@ -4,13 +4,13 @@
 use crate::cli::config::Config;
 use crate::cli::util;
 use crate::{loading, project};
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use cargo_toml::Manifest;
 use clap::Parser;
 use dialoguer::Confirm;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use tari_deploy::deployer::{CheckBalanceResult, Template, TemplateDeployer, TOKEN_SYMBOL};
+use tari_deploy::deployer::{CheckBalanceResult, TOKEN_SYMBOL, Template, TemplateDeployer};
 use tari_wallet_daemon_client::ComponentAddressOrName;
 use tokio::fs;
 use tokio::process::Command;
@@ -55,9 +55,7 @@ pub struct DeployArgs {
     pub binary: Option<PathBuf>,
 }
 
-pub async fn build_template(
-    args: &DeployArgs,
-) -> anyhow::Result<PathBuf> {
+pub async fn build_template(args: &DeployArgs) -> anyhow::Result<PathBuf> {
     // lookup project name and dir
     let mut crate_dir = None;
     let mut crate_name = String::new();
@@ -80,7 +78,7 @@ pub async fn build_template(
     for project in crates {
         let cargo_toml = Manifest::from_path(args.project_folder.join(project.clone()).join("Cargo.toml"))?;
         let curr_crate_name = cargo_toml.package.ok_or(anyhow!("No package details set!"))?.name;
-        if curr_crate_name.eq_ignore_ascii_case(&target_template) {
+        if curr_crate_name.eq_ignore_ascii_case(target_template) {
             crate_dir = Some(args.project_folder.join(project));
             crate_name = curr_crate_name;
         }
@@ -112,10 +110,8 @@ pub async fn handle(config: Config, mut args: DeployArgs) -> anyhow::Result<()> 
         Some(bin_path) => {
             println!("📦 Using provided WASM binary at {}", bin_path.display());
             bin_path
-        }
-        None => {
-            build_template(&args).await?
-        }
+        },
+        None => build_template(&args).await?,
     };
 
     // template deployer
@@ -230,7 +226,7 @@ async fn load_project_config(project_folder: &Path) -> anyhow::Result<project::P
     if !config_file.exists() {
         return Ok(project::ProjectConfig::default());
     }
-    
+
     toml::from_str(
         fs::read_to_string(&config_file)
             .await

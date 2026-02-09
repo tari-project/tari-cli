@@ -21,7 +21,7 @@ tokio = { workspace = true }
 toml = "0.8.19"
 serde = { workspace = true }
 termimad = "0.31.0"
-cargo-generate = "^0.23.3"
+cargo-generate = "^0.23.7"
 git2 = { version = "^0.20", features = ["default"] }
 thiserror = { workspace = true }
 spinners = "4.1.1"

@@ -5,7 +5,11 @@
 ![GitHub Release](https://img.shields.io/github/v/release/tari-project/tari-cli)
 ![CI Build Status](https://img.shields.io/github/actions/workflow/status/tari-project/tari-cli/ci.yml)
 
-The **Tari CLI** transforms smart contract development on the Tari Layer-2 blockchain into a delightful experience. From project scaffolding to deployment, every step is designed for developer productivity and confidence.
+The **Tari CLI** smart contract development tool for the Tari Layer-2 blockchain.
+
+This CLI provides a streamlined workflow for building, testing, and deploying smart contracts on the Tari network. 
+With a focus on simplicity and developer experience, the Tari CLI abstracts away complex blockchain interactions, 
+allowing you to focus on writing your smart contract logic.
 
 ## ✨ What You Can Build
 
@@ -22,7 +26,7 @@ Get your first Tari smart contract deployed in under 5 minutes:
 
 ```bash
 # Using Cargo
-cargo install tari-cli --git https://github.com/tari-project/tari-cli --force
+cargo install tari-cli 
 
 # Or download from releases
 curl -L https://github.com/tari-project/tari-cli/releases/download/latest/tari-linux-x86_64.tar.gz | tar xz
