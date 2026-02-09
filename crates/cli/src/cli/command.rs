@@ -135,6 +135,7 @@ pub enum Command {
         args: AddArgs,
     },
     /// Deploying Tari template to a network
+    #[clap(alias = "publish")]
     Deploy {
         #[clap(flatten)]
         args: DeployArgs,
