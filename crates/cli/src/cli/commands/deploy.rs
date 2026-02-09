@@ -78,7 +78,7 @@ pub async fn build_template(args: &DeployArgs) -> anyhow::Result<PathBuf> {
     for project in crates {
         let cargo_toml = Manifest::from_path(args.project_folder.join(project.clone()).join("Cargo.toml"))?;
         let curr_crate_name = cargo_toml.package.ok_or(anyhow!("No package details set!"))?.name;
-        if curr_crate_name.eq_ignore_ascii_case(&target_template) {
+        if curr_crate_name.eq_ignore_ascii_case(target_template) {
             crate_dir = Some(args.project_folder.join(project));
             crate_name = curr_crate_name;
         }
