@@ -12,8 +12,8 @@ use tari_engine_types::commit_result::TransactionResult;
 use tari_engine_types::hashing::template_hasher32;
 use tari_engine_types::substate::SubstateId;
 use tari_ootle_common_types::optional::Optional;
-use tari_template_lib::prelude::XTR;
-use tari_template_lib::types::Hash;
+use tari_template_lib::types::Hash32;
+use tari_template_lib::types::constants::XTR;
 use tari_template_lib::types::{Amount, TemplateAddress};
 use tari_wallet_daemon_client::types::{
     AccountsGetBalancesRequest, AuthLoginAcceptRequest, AuthLoginRequest, AuthLoginResponse, PublishTemplateRequest,
@@ -192,7 +192,7 @@ impl TemplateDeployer {
     async fn validate_and_load_wasm_template<'a>(
         &self,
         params: &'a Template,
-    ) -> Result<(Cow<'a, Vec<u8>>, LoadedTemplate, Hash)> {
+    ) -> Result<(Cow<'a, Vec<u8>>, LoadedTemplate, Hash32)> {
         let wasm_code = match params {
             Template::Path { path } => {
                 let bin = fs::read(path).await?;
@@ -201,7 +201,7 @@ impl TemplateDeployer {
             Template::Binary { bin } => Cow::Borrowed(bin),
         };
         let template = WasmModule::load_template_from_code(wasm_code.as_slice())?;
-        let wasm_hash: Hash = template_hasher32().chain(&wasm_code).result();
+        let wasm_hash: Hash32 = template_hasher32().chain(&wasm_code).result();
         Ok((wasm_code, template, wasm_hash))
     }
 
