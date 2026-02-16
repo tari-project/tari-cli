@@ -25,7 +25,7 @@ cargo-generate = "^0.23.7"
 git2 = { version = "^0.20", features = ["default"] }
 thiserror = { workspace = true }
 spinners = "4.1.1"
-convert_case = "0.7.1"
+convert_case = "0.11.0"
 dialoguer = { version = "0.11.0", features = ["default", "fuzzy-select"] }
 cargo_toml = "0.21.0"
 human_bytes = "0.4.3"
