@@ -74,7 +74,7 @@ jobs:
           7z a ../tari-${{ matrix.name }}.zip tari.exe
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: tari-${{ matrix.name }}
           path: tari-${{ matrix.name }}.${{ matrix.archive }}
