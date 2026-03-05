@@ -38,7 +38,7 @@ tari -b ~/my-tari-data create my-project
 tari -e "project_template_repository.url=https://github.com/my-org/templates" create my-project
 
 # Use custom config file
-tari -c ./custom-config.toml deploy --account test my-template
+tari -c ./custom-config.toml publish --account test my-template
 ```
 
 ## Commands Overview
@@ -50,7 +50,7 @@ The Tari CLI provides three main commands:
 |---------|---------|---------------|
 | **[`create`](#create-command)** | Creates new Tari template projects | Start new development workspace |
 | **[`new`](#new-command)** | Creates new WASM template projects | Add smart contracts to existing projects |
-| **[`deploy`](#deploy-command)** | Deploys templates to Tari network | Publish contracts to blockchain |
+| **[`publish`](#publish-command)** | Publishes templates to Tari network | Publish contracts to blockchain |
 
 ---
 
@@ -194,31 +194,31 @@ templates/my_nft/
 
 ---
 
-## `deploy` Command
+## `publish` Command
 
-<!-- SOURCE: crates/cli/src/cli/commands/deploy.rs:18-50 -->
-Deploys a Tari template to the blockchain network.
+<!-- SOURCE: crates/cli/src/cli/commands/publish.rs:18-50 -->
+Publishes a Tari template to the blockchain network. (Also available as `deploy` for backward compatibility.)
 
 ### Syntax
 
 ```bash
-tari deploy [OPTIONS] <TEMPLATE>
+tari publish [OPTIONS] <TEMPLATE>
 ```
 
 ### Arguments
 
 | Argument | Type | Description | Validation |
 |----------|------|-------------|------------|
-| `<TEMPLATE>` | String | Template project to deploy | Must exist in workspace |
+| `<TEMPLATE>` | String | Template project to publish | Must exist in workspace |
 
 ### Options
 
 | Option | Short | Type | Description | Default |
 |--------|-------|------|-------------|---------|
-| `--account <ACCOUNT>` | `-a` | String | Account for deployment fees | **Required** |
+| `--account <ACCOUNT>` | `-a` | String | Account for publishing fees | **Required** |
 | `--custom-network <NETWORK>` | `-c` | String | Custom network name | Uses config default |
-| `--yes` | `-y` | Flag | Confirm deployment without prompt | `false` |
-| `--max-fee <MAX_FEE>` | `-f` | u64 | Maximum deployment fee | Auto-estimated |
+| `--yes` | `-y` | Flag | Confirm publishing without prompt | `false` |
+| `--max-fee <MAX_FEE>` | `-f` | u64 | Maximum publishing fee | Auto-estimated |
 | `--project-folder <PATH>` | | Path | Project folder location | Current directory |
 
 ### Behavior
@@ -226,26 +226,26 @@ tari deploy [OPTIONS] <TEMPLATE>
 1. **Configuration Loading**: Reads `tari.config.toml` for network settings
 2. **Project Discovery**: Locates template in Cargo workspace
 3. **WASM Compilation**: Builds template for `wasm32-unknown-unknown` target
-4. **Fee Estimation**: Calculates deployment cost
+4. **Fee Estimation**: Calculates publishing cost
 5. **Balance Verification**: Checks account has sufficient funds
-6. **Deployment**: Submits template to Tari network via wallet daemon
-7. **Address Return**: Provides deployed template address
+6. **Publishing**: Submits template to Tari network via wallet daemon
+7. **Address Return**: Provides published template address
 
 ### Examples
 
-**Basic Deployment**:
+**Basic Publishing**:
 ```bash
-# Deploy with confirmation prompt
-tari deploy --account myaccount my_nft
+# Publish with confirmation prompt
+tari publish --account myaccount my_nft
 
-# Deploy with auto-confirmation
-tari deploy --account myaccount --yes my_token
+# Publish with auto-confirmation
+tari publish --account myaccount --yes my_token
 
-# Deploy to custom network
-tari deploy --account testaccount --custom-network testnet my_dao
+# Publish to custom network
+tari publish --account testaccount --custom-network testnet my_dao
 
-# Deploy with fee limit
-tari deploy --account myaccount --max-fee 100000 my_template
+# Publish with fee limit
+tari publish --account myaccount --max-fee 100000 my_template
 ```
 
 **Expected Output**:
@@ -254,8 +254,8 @@ tari deploy --account myaccount --max-fee 100000 my_template
 ✅ Refresh project templates repository  
 ✅ Refresh wasm templates repository
 ✅ Building WASM template project "my_nft"
-❓Deploying this template costs 256875 XTR (estimated), are you sure to continue? yes
-✅ Deploying project "my_nft" to local network
+❓Publishing this template costs 256875 XTR (estimated), are you sure to continue? yes
+✅ Publishing project "my_nft" to local network
 ⭐ Your new template's address: f807989828e70a18050e5785f30a7bd01475797d76d6b4700af175b859c32774
 ```
 
@@ -293,7 +293,7 @@ Account "nonexistent" not found
 
 **Insufficient Funds**:
 ```
-Insufficient funds for deployment
+Insufficient funds for publishing
 ```
 **Solution**: Add funds to account or use `--max-fee` to limit cost.
 
@@ -307,7 +307,7 @@ tari --version
 # Show help for specific command
 tari create --help
 tari new --help  
-tari deploy --help
+tari publish --help
 ```
 
 **Test Repository Access**:
@@ -333,7 +333,7 @@ While not directly supported, these environment variables affect CLI behavior:
 | Variable | Effect | Example |
 |----------|--------|---------|
 | `RUST_LOG` | Enable debug logging | `RUST_LOG=debug tari create my-project` |
-| `CARGO_TARGET_DIR` | Override cargo build directory | `CARGO_TARGET_DIR=./build tari deploy` |
+| `CARGO_TARGET_DIR` | Override cargo build directory | `CARGO_TARGET_DIR=./build tari publish` |
 | `HOME` | Affects default directories | Automatically detected |
 
 ## Configuration Integration
@@ -361,14 +361,14 @@ cd "$PROJECT_NAME"
 tari new "MyContract" --template "nft"
 ```
 
-**Batch Deployment**:
+**Batch Publishing**:
 ```bash
 #!/bin/bash
-ACCOUNT="deployment-account"
+ACCOUNT="publishing-account"
 
 for template in templates/*/; do
     template_name=$(basename "$template")
-    tari deploy --account "$ACCOUNT" --yes "$template_name"
+    tari publish --account "$ACCOUNT" --yes "$template_name"
 done
 ```
 
@@ -376,8 +376,8 @@ done
 
 **Makefile Integration**:
 ```makefile
-deploy: build
-	tari deploy --account $(ACCOUNT) --yes $(TEMPLATE)
+publish: build
+	tari publish --account $(ACCOUNT) --yes $(TEMPLATE)
 
 build:
 	cargo build --target wasm32-unknown-unknown --release

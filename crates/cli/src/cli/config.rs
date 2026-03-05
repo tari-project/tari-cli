@@ -5,7 +5,7 @@ use std::{path::PathBuf, string::ToString};
 
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
-use tari_wallet_daemon_client::ComponentAddressOrName;
+use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use tokio::{fs, io::AsyncWriteExt};
 
 pub const VALID_OVERRIDE_KEYS: &[&str] = &[

@@ -1,5 +1,6 @@
 [package]
-name = "tari-cli"
+name = "tari-ootle-cli"
+description = "Tari Ootle Template Development CLI"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -11,8 +12,7 @@ name = "tari"
 path = "src/main.rs"
 
 [dependencies]
-tari_deploy = { workspace = true }
-tari_wallet_daemon_client = { workspace = true }
+tari_ootle_publish_lib = { workspace = true }
 
 anyhow = "1.0.93"
 clap = { version = "4.5.20", features = ["derive", "string"] }

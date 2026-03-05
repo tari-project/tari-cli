@@ -1,30 +1,30 @@
 ---
-title: Deployment Guide
-description: Complete guide to deploying Tari smart contracts to blockchain networks
+title: Publishing Guide
+description: Complete guide to publishing Tari smart contracts to blockchain networks
 last_updated: 2025-06-26
 version: Latest (main branch)
-verified_against: crates/cli/src/cli/commands/deploy.rs, crates/tari_deploy/src/deployer.rs
+verified_against: crates/cli/src/cli/commands/publish.rs, crates/publish_lib/src/deployer.rs
 audience: users
 ---
 
-# Deployment Guide
+# Publishing Guide
 
-> **✨ What you'll learn**: How to deploy your Tari smart contracts to blockchain networks with confidence
+> **✨ What you'll learn**: How to publish your Tari smart contracts to blockchain networks with confidence
 
 ## Overview
 
-The Tari CLI deployment system handles the complete workflow from WASM compilation to blockchain deployment. It automatically builds your smart contract, estimates costs, verifies balances, and publishes to the network.
+The Tari CLI publishing system handles the complete workflow from WASM compilation to blockchain publishing. It automatically builds your smart contract, estimates costs, verifies balances, and publishes to the network.
 
 ## Prerequisites
 
 ### Environment Setup
 
-<!-- SOURCE: Verified against deployment command implementation -->
-Before deploying, ensure you have:
+<!-- SOURCE: Verified against publish command implementation -->
+Before publishing, ensure you have:
 
 1. **Compiled Smart Contract**: Template must build successfully to WASM
 2. **Tari Wallet Daemon**: Running and accessible at configured address
-3. **Account with Funds**: Sufficient XTR balance for deployment fees
+3. **Account with Funds**: Sufficient XTR balance for publishing fees
 4. **Network Configuration**: Proper `tari.config.toml` setup
 
 ### Verify Prerequisites
@@ -42,13 +42,13 @@ curl -X POST http://127.0.0.1:9000/ \
 # Expected response: {"jsonrpc":"2.0","result":"pong","id":1}
 ```
 
-## Basic Deployment
+## Basic Publishing
 
-### Simple Deployment
+### Simple Publishing
 
-<!-- SOURCE: Actual CLI output from README.md and deploy.rs -->
+<!-- SOURCE: Actual CLI output from README.md and publish.rs -->
 ```bash
-tari deploy --account myaccount my_template
+tari publish --account myaccount my_template
 ```
 
 **Expected Output**:
@@ -57,31 +57,31 @@ tari deploy --account myaccount my_template
 ✅ Refresh project templates repository
 ✅ Refresh wasm templates repository
 ✅ Building WASM template project "my_template"
-❓ Deploying this template costs 256875 XTR (estimated), are you sure to continue? yes
-✅ Deploying project "my_template" to local network
+❓ Publishing this template costs 256875 XTR (estimated), are you sure to continue? yes
+✅ Publishing project "my_template" to local network
 ⭐ Your new template's address: f807989828e70a18050e5785f30a7bd01475797d76d6b4700af175b859c32774
 ```
 
-### Auto-Confirmed Deployment
+### Auto-Confirmed Publishing
 
 ```bash
 # Skip confirmation prompt
-tari deploy --account myaccount --yes my_template
+tari publish --account myaccount --yes my_template
 ```
 
-### Deployment with Fee Limit
+### Publishing with Fee Limit
 
 ```bash
-# Limit maximum deployment cost
-tari deploy --account myaccount --max-fee 100000 my_template
+# Limit maximum publishing cost
+tari publish --account myaccount --max-fee 100000 my_template
 ```
 
-## Network Deployment
+## Network Publishing
 
-### Local Network Deployment
+### Local Network Publishing
 
 <!-- SOURCE: Verified against project/config.rs default configuration -->
-Default configuration deploys to local development network:
+Default configuration publishes to local development network:
 
 ```toml
 # In tari.config.toml
@@ -89,19 +89,19 @@ Default configuration deploys to local development network:
 wallet-daemon-jrpc-address = "http://127.0.0.1:9000/"
 ```
 
-Local deployment is ideal for:
+Local publishing is ideal for:
 - Development and testing
 - Rapid iteration cycles
 - Cost-free experimentation
 
-### Custom Network Deployment
+### Custom Network Publishing
 
 ```bash
-# Deploy to testnet
-tari deploy --account testaccount --custom-network testnet my_template
+# Publish to testnet
+tari publish --account testaccount --custom-network testnet my_template
 
-# Deploy to mainnet
-tari deploy --account mainaccount --custom-network mainnet my_template
+# Publish to mainnet
+tari publish --account mainaccount --custom-network mainnet my_template
 ```
 
 **Network Configuration Requirements**:
@@ -109,11 +109,11 @@ tari deploy --account mainaccount --custom-network mainnet my_template
 2. **Account** must exist on target network with sufficient balance
 3. **Custom network name** must match your project configuration
 
-## Deployment Process Deep Dive
+## Publishing Process Deep Dive
 
 ### Step 1: Project Discovery
 
-<!-- SOURCE: Verified against deploy.rs implementation lines 57-79 -->
+<!-- SOURCE: Verified against publish.rs implementation lines 57-79 -->
 The CLI automatically locates your template within the Cargo workspace:
 
 ```bash
@@ -128,7 +128,7 @@ The CLI automatically locates your template within the Cargo workspace:
 
 ### Step 2: WASM Compilation
 
-<!-- SOURCE: Verified against deploy.rs build_project function lines 122-156 -->
+<!-- SOURCE: Verified against publish.rs build_project function lines 122-156 -->
 Automatic WASM compilation with optimization:
 
 ```bash
@@ -144,10 +144,10 @@ cargo build --target=wasm32-unknown-unknown --release
 ### Step 3: Fee Estimation
 
 <!-- SOURCE: Verified against deployer.rs publish_fee function lines 66-77 -->
-The deployment system estimates costs before proceeding:
+The publishing system estimates costs before proceeding:
 
 ```rust
-// Dry run deployment to calculate fees
+// Dry run to calculate fees
 request.dry_run = true;
 let response = client.publish_template(request).await?;
 let estimated_fee = response.dry_run_fee;
@@ -161,7 +161,7 @@ let estimated_fee = response.dry_run_fee;
 ### Step 4: Balance Verification
 
 <!-- SOURCE: Verified against deployer.rs check_balance_to_deploy lines 92-120 -->
-Balance check prevents failed deployments:
+Balance check prevents failed publishing:
 
 ```rust
 // Verify account has sufficient funds
@@ -171,10 +171,10 @@ if balance < estimated_fee {
 }
 ```
 
-### Step 5: Template Deployment
+### Step 5: Template Publishing
 
 <!-- SOURCE: Verified against deployer.rs deploy function lines 47-64 -->
-Final deployment to blockchain:
+Final publishing to blockchain:
 
 ```rust
 // Submit template to Tari network
@@ -186,29 +186,29 @@ let template_address = client.publish_template(request).await?;
 - Template address returned
 - Contract ready for interaction
 
-## Advanced Deployment
+## Advanced Publishing
 
-### Batch Deployment
+### Batch Publishing
 
-Deploy multiple templates programmatically:
+Publish multiple templates programmatically:
 
 ```bash
 #!/bin/bash
-ACCOUNT="deployment-account"
+ACCOUNT="publishing-account"
 
 for template in templates/*/; do
     template_name=$(basename "$template")
-    echo "Deploying $template_name..."
-    tari deploy --account "$ACCOUNT" --yes "$template_name"
+    echo "Publishing $template_name..."
+    tari publish --account "$ACCOUNT" --yes "$template_name"
 done
 ```
 
 ### CI/CD Integration
 
-GitHub Actions deployment example:
+GitHub Actions publishing example:
 
 ```yaml
-name: Deploy to Testnet
+name: Publish to Testnet
 on:
   push:
     branches: [main]
@@ -227,15 +227,15 @@ jobs:
       - name: Install Tari CLI
         run: cargo install tari-cli --git https://github.com/tari-project/tari-cli
         
-      - name: Deploy contracts
+      - name: Publish contracts
         run: |
-          tari deploy --account ${{ secrets.TESTNET_ACCOUNT }} --yes my_contract
+          tari publish --account ${{ secrets.TESTNET_ACCOUNT }} --yes my_contract
 ```
 
-### Cross-Platform Deployment
+### Cross-Platform Publishing
 
 <!-- SOURCE: Verified against Cross.toml and build_binaries.yml -->
-The CLI supports deployment from multiple platforms:
+The CLI supports publishing from multiple platforms:
 
 - **Linux**: Native and cross-compiled (x86_64, arm64, riscv64)
 - **macOS**: Intel and Apple Silicon (x86_64, arm64) 
@@ -255,7 +255,7 @@ cross build --target wasm32-unknown-unknown --release
 ### Local Development Network
 
 **Advantages**:
-- Free deployments (no real XTR cost)
+- Free publishing (no real XTR cost)
 - Fast confirmation times
 - Complete control over network state
 - Ideal for testing and iteration
@@ -266,7 +266,7 @@ cross build --target wasm32-unknown-unknown --release
 tari_wallet_daemon --network localnet
 ```
 
-### Testnet Deployment
+### Testnet Publishing
 
 **Advantages**:
 - Real network conditions
@@ -281,29 +281,29 @@ tari_wallet_daemon --network localnet
 wallet-daemon-jrpc-address = "http://testnet-node:9000/"
 ```
 
-### Mainnet Deployment
+### Mainnet Publishing
 
 **Critical Considerations**:
-- **Real XTR costs**: Deployment fees use actual cryptocurrency
-- **Permanent deployment**: Cannot be undone or modified
+- **Real XTR costs**: Publishing fees use actual cryptocurrency
+- **Permanent publishing**: Cannot be undone or modified
 - **Security critical**: Ensure code is thoroughly tested
 - **Performance impact**: Consider gas optimization
 
 **Best Practices**:
-1. **Extensive Testing**: Deploy to testnet first
+1. **Extensive Testing**: Publish to testnet first
 2. **Code Audits**: Security review before mainnet
-3. **Gas Optimization**: Minimize deployment costs
-4. **Monitoring**: Track contract performance post-deployment
+3. **Gas Optimization**: Minimize publishing costs
+4. **Monitoring**: Track contract performance post-publishing
 
-## Monitoring Deployments
+## Monitoring Published Templates
 
 ### Transaction Tracking
 
 <!-- SOURCE: Based on deployer.rs transaction handling -->
-Monitor your deployment transaction:
+Monitor your publishing transaction:
 
 ```bash
-# Template address returned on successful deployment
+# Template address returned on successful publishing
 # Use Tari block explorer to track:
 # - Transaction confirmation
 # - Contract initialization
@@ -312,17 +312,17 @@ Monitor your deployment transaction:
 
 ### Contract Verification
 
-Verify your deployed contract:
+Verify your published contract:
 
 ```bash
-# Call contract methods to ensure proper deployment
+# Call contract methods to ensure proper publishing
 # Check contract state initialization
 # Validate expected functionality
 ```
 
-## Troubleshooting Deployment
+## Troubleshooting Publishing
 
-### Common Deployment Errors
+### Common Publishing Errors
 
 **Insufficient Funds**:
 ```
@@ -354,40 +354,40 @@ Enable detailed logging for troubleshooting:
 
 ```bash
 # Enable debug output
-RUST_LOG=debug tari deploy --account myaccount my_template
+RUST_LOG=debug tari publish --account myaccount my_template
 
 # Focus on specific modules
-RUST_LOG=tari_cli::commands::deploy=debug tari deploy --account myaccount my_template
+RUST_LOG=tari_cli::commands::publish=debug tari publish --account myaccount my_template
 ```
 
 ### Validation Checklist
 
-Before deployment, verify:
+Before publishing, verify:
 
 - [ ] **WASM compiles**: `cargo build --target wasm32-unknown-unknown --release`
 - [ ] **Wallet connected**: `curl http://127.0.0.1:9000/` returns response
 - [ ] **Account exists**: Account name is correct and accessible
 - [ ] **Sufficient balance**: Account has more XTR than estimated fee
 - [ ] **Network config**: `tari.config.toml` points to correct network
-- [ ] **Template valid**: Package name matches deployment argument
+- [ ] **Template valid**: Package name matches publish argument
 
 ## Security Best Practices
 
-### Pre-Deployment Security
+### Pre-Publishing Security
 
 1. **Code Review**: Audit smart contract logic thoroughly
 2. **Test Coverage**: Comprehensive unit and integration tests
 3. **Dependency Audit**: Check all crate dependencies for vulnerabilities
 4. **Access Controls**: Verify contract permissions and ownership
 
-### Deployment Security
+### Publishing Security
 
-1. **Account Security**: Use dedicated deployment accounts
-2. **Network Verification**: Confirm deploying to intended network
+1. **Account Security**: Use dedicated publishing accounts
+2. **Network Verification**: Confirm publishing to intended network
 3. **Fee Limits**: Use `--max-fee` to prevent cost overruns
-4. **Confirmation**: Review all deployment details before confirming
+4. **Confirmation**: Review all publishing details before confirming
 
-### Post-Deployment Security
+### Post-Publishing Security
 
 1. **Monitor Activity**: Track contract usage and transactions
 2. **Update Procedures**: Plan for contract upgrades if supported
@@ -396,7 +396,7 @@ Before deployment, verify:
 
 ## Cost Optimization
 
-### Reducing Deployment Costs
+### Reducing Publishing Costs
 
 1. **Optimize WASM Size**:
    ```toml
@@ -415,31 +415,31 @@ Before deployment, verify:
 
 ### Fee Estimation
 
-Get deployment cost estimates:
+Get publishing cost estimates:
 
 ```bash
-# Dry run to see costs (deployment stops at confirmation)
-tari deploy --account myaccount my_template
+# Dry run to see costs (publishing stops at confirmation)
+tari publish --account myaccount my_template
 # Note the estimated cost, then decline
 
 # Set maximum fee based on estimate
-tari deploy --account myaccount --max-fee 300000 my_template
+tari publish --account myaccount --max-fee 300000 my_template
 ```
 
 ## Next Steps
 
-### After Successful Deployment
+### After Successful Publishing
 
 1. **Record Template Address**: Save the returned template address
 2. **Test Contract Functions**: Verify all methods work correctly
-3. **Document Usage**: Update project documentation with deployment details
+3. **Document Usage**: Update project documentation with publishing details
 4. **Monitor Performance**: Track contract usage and costs
 
 ### Building Applications
 
 **Frontend Integration**:
 ```javascript
-// Example: Connect web application to deployed contract
+// Example: Connect web application to published contract
 const contractAddress = "f807989828e70a18050e5785f30a7bd01475797d76d6b4700af175b859c32774";
 const contract = new TariContract(contractAddress);
 ```
@@ -461,4 +461,4 @@ let result = contract.call_method("my_method", args).await?;
 
 ---
 
-**Ready for production deployment?** Review our [Security Best Practices](../04-troubleshooting/common-issues.md#deployment-issues) and [Monitoring Guide](../03-reference/cli-commands.md#deploy-command) for enterprise-grade deployments.
+**Ready for production publishing?** Review our [Security Best Practices](../04-troubleshooting/common-issues.md#publishing-issues) and [Monitoring Guide](../03-reference/cli-commands.md#publish-command) for enterprise-grade publishing.

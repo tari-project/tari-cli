@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 use crate::error::Error;
-use crate::{DeployerError, NetworkConfig};
+use crate::{NetworkConfig, PublisherError};
 use std::borrow::Cow;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -12,42 +12,42 @@ use tari_engine_types::commit_result::TransactionResult;
 use tari_engine_types::hashing::template_hasher32;
 use tari_engine_types::substate::SubstateId;
 use tari_ootle_common_types::optional::Optional;
-use tari_template_lib::types::Hash32;
-use tari_template_lib::types::constants::XTR;
-use tari_template_lib::types::{Amount, TemplateAddress};
-use tari_wallet_daemon_client::types::{
-    AccountsGetBalancesRequest, AuthLoginAcceptRequest, AuthLoginRequest, AuthLoginResponse, PublishTemplateRequest,
-    TransactionWaitResultRequest, WalletGetInfoResponse,
+use tari_ootle_walletd_client::permissions::JrpcPermission;
+use tari_ootle_walletd_client::types::{
+    AccountsGetBalancesRequest, AuthCredentials, AuthGetMethodResponse, AuthLoginRequest, AuthLoginResponse,
+    AuthMethod, PublishTemplateRequest, TransactionWaitResultRequest, WalletGetInfoResponse,
 };
-use tari_wallet_daemon_client::{ComponentAddressOrName, WalletDaemonClient};
+use tari_ootle_walletd_client::{ComponentAddressOrName, WalletDaemonClient};
+use tari_template_lib_types::Hash32;
+use tari_template_lib_types::constants::TARI_TOKEN;
+use tari_template_lib_types::{Amount, TemplateAddress};
 use tokio::fs;
 
 pub type Result<T> = std::result::Result<T, Error>;
-pub const TOKEN_SYMBOL: &str = "XTR";
 
-/// Tari template deployer.
-/// You can use this struct to deploy easily Tari template project to the target network.
+/// Tari template publisher.
+/// You can use this struct to easily publish a Tari template project to the target network.
 /// Note: This is the entry point to use this library crate.
-pub struct TemplateDeployer {
+pub struct TemplatePublisher {
     network: NetworkConfig,
 }
 
-/// Provided template to deploy.
+/// Provided template to publish.
 #[derive(Clone)]
 pub enum Template {
-    /// Deploy from a path.
+    /// Publish from a path.
     Path { path: PathBuf },
-    /// Deploy from a loaded binary.
+    /// Publish from a loaded binary.
     Binary { bin: Vec<u8> },
 }
 
-impl TemplateDeployer {
+impl TemplatePublisher {
     pub fn new(network: NetworkConfig) -> Self {
         Self { network }
     }
 
-    /// Deploys the given compiled template to the configured network ([`TemplateDeployer::network`]).
-    pub async fn deploy(
+    /// Publishes the given compiled template to the configured network ([`TemplatePublisher::network`]).
+    pub async fn publish(
         &self,
         account: &ComponentAddressOrName,
         template: Template,
@@ -57,7 +57,7 @@ impl TemplateDeployer {
         let publish_template_request = self
             .create_publish_template_request(account, &template, max_fee)
             .await?;
-        self.check_balance_to_deploy(account, &template).await?;
+        self.check_balance_for_publish(account, &template).await?;
         self.publish_template(
             publish_template_request,
             wait_timeout.or(Some(Duration::from_secs(120))),
@@ -66,7 +66,7 @@ impl TemplateDeployer {
     }
 
     /// Get publish fee.
-    /// It does not deploy anything, just gets the calculated fee for the template.
+    /// It does not publish anything, just gets the calculated fee for the template.
     pub async fn publish_fee(&self, account: &ComponentAddressOrName, template: &Template) -> Result<u64> {
         let mut request = self
             .create_publish_template_request(account, template, 1_000_000)
@@ -92,14 +92,14 @@ impl TemplateDeployer {
         let mut client = self.wallet_daemon_client().await?;
         request.dry_run = true;
         let response = client.publish_template(request).await?;
-        let fee = response
-            .dry_run_fee
-            .ok_or_else(|| DeployerError::InvalidResponse("Wallet daemon returned an empty dry run fee".to_string()))?;
+        let fee = response.dry_run_fee.ok_or_else(|| {
+            PublisherError::InvalidResponse("Wallet daemon returned an empty dry run fee".to_string())
+        })?;
         Ok(fee)
     }
 
-    /// Check if we have enough balance or not to deploy the template.
-    pub async fn check_balance_to_deploy(
+    /// Check if we have enough balance or not to publish the template.
+    pub async fn check_balance_for_publish(
         &self,
         account: &ComponentAddressOrName,
         template: &Template,
@@ -205,7 +205,7 @@ impl TemplateDeployer {
         Ok((wasm_code, template, wasm_hash))
     }
 
-    /// Get available wallet XTR balance.
+    /// Get available wallet TARI_TOKEN balance.
     async fn wallet_xtr_balance(&self, account: &ComponentAddressOrName) -> Result<Amount> {
         let mut client = self.wallet_daemon_client().await?;
         let balances_response = client
@@ -217,7 +217,7 @@ impl TemplateDeployer {
         let balance = balances_response
             .balances
             .iter()
-            .find(|b| b.resource_address == XTR)
+            .find(|b| b.resource_address == TARI_TOKEN)
             .map(|b| b.balance)
             .unwrap_or_default();
 
@@ -228,22 +228,24 @@ impl TemplateDeployer {
     async fn wallet_daemon_client(&self) -> Result<WalletDaemonClient> {
         let mut client = WalletDaemonClient::connect(self.network.wallet_daemon_jrpc_address().clone(), None)?;
 
+        let AuthGetMethodResponse { method } = client.get_auth_method().await?;
+        let credentials = match method {
+            AuthMethod::None => AuthCredentials::None,
+            AuthMethod::Webauthn => {
+                return Err(Error::NotSupportedError(
+                    "Webauthn is not currently supported".to_string(),
+                ));
+            },
+        };
         // authentication
-        let AuthLoginResponse { auth_token, .. } = client
+        let AuthLoginResponse { token } = client
             .auth_request(AuthLoginRequest {
-                permissions: vec!["Admin".to_string()],
-                duration: None,
-                webauthn_finish_auth_request: None,
-            })
-            .await?;
-        let auth_response = client
-            .auth_accept(AuthLoginAcceptRequest {
-                auth_token,
-                name: "default".to_string(),
+                permissions: vec![JrpcPermission::Admin],
+                credentials,
             })
             .await?;
 
-        client.set_auth_token(auth_response.permissions_token);
+        client.set_auth_token(token);
 
         Ok(client)
     }

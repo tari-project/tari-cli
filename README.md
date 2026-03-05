@@ -7,7 +7,7 @@
 
 The **Tari CLI** smart contract development tool for the Tari Layer-2 blockchain.
 
-This CLI provides a streamlined workflow for building, testing, and deploying smart contracts on the Tari network. 
+This CLI provides a streamlined workflow for building, testing, and publishing smart contracts on the Tari network. 
 With a focus on simplicity and developer experience, the Tari CLI abstracts away complex blockchain interactions, 
 allowing you to focus on writing your smart contract logic.
 
@@ -20,7 +20,7 @@ allowing you to focus on writing your smart contract logic.
 
 ## 🚀 Quick Start
 
-Get your first Tari smart contract deployed in under 5 minutes:
+Get your first Tari smart contract published in under 5 minutes:
 
 ### 1. Install Tari CLI
 
@@ -60,15 +60,15 @@ tari new MyToken
 # ✅ Update Cargo.toml
 ```
 
-### 4. Deploy to Network
+### 4. Publish to Network
 
 <!-- SOURCE: Actual CLI output from README.md:89-97 -->
 ```bash
-tari deploy --account myaccount MyToken
+tari publish --account myaccount MyToken
 
 # ✅ Building WASM template project "MyToken"
-# ❓ Deploying this template costs 256875 XTR (estimated), are you sure to continue? yes
-# ✅ Deploying project "MyToken" to local network  
+# ❓ Publishing this template costs 256875 XTR (estimated), are you sure to continue? yes
+# ✅ Publishing template. This may take a while...
 # ⭐ Your new template's address: f807989828e70a18050e5785f30a7bd01475797d76d6b4700af175b859c32774
 ```
 
@@ -80,7 +80,7 @@ tari deploy --account myaccount MyToken
 - **[Getting Started](docs/01-getting-started/installation.md)** - Complete setup and first project
 - **[Template Development](docs/02-guides/template-development.md)** - Creating custom smart contracts
 - **[Configuration Guide](docs/02-guides/project-configuration.md)** - Project and network setup
-- **[Deployment Guide](docs/02-guides/deployment.md)** - From build to blockchain
+- **[Publishing Guide](docs/02-guides/deployment.md)** - From build to blockchain
 
 ### 📖 Reference
 - **[CLI Commands](docs/03-reference/cli-commands.md)** - Complete command reference
@@ -113,7 +113,7 @@ The CLI automatically detects your development environment and guides you throug
 
 - **Local Development**: Perfect for testing and iteration
 - **Testnet**: Pre-production validation
-- **Mainnet**: Production deployments
+- **Mainnet**: Production publishing
 
 See the [Configuration Guide](docs/02-guides/project-configuration.md) for network-specific setup.
 
