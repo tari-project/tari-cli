@@ -10,7 +10,7 @@ use clap::Parser;
 use dialoguer::Confirm;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use tari_ootle_publish_lib::deployer::{CheckBalanceResult, TOKEN_SYMBOL, Template, TemplateDeployer};
+use tari_ootle_publish_lib::publisher::{CheckBalanceResult, Template, TemplatePublisher};
 use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use tokio::fs;
 use tokio::process::Command;
@@ -115,8 +115,8 @@ pub async fn handle(config: Config, mut args: PublishArgs) -> anyhow::Result<()>
     };
 
     // template publisher
-    let deployer = TemplateDeployer::new(project_config.network().clone());
-    let info = deployer.get_wallet_info().await.with_context(|| {
+    let publisher = TemplatePublisher::new(project_config.network().clone());
+    let info = publisher.get_wallet_info().await.with_context(|| {
         anyhow!(
             "Failed to connect to the wallet at {}",
             project_config.network().wallet_daemon_jrpc_address(),
@@ -144,7 +144,7 @@ pub async fn handle(config: Config, mut args: PublishArgs) -> anyhow::Result<()>
             account
         },
         None => {
-            let account = deployer.get_default_account().await?;
+            let account = publisher.get_default_account().await?;
             let Some(account) = account else {
                 return Err(anyhow!("No account found! Please create an account first."));
             };
@@ -155,7 +155,7 @@ pub async fn handle(config: Config, mut args: PublishArgs) -> anyhow::Result<()>
     let template = Template::Path { path: template_bin };
 
     // check balance and get max fee
-    let CheckBalanceResult { max_fee, binary_size } = deployer.check_balance_to_deploy(&account, &template).await?;
+    let CheckBalanceResult { max_fee, binary_size } = publisher.check_balance_for_publish(&account, &template).await?;
 
     if binary_size > MAX_WASM_SIZE {
         println!("⚠️ WASM binary size exceeded: {}", util::human_bytes(binary_size));
@@ -166,7 +166,7 @@ pub async fn handle(config: Config, mut args: PublishArgs) -> anyhow::Result<()>
     if !args.yes {
         let confirmation = Confirm::new()
             .with_prompt(format!(
-                "⚠️ Publishing this template costs {max_fee} {TOKEN_SYMBOL} (estimated), are you sure to continue?",
+                "⚠️ Publishing this template costs {max_fee} (estimated), are you sure to continue?",
             ))
             .interact()?;
         if !confirmation {
@@ -176,8 +176,8 @@ pub async fn handle(config: Config, mut args: PublishArgs) -> anyhow::Result<()>
 
     // publish
     let template_address = loading!(
-        format!("Publishing template. This may take while..."),
-        deployer.deploy(&account, template, max_fee, None).await
+        "Publishing template. This may take while...",
+        publisher.publish(&account, template, max_fee, None).await
     )?;
 
     println!("⭐ Your new template's address: {template_address}");

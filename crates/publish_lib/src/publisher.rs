@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 use crate::error::Error;
-use crate::{DeployerError, NetworkConfig};
+use crate::{NetworkConfig, PublisherError};
 use std::borrow::Cow;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -24,12 +24,11 @@ use tari_template_lib_types::{Amount, TemplateAddress};
 use tokio::fs;
 
 pub type Result<T> = std::result::Result<T, Error>;
-pub const TOKEN_SYMBOL: &str = "TARI_TOKEN";
 
 /// Tari template publisher.
 /// You can use this struct to easily publish a Tari template project to the target network.
 /// Note: This is the entry point to use this library crate.
-pub struct TemplateDeployer {
+pub struct TemplatePublisher {
     network: NetworkConfig,
 }
 
@@ -42,13 +41,13 @@ pub enum Template {
     Binary { bin: Vec<u8> },
 }
 
-impl TemplateDeployer {
+impl TemplatePublisher {
     pub fn new(network: NetworkConfig) -> Self {
         Self { network }
     }
 
-    /// Publishes the given compiled template to the configured network ([`TemplateDeployer::network`]).
-    pub async fn deploy(
+    /// Publishes the given compiled template to the configured network ([`TemplatePublisher::network`]).
+    pub async fn publish(
         &self,
         account: &ComponentAddressOrName,
         template: Template,
@@ -58,7 +57,7 @@ impl TemplateDeployer {
         let publish_template_request = self
             .create_publish_template_request(account, &template, max_fee)
             .await?;
-        self.check_balance_to_deploy(account, &template).await?;
+        self.check_balance_for_publish(account, &template).await?;
         self.publish_template(
             publish_template_request,
             wait_timeout.or(Some(Duration::from_secs(120))),
@@ -93,14 +92,14 @@ impl TemplateDeployer {
         let mut client = self.wallet_daemon_client().await?;
         request.dry_run = true;
         let response = client.publish_template(request).await?;
-        let fee = response
-            .dry_run_fee
-            .ok_or_else(|| DeployerError::InvalidResponse("Wallet daemon returned an empty dry run fee".to_string()))?;
+        let fee = response.dry_run_fee.ok_or_else(|| {
+            PublisherError::InvalidResponse("Wallet daemon returned an empty dry run fee".to_string())
+        })?;
         Ok(fee)
     }
 
     /// Check if we have enough balance or not to publish the template.
-    pub async fn check_balance_to_deploy(
+    pub async fn check_balance_for_publish(
         &self,
         account: &ComponentAddressOrName,
         template: &Template,
