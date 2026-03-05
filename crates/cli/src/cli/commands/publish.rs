@@ -10,20 +10,20 @@ use clap::Parser;
 use dialoguer::Confirm;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use tari_deploy::deployer::{CheckBalanceResult, TOKEN_SYMBOL, Template, TemplateDeployer};
-use tari_wallet_daemon_client::ComponentAddressOrName;
+use tari_ootle_publish_lib::deployer::{CheckBalanceResult, TOKEN_SYMBOL, Template, TemplateDeployer};
+use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use tokio::fs;
 use tokio::process::Command;
 
 const MAX_WASM_SIZE: usize = 5 * 1000 * 1000; // 5 MB
 
 #[derive(Clone, Parser, Debug)]
-pub struct DeployArgs {
-    /// Template project to deploy
+pub struct PublishArgs {
+    /// Template project to publish
     #[arg()]
     pub template: Option<String>,
 
-    /// Account to be used for deployment fees.
+    /// Account to be used for publishing fees.
     #[arg(short = 'a', long)]
     pub account: Option<ComponentAddressOrName>,
 
@@ -33,13 +33,13 @@ pub struct DeployArgs {
     #[arg(short = 'c', long)]
     pub custom_network: Option<String>,
 
-    /// Confirm template deployment.
+    /// Confirm template publishing.
     /// If false, it will be asked.
     #[arg(short = 'y', long, default_value_t = false)]
     pub yes: bool,
 
     /// (Optional) Maximum fee
-    /// Maximum fee applied to the deployment.
+    /// Maximum fee applied to publishing.
     ///
     /// Automatically adjusted to estimated fee if not set.
     #[arg(short = 'f', long)]
@@ -50,12 +50,12 @@ pub struct DeployArgs {
     pub project_folder: PathBuf,
 
     /// (Optional) Path to the compiled WASM binary.
-    /// If not set, the project will be built before deployment.
+    /// If not set, the project will be built before publishing.
     #[arg(long, alias = "bin")]
     pub binary: Option<PathBuf>,
 }
 
-pub async fn build_template(args: &DeployArgs) -> anyhow::Result<PathBuf> {
+pub async fn build_template(args: &PublishArgs) -> anyhow::Result<PathBuf> {
     // lookup project name and dir
     let mut crate_dir = None;
     let mut crate_name = String::new();
@@ -96,10 +96,10 @@ pub async fn build_template(args: &DeployArgs) -> anyhow::Result<PathBuf> {
     Ok(template_bin)
 }
 
-pub async fn handle(config: Config, mut args: DeployArgs) -> anyhow::Result<()> {
+pub async fn handle(config: Config, mut args: PublishArgs) -> anyhow::Result<()> {
     if args.binary.is_none() && args.template.is_none() {
         return Err(anyhow!(
-            "Either a template name or a binary path must be provided for deployment!"
+            "Either a template name or a binary path must be provided for publishing!"
         ));
     }
 
@@ -114,7 +114,7 @@ pub async fn handle(config: Config, mut args: DeployArgs) -> anyhow::Result<()> 
         None => build_template(&args).await?,
     };
 
-    // template deployer
+    // template publisher
     let deployer = TemplateDeployer::new(project_config.network().clone());
     let info = deployer.get_wallet_info().await.with_context(|| {
         anyhow!(
@@ -166,15 +166,15 @@ pub async fn handle(config: Config, mut args: DeployArgs) -> anyhow::Result<()> 
     if !args.yes {
         let confirmation = Confirm::new()
             .with_prompt(format!(
-                "⚠️ Deploying this template costs {max_fee} {TOKEN_SYMBOL} (estimated), are you sure to continue?",
+                "⚠️ Publishing this template costs {max_fee} {TOKEN_SYMBOL} (estimated), are you sure to continue?",
             ))
             .interact()?;
         if !confirmation {
-            return Err(anyhow!("💥 Deployment aborted!"));
+            return Err(anyhow!("💥 Publishing aborted!"));
         }
     }
 
-    // deploy
+    // publish
     let template_address = loading!(
         format!("Publishing template. This may take while..."),
         deployer.deploy(&account, template, max_fee, None).await

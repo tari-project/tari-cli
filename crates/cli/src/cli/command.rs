@@ -3,8 +3,8 @@
 
 use crate::cli::commands::add::AddArgs;
 use crate::cli::commands::create::CreateArgs;
-use crate::cli::commands::deploy;
-use crate::cli::commands::deploy::DeployArgs;
+use crate::cli::commands::publish;
+use crate::cli::commands::publish::PublishArgs;
 use crate::{
     cli::{
         commands::{add, create},
@@ -88,18 +88,15 @@ pub struct ConfigOverride {
 #[derive(Clone, Parser, Debug)]
 pub struct CommonArguments {
     /// Base directory, where all the CLI data will be saved
-    #[arg(short = 'b', long, value_name = "PATH", default_value = default_base_dir().into_os_string()
-    )]
+    #[arg(short = 'b', long, value_name = "PATH", default_value = default_base_dir().into_os_string())]
     base_dir: PathBuf,
 
     /// Config file location
-    #[arg(short = 'c', long, value_name = "PATH", default_value = default_config_file().into_os_string()
-    )]
+    #[arg(short = 'c', long, value_name = "PATH", default_value = default_config_file().into_os_string())]
     config_file_path: PathBuf,
 
     /// Config file overrides
-    #[arg(short = 'e', long, value_name = "KEY=VALUE", value_parser = config_override_parser
-    )]
+    #[arg(short = 'e', long, value_name = "KEY=VALUE", value_parser = config_override_parser)]
     config_overrides: Vec<ConfigOverride>,
 }
 
@@ -108,7 +105,7 @@ pub struct CommonArguments {
 #[command(
     version,
     about = "🚀 Tari CLI 🚀",
-    long_about = "🚀 Tari Ootle CLI 🚀\nDevelop and deploy Tari templates."
+    long_about = "🚀 Tari Ootle CLI 🚀\nDevelop and publish Tari templates."
 )]
 pub struct Cli {
     #[clap(flatten)]
@@ -134,11 +131,11 @@ pub enum Command {
         #[clap(flatten)]
         args: AddArgs,
     },
-    /// Deploying Tari template to a network
-    #[clap(alias = "publish")]
-    Deploy {
+    /// Publishing a Tari template to a network
+    #[clap(alias = "deploy")]
+    Publish {
         #[clap(flatten)]
-        args: DeployArgs,
+        args: PublishArgs,
     },
 }
 
@@ -238,7 +235,7 @@ impl Cli {
         match self.command {
             Command::Create { args } => create::handle(config, project_template_repo, wasm_template_repo, args).await,
             Command::Add { args } => add::handle(config, wasm_template_repo.local_folder().clone(), args).await,
-            Command::Deploy { args } => deploy::handle(config, args).await,
+            Command::Publish { args } => publish::handle(config, args).await,
         }
     }
 }

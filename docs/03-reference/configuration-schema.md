@@ -116,7 +116,7 @@ wallet-daemon-jrpc-address = "http://127.0.0.1:9000/"
 <!-- SOURCE: Verified against project/config.rs lines 16-33 -->
 #### `[network]`
 
-Network and deployment configuration:
+Network and publishing configuration:
 
 | Field | Type | Description | Default | Required |
 |-------|------|-------------|---------|----------|
@@ -298,7 +298,7 @@ These affect WASM compilation and deployment:
 | Variable | Effect | Example |
 |----------|--------|---------|
 | `RUST_LOG` | Enable debug logging | `RUST_LOG=debug tari create my-project` |
-| `CARGO_TARGET_DIR` | Override build directory | `CARGO_TARGET_DIR=./build tari deploy` |
+| `CARGO_TARGET_DIR` | Override build directory | `CARGO_TARGET_DIR=./build tari publish` |
 | `RUSTFLAGS` | Pass flags to Rust compiler | `RUSTFLAGS="-C target-cpu=native"` |
 
 ### Network Environment Variables

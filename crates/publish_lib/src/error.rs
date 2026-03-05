@@ -3,9 +3,9 @@
 
 use std::io;
 use tari_engine::template::TemplateLoaderError;
-use tari_template_lib::types::Amount;
-use tari_template_lib::types::HashParseError;
-use tari_wallet_daemon_client::error::WalletDaemonClientError;
+use tari_ootle_walletd_client::error::WalletDaemonClientError;
+use tari_template_lib_types::Amount;
+use tari_template_lib_types::HashParseError;
 use thiserror::Error;
 
 /// Possible errors for [`crate::TemplateDeployer`].
@@ -33,4 +33,6 @@ pub enum Error {
     MissingPublishedTemplate,
     #[error("Invalid response: {0}")]
     InvalidResponse(String),
+    #[error("Unsupported operation: {0}")]
+    NotSupportedError(String),
 }

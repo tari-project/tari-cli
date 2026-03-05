@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 use serde::{Deserialize, Serialize};
-use tari_deploy::NetworkConfig;
-use tari_wallet_daemon_client::ComponentAddressOrName;
+use tari_ootle_publish_lib::NetworkConfig;
+use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use url::Url;
 
 /// Project configuration.
