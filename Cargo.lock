@@ -5472,6 +5472,7 @@ dependencies = [
  "git2",
  "human_bytes",
  "serde",
+ "serde_json",
  "spinners",
  "tari_ootle_publish_lib",
  "tari_ootle_template_metadata",

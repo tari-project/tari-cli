@@ -45,12 +45,18 @@ pub struct TemplatePublishArgs {
     /// (Optional) Path to a pre-compiled WASM binary.
     #[arg(long, alias = "bin")]
     pub binary: Option<PathBuf>,
+
+    /// Wallet daemon JSON-RPC URL.
+    /// Overrides the value in tari.config.toml and global CLI config.
+    #[arg(long)]
+    pub wallet_daemon_url: Option<url::Url>,
 }
 
 pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Result<()> {
     let crate_dir = &args.path;
 
-    let project_config = load_project_config(crate_dir).await?;
+    let url_override = args.wallet_daemon_url.as_ref().or(config.wallet_daemon_url.as_ref());
+    let project_config = load_project_config(crate_dir, url_override).await?;
 
     // Build or use provided binary
     let template_bin = match args.binary.take() {

@@ -1,9 +1,9 @@
 ---
 title: tari create
-description: Create a new Tari template project workspace.
+description: Create a new Tari template crate from a starter template.
 ---
 
-Creates a new workspace for your Tari template project.
+Creates a new Tari template crate from a starter template.
 
 ```bash
 tari create <name> [OPTIONS]
@@ -15,13 +15,13 @@ tari create <name> [OPTIONS]
 
 | Argument | Description |
 |----------|-------------|
-| `<name>` | Project name (converted to snake_case) |
+| `<name>` | Name of the new crate (converted to snake_case) |
 
 ## Options
 
 | Option | Description |
 |--------|-------------|
-| `-t, --template <ID>` | Project template ID (prompted if not set) |
+| `-t, --template <ID>` | Template to use (e.g. "fungible", "meme_coin"). Prompted if not set. |
 | `-o, --output <PATH>` | Output directory (default: current directory) |
 | `--skip-init` | Skip git initialization |
 | `--skip-metadata` | Skip automatic metadata initialization |
@@ -31,19 +31,17 @@ tari create <name> [OPTIONS]
 
 ```bash
 # Interactive - prompts for template selection
-tari create my-project
+tari create my-token
 
 # Specify template directly
-tari create my-project -t basic
+tari create my-token -t fungible
 
-# Custom output directory
-tari create my-project -o ~/projects
+# Custom output directory, no git init
+tari create my-token -o ~/projects --skip-init
 ```
 
 ## What it does
 
-1. Scaffolds a new Cargo workspace using a project template
-2. Creates a `tari.config.toml` with default network configuration
-3. Initializes WASM template crates (if defined by the project template)
-4. Sets up metadata generation (`build.rs` + `[package.metadata.tari-template]`) on each template crate
-5. Initializes a git repository
+1. Scaffolds a new template crate using `cargo-generate` from a starter template
+2. Sets up metadata generation (`build.rs` + `[package.metadata.tari-template]`)
+3. Initializes a git repository

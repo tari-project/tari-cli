@@ -48,6 +48,7 @@ impl Template {
         &self.id
     }
 
+    #[allow(dead_code)]
     pub fn extra(&self) -> &HashMap<String, String> {
         &self.extra
     }

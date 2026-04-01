@@ -9,25 +9,25 @@ use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use tokio::{fs, io::AsyncWriteExt};
 
 pub const VALID_OVERRIDE_KEYS: &[&str] = &[
-    "project_template_repository.url",
-    "project_template_repository.branch",
-    "project_template_repository.folder",
-    "wasm_template_repository.url",
-    "wasm_template_repository.branch",
-    "wasm_template_repository.folder",
+    "template_repository.url",
+    "template_repository.branch",
+    "template_repository.folder",
     "default_account",
+    "wallet_daemon_url",
 ];
 
 /// CLI configuration.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Config {
-    pub project_template_repository: TemplateRepository,
-    pub wasm_template_repository: TemplateRepository,
+    pub template_repository: TemplateRepository,
     pub default_account: Option<ComponentAddressOrName>,
+    /// Global default wallet daemon JSON-RPC URL.
+    /// Used when no tari.config.toml is found in the project tree.
+    pub wallet_daemon_url: Option<url::Url>,
 }
 
-/// Repository that holds templates to generate project and Tari templates.
+/// Repository that holds templates to generate Tari template crates.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TemplateRepository {
@@ -39,17 +39,13 @@ pub struct TemplateRepository {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            project_template_repository: TemplateRepository {
-                url: "https://github.com/tari-project/wasm-template".to_string(),
-                branch: "main".to_string(),
-                folder: "project_templates".to_string(),
-            },
-            wasm_template_repository: TemplateRepository {
+            template_repository: TemplateRepository {
                 url: "https://github.com/tari-project/wasm-template".to_string(),
                 branch: "main".to_string(),
                 folder: "wasm_templates".to_string(),
             },
             default_account: None,
+            wallet_daemon_url: None,
         }
     }
 }
@@ -83,26 +79,20 @@ impl Config {
         }
 
         match key {
-            "project_template_repository.url" => {
-                self.project_template_repository.url = value.to_string();
+            "template_repository.url" => {
+                self.template_repository.url = value.to_string();
             },
-            "project_template_repository.branch" => {
-                self.project_template_repository.branch = value.to_string();
+            "template_repository.branch" => {
+                self.template_repository.branch = value.to_string();
             },
-            "project_template_repository.folder" => {
-                self.project_template_repository.folder = value.to_string();
-            },
-            "wasm_template_repository.url" => {
-                self.wasm_template_repository.url = value.to_string();
-            },
-            "wasm_template_repository.branch" => {
-                self.wasm_template_repository.branch = value.to_string();
-            },
-            "wasm_template_repository.folder" => {
-                self.wasm_template_repository.folder = value.to_string();
+            "template_repository.folder" => {
+                self.template_repository.folder = value.to_string();
             },
             "default_account" => {
                 self.default_account = Some(value.parse()?);
+            },
+            "wallet_daemon_url" => {
+                self.wallet_daemon_url = Some(value.parse().map_err(|e| anyhow!("Invalid URL: {e}"))?);
             },
             _ => {},
         }

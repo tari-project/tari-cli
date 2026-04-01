@@ -1,14 +1,13 @@
 // Copyright 2024 The Tari Project
 // SPDX-License-Identifier: BSD-3-Clause
 
-use crate::cli::commands::add::AddArgs;
 use crate::cli::commands::create::CreateArgs;
 use crate::cli::commands::publish;
 use crate::cli::commands::publish::PublishArgs;
 use crate::cli::commands::template::TemplateCommand;
 use crate::{
     cli::{
-        commands::{add, create, template},
+        commands::{create, template},
         config::{Config, TemplateRepository},
         util,
     },
@@ -118,27 +117,19 @@ pub struct Cli {
 
 #[derive(Clone, Subcommand)]
 pub enum Command {
-    /// Creates a new workspace for your Tari template project.
+    /// Create a new Tari template crate from a starter template.
     #[clap(alias = "new")]
     Create {
         #[clap(flatten)]
         args: CreateArgs,
     },
-    /// Generates and adds a new Tari wasm template crate.
-    /// NOTE this command does not add the new template to an existing workspace, you may also use this command independent of a workspace.
-    /// Use `create`/`new` if you want to start a new Tari template project with a workspace.
-    #[clap(alias = "generate", alias = "gen")]
-    Add {
-        #[clap(flatten)]
-        args: AddArgs,
-    },
-    /// Publishing a Tari template to a network
+    /// Publish a Tari template to a network.
     #[clap(alias = "deploy")]
     Publish {
         #[clap(flatten)]
         args: PublishArgs,
     },
-    /// Template metadata tooling (init, inspect, publish with metadata)
+    /// Template metadata tooling (init, inspect, publish with metadata).
     Template {
         #[command(subcommand)]
         command: TemplateCommand,
@@ -227,31 +218,31 @@ impl Cli {
             self.init_base_dir_and_config().await
         )?;
 
-        // Template subcommands don't need template repository refresh
-        if let Command::Template { command } = self.command {
-            return match command {
-                TemplateCommand::Init { args } => template::init_metadata::handle(args).await,
-                TemplateCommand::Inspect { args } => template::inspect_metadata::handle(args).await,
-                TemplateCommand::Publish { args } => template::publish::handle(config, args).await,
-            };
+        // Commands that don't need template repository refresh
+        match &self.command {
+            Command::Template { .. } | Command::Publish { .. } => {
+                return match self.command {
+                    Command::Template { command } => match command {
+                        TemplateCommand::Init { args } => template::init_metadata::handle(args).await,
+                        TemplateCommand::Inspect { args } => template::inspect_metadata::handle(args).await,
+                        TemplateCommand::Publish { args } => template::publish::handle(config, args).await,
+                    },
+                    Command::Publish { args } => publish::handle(config, args).await,
+                    _ => unreachable!(),
+                };
+            },
+            _ => {},
         }
 
-        // refresh templates from provided repositories
-        let project_template_repo = loading!(
-            "Refresh project templates repository",
-            self.refresh_template_repository(&config.project_template_repository)
-                .await
-        )?;
-        let wasm_template_repo = loading!(
-            "Refresh wasm templates repository",
-            self.refresh_template_repository(&config.wasm_template_repository).await
+        // Refresh template repository (only needed for `create`)
+        let template_repo = loading!(
+            "Refresh templates repository",
+            self.refresh_template_repository(&config.template_repository).await
         )?;
 
         match self.command {
-            Command::Create { args } => create::handle(config, project_template_repo, wasm_template_repo, args).await,
-            Command::Add { args } => add::handle(config, wasm_template_repo.local_folder().clone(), args).await,
-            Command::Publish { args } => publish::handle(config, args).await,
-            Command::Template { .. } => unreachable!(),
+            Command::Create { args } => create::handle(config, template_repo.local_folder().clone(), args).await,
+            _ => unreachable!(),
         }
     }
 }

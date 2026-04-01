@@ -65,7 +65,6 @@ export default defineConfig({
           label: "Commands",
           items: [
             { label: "create", link: "/reference/create/" },
-            { label: "add", link: "/reference/add/" },
             { label: "publish", link: "/reference/publish/" },
             { label: "template init", link: "/reference/template-init/" },
             {

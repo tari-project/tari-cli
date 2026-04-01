@@ -50,6 +50,11 @@ pub struct PublishArgs {
     /// If not set, the project will be built before publishing.
     #[arg(long, alias = "bin")]
     pub binary: Option<PathBuf>,
+
+    /// Wallet daemon JSON-RPC URL.
+    /// Overrides the value in tari.config.toml and global CLI config.
+    #[arg(long)]
+    pub wallet_daemon_url: Option<url::Url>,
 }
 
 pub async fn build_template(crate_dir: &Path) -> anyhow::Result<PathBuf> {
@@ -78,8 +83,9 @@ pub async fn build_template(crate_dir: &Path) -> anyhow::Result<PathBuf> {
 pub async fn handle(config: Config, mut args: PublishArgs) -> anyhow::Result<()> {
     let crate_dir = &args.path;
 
-    // load network config from project config file
-    let project_config = load_project_config(crate_dir).await?;
+    // Resolve wallet daemon URL: CLI flag > project config > global config > default
+    let url_override = args.wallet_daemon_url.as_ref().or(config.wallet_daemon_url.as_ref());
+    let project_config = load_project_config(crate_dir, url_override).await?;
 
     let template_bin = match args.binary.take() {
         Some(bin_path) => {
@@ -225,30 +231,44 @@ async fn find_target_dir(dir: &Path) -> anyhow::Result<PathBuf> {
         .ok_or_else(|| anyhow!("cargo metadata missing target_directory"))
 }
 
-pub async fn load_project_config(project_folder: &Path) -> anyhow::Result<project::ProjectConfig> {
+pub async fn load_project_config(
+    project_folder: &Path,
+    wallet_daemon_url_override: Option<&url::Url>,
+) -> anyhow::Result<project::ProjectConfig> {
     // Search current dir and parents for tari.config.toml
+    let mut config = None;
     let mut search_dir = project_folder.to_path_buf();
     loop {
         let config_file = search_dir.join(project::CONFIG_FILE_NAME);
         if config_file.exists() {
-            return toml::from_str(
-                fs::read_to_string(&config_file)
-                    .await
-                    .map_err(|error| {
-                        anyhow!(
-                            "Failed to load project config file (at {}): {}",
-                            config_file.display(),
-                            error
-                        )
-                    })?
-                    .as_str(),
-            )
-            .context("parsing config toml");
+            config = Some(
+                toml::from_str::<project::ProjectConfig>(
+                    fs::read_to_string(&config_file)
+                        .await
+                        .map_err(|error| {
+                            anyhow!(
+                                "Failed to load project config file (at {}): {}",
+                                config_file.display(),
+                                error
+                            )
+                        })?
+                        .as_str(),
+                )
+                .context("parsing config toml")?,
+            );
+            break;
         }
         if !search_dir.pop() {
             break;
         }
     }
 
-    Ok(project::ProjectConfig::default())
+    let mut config = config.unwrap_or_default();
+
+    // CLI flag overrides everything
+    if let Some(url) = wallet_daemon_url_override {
+        config.set_wallet_daemon_url(url.clone());
+    }
+
+    Ok(config)
 }

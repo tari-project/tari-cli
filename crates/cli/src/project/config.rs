@@ -18,6 +18,10 @@ impl ProjectConfig {
         &self.network
     }
 
+    pub fn set_wallet_daemon_url(&mut self, url: Url) {
+        self.network = NetworkConfig::new(url);
+    }
+
     pub fn parsed_default_account(&self) -> anyhow::Result<Option<ComponentAddressOrName>> {
         let acc = self.default_account.as_ref().map(|s| s.parse()).transpose()?;
         Ok(acc)
