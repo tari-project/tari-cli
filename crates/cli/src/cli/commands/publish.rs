@@ -206,7 +206,7 @@ async fn build_project(dir: &Path, name: &str) -> anyhow::Result<PathBuf> {
     Ok(output_bin)
 }
 
-async fn find_target_dir(dir: &Path) -> anyhow::Result<PathBuf> {
+pub async fn find_target_dir(dir: &Path) -> anyhow::Result<PathBuf> {
     let output = Command::new("cargo")
         .args(["metadata", "--format-version=1", "--no-deps"])
         .current_dir(dir)

@@ -29,7 +29,7 @@ pub struct InspectMetadataArgs {
 pub async fn handle(args: InspectMetadataArgs) -> anyhow::Result<()> {
     let cbor_path = match args.path {
         Some(p) => p,
-        None => find_metadata_cbor(&args.project_dir)?,
+        None => find_metadata_cbor(&args.project_dir).await?,
     };
 
     if !cbor_path.exists() {
@@ -54,16 +54,16 @@ pub async fn handle(args: InspectMetadataArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn find_metadata_cbor(project_dir: &Path) -> anyhow::Result<PathBuf> {
-    let build_dir = project_dir
-        .join("target")
+async fn find_metadata_cbor(project_dir: &Path) -> anyhow::Result<PathBuf> {
+    let target_dir = crate::cli::commands::publish::find_target_dir(project_dir).await?;
+    let build_dir = target_dir
         .join("wasm32-unknown-unknown")
         .join("release")
         .join("build");
 
     if !build_dir.exists() {
         return Err(anyhow!(
-            "Build output directory not found at {}. Run `cargo build --target wasm32-unknown-unknown --release` first.",
+            "Build output directory not found at {}. Run `tari build` first.",
             build_dir.display()
         ));
     }

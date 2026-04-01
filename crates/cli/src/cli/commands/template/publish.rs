@@ -68,7 +68,7 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
     };
 
     // Find and read metadata CBOR from build output
-    let metadata_hash = match find_metadata_cbor(crate_dir) {
+    let metadata_hash = match find_metadata_cbor(crate_dir).await {
         Ok(cbor_path) => {
             println!("📄 Found metadata at {}", cbor_path.display());
             let file = std::fs::File::open(&cbor_path).context("opening metadata CBOR file")?;
@@ -133,15 +133,15 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
     Ok(())
 }
 
-fn find_metadata_cbor(crate_dir: &Path) -> anyhow::Result<PathBuf> {
-    let build_dir = crate_dir
-        .join("target")
+async fn find_metadata_cbor(crate_dir: &Path) -> anyhow::Result<PathBuf> {
+    let target_dir = crate::cli::commands::publish::find_target_dir(crate_dir).await?;
+    let build_dir = target_dir
         .join("wasm32-unknown-unknown")
         .join("release")
         .join("build");
 
     if !build_dir.exists() {
-        return Err(anyhow!("build output directory not found"));
+        return Err(anyhow!("build output directory not found at {}", build_dir.display()));
     }
 
     let mut found = Vec::new();
