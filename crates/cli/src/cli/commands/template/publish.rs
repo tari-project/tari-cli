@@ -164,9 +164,16 @@ fn find_metadata_cbor(project_folder: &Path, template_name: Option<&str>) -> any
                 if let Some((_, path)) = found.iter().find(|(dir, _)| dir.starts_with(&name_normalized)) {
                     return Ok(path.clone());
                 }
+                Err(anyhow!(
+                    "Multiple metadata files found, but none matched template '{name}'. \
+                     Specify the path to the CBOR file explicitly."
+                ))
+            } else {
+                Err(anyhow!(
+                    "Multiple metadata files found. Specify the template name or \
+                     the path to the CBOR file explicitly."
+                ))
             }
-            // Fall back to first found
-            Ok(found.into_iter().next().unwrap().1)
         },
     }
 }

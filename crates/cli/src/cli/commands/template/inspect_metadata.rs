@@ -46,7 +46,7 @@ pub async fn handle(args: InspectMetadataArgs) -> anyhow::Result<()> {
     if args.json {
         let json = metadata.to_json().context("serializing to JSON")?;
         println!("{json}");
-        println!("\nMetadata hash: {hash}");
+        eprintln!("\nMetadata hash: {hash}");
     } else {
         print_metadata_table(&metadata, &hash);
     }
