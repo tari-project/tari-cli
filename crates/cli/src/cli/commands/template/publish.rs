@@ -124,12 +124,6 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
         println!("✅ WASM size: {}", util::human_bytes(binary_size));
     }
 
-    println!();
-    match &metadata_hash {
-        Some(hash) => println!("📤 Will publish with metadata hash: {hash}"),
-        None => println!("📤 Will publish without metadata hash"),
-    }
-
     if !args.yes {
         let confirmation = Confirm::new()
             .with_prompt(format!(
