@@ -1,13 +1,14 @@
 // Copyright 2024 The Tari Project
 // SPDX-License-Identifier: BSD-3-Clause
 
+use crate::cli::commands::config::ConfigCommand;
 use crate::cli::commands::create::CreateArgs;
 use crate::cli::commands::publish;
 use crate::cli::commands::publish::PublishArgs;
 use crate::cli::commands::template::TemplateCommand;
 use crate::{
     cli::{
-        commands::{create, template},
+        commands::{config as config_cmd, create, template},
         config::{Config, TemplateRepository},
         util,
     },
@@ -134,6 +135,11 @@ pub enum Command {
         #[command(subcommand)]
         command: TemplateCommand,
     },
+    /// Manage project configuration (tari.config.toml).
+    Config {
+        #[command(subcommand)]
+        command: ConfigCommand,
+    },
 }
 
 impl Cli {
@@ -212,6 +218,11 @@ impl Cli {
     }
 
     pub async fn handle_command(self) -> anyhow::Result<()> {
+        // Config command operates on project config, not CLI config
+        if let Command::Config { command } = self.command {
+            return config_cmd::handle(command).await;
+        }
+
         // init config and dirs
         let config = loading!(
             "Init configuration and directories",
