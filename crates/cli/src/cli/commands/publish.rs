@@ -1,21 +1,18 @@
 // Copyright 2024 The Tari Project
 // SPDX-License-Identifier: BSD-3-Clause
 
+use crate::cli::commands::template::publish::TemplatePublishArgs;
 use crate::cli::config::Config;
 use crate::cli::util;
 use crate::{loading, project};
 use anyhow::{Context, anyhow};
 use cargo_toml::Manifest;
 use clap::Parser;
-use dialoguer::Confirm;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use tari_ootle_publish_lib::publisher::{CheckBalanceResult, Template, TemplatePublisher};
 use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use tokio::fs;
 use tokio::process::Command;
-
-const MAX_WASM_SIZE: usize = 5 * 1000 * 1000; // 5 MB
 
 #[derive(Clone, Parser, Debug)]
 pub struct PublishArgs {
@@ -80,91 +77,18 @@ pub async fn build_template(crate_dir: &Path) -> anyhow::Result<PathBuf> {
     Ok(template_bin)
 }
 
-pub async fn handle(config: Config, mut args: PublishArgs) -> anyhow::Result<()> {
-    let crate_dir = &args.path;
-
-    // Resolve wallet daemon URL: CLI flag > project config > global config > default
-    let url_override = args.wallet_daemon_url.as_ref().or(config.wallet_daemon_url.as_ref());
-    let project_config = load_project_config(crate_dir, url_override).await?;
-
-    let template_bin = match args.binary.take() {
-        Some(bin_path) => {
-            println!("📦 Using provided WASM binary at {}", bin_path.display());
-            bin_path
-        },
-        None => build_template(crate_dir).await?,
+/// `tari publish` delegates to `tari template publish` — they behave identically.
+pub async fn handle(config: Config, args: PublishArgs) -> anyhow::Result<()> {
+    let template_args = TemplatePublishArgs {
+        path: args.path,
+        account: args.account,
+        custom_network: args.custom_network,
+        yes: args.yes,
+        max_fee: args.max_fee,
+        binary: args.binary,
+        wallet_daemon_url: args.wallet_daemon_url,
     };
-
-    // template publisher
-    let publisher = TemplatePublisher::new(project_config.network().clone());
-    let info = publisher.get_wallet_info().await.with_context(|| {
-        anyhow!(
-            "Failed to connect to the wallet at {}",
-            project_config.network().wallet_daemon_jrpc_address(),
-        )
-    })?;
-
-    println!(
-        "🔗 Connected to wallet version {} (network: {})",
-        info.version, info.network
-    );
-
-    let account = args
-        .account
-        .as_ref()
-        .cloned()
-        .or_else(|| {
-            project_config
-                .parsed_default_account()
-                .expect("Malformed default account")
-        })
-        .or(config.default_account);
-    let account = match account {
-        Some(account) => {
-            println!("🔍 Using account: {account}");
-            account
-        },
-        None => {
-            let account = publisher.get_default_account().await?;
-            let Some(account) = account else {
-                return Err(anyhow!("No account found! Please create an account first."));
-            };
-            println!("❓ No Account specified. Using default account: {account}");
-            account
-        },
-    };
-    let template = Template::Path { path: template_bin };
-
-    // check balance and get max fee
-    let CheckBalanceResult { max_fee, binary_size } =
-        publisher.check_balance_for_publish(&account, &template, None).await?;
-
-    if binary_size > MAX_WASM_SIZE {
-        println!("⚠️ WASM binary size exceeded: {}", util::human_bytes(binary_size));
-    } else {
-        println!("✅ WASM size: {}", util::human_bytes(binary_size));
-    }
-
-    if !args.yes {
-        let confirmation = Confirm::new()
-            .with_prompt(format!(
-                "⚠️ Publishing this template costs {max_fee} (estimated), are you sure to continue?",
-            ))
-            .interact()?;
-        if !confirmation {
-            return Err(anyhow!("💥 Publishing aborted!"));
-        }
-    }
-
-    // publish
-    let template_address = loading!(
-        "Publishing template. This may take while...",
-        publisher.publish(&account, template, max_fee, None, None).await
-    )?;
-
-    println!("⭐ Your new template's address: {template_address}");
-
-    Ok(())
+    crate::cli::commands::template::publish::handle(config, template_args).await
 }
 
 async fn build_project(dir: &Path, name: &str) -> anyhow::Result<PathBuf> {

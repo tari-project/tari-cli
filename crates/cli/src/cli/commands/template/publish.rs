@@ -76,6 +76,20 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
             let metadata = TemplateMetadata::read_cbor_from(reader).context("decoding metadata CBOR")?;
             let hash = metadata.hash().context("computing metadata hash")?;
             println!("🔑 Metadata hash: {hash}");
+            println!("   Name:        {}", metadata.name);
+            println!("   Version:     {}", metadata.version);
+            if !metadata.description.is_empty() {
+                println!("   Description: {}", metadata.description);
+            }
+            if let Some(ref category) = metadata.category {
+                println!("   Category:    {category}");
+            }
+            if !metadata.tags.is_empty() {
+                println!("   Tags:        {}", metadata.tags.join(", "));
+            }
+            if let Some(ref license) = metadata.license {
+                println!("   License:     {license}");
+            }
             Some(hash)
         },
         Err(e) => {
@@ -108,6 +122,12 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
         println!("⚠️ WASM binary size exceeded: {}", util::human_bytes(binary_size));
     } else {
         println!("✅ WASM size: {}", util::human_bytes(binary_size));
+    }
+
+    println!();
+    match &metadata_hash {
+        Some(hash) => println!("📤 Will publish with metadata hash: {hash}"),
+        None => println!("📤 Will publish without metadata hash"),
     }
 
     if !args.yes {
