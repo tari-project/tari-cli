@@ -18,7 +18,7 @@ anyhow = "1.0.102"
 clap = { version = "4.5.20", features = ["derive", "string"] }
 dirs-next = "2.0.0"
 tokio = { workspace = true }
-toml = "0.8.19"
+toml = "0.9.11"
 serde = { workspace = true }
 termimad = "0.34.1"
 cargo-generate = "^0.23.7"
