@@ -57,9 +57,10 @@ impl TemplatePublisher {
         wait_timeout: Option<Duration>,
     ) -> Result<TemplateAddress> {
         let publish_template_request = self
-            .create_publish_template_request(account, &template, max_fee, metadata_hash)
+            .create_publish_template_request(account, &template, max_fee, metadata_hash.clone())
             .await?;
-        self.check_balance_for_publish(account, &template).await?;
+        self.check_balance_for_publish(account, &template, metadata_hash)
+            .await?;
         self.publish_template(
             publish_template_request,
             wait_timeout.or(Some(Duration::from_secs(120))),
@@ -105,9 +106,10 @@ impl TemplatePublisher {
         &self,
         account: &ComponentAddressOrName,
         template: &Template,
+        metadata_hash: Option<MetadataHash>,
     ) -> Result<CheckBalanceResult> {
         let mut request = self
-            .create_publish_template_request(account, template, 1_000_000, None)
+            .create_publish_template_request(account, template, 1_000_000, metadata_hash)
             .await?;
         let bin_size = request.binary.len();
         let max_fee = self.get_publish_fee(&mut request).await?;

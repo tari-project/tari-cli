@@ -155,7 +155,7 @@ pub async fn handle(config: Config, mut args: PublishArgs) -> anyhow::Result<()>
     let template = Template::Path { path: template_bin };
 
     // check balance and get max fee
-    let CheckBalanceResult { max_fee, binary_size } = publisher.check_balance_for_publish(&account, &template).await?;
+    let CheckBalanceResult { max_fee, binary_size } = publisher.check_balance_for_publish(&account, &template, None).await?;
 
     if binary_size > MAX_WASM_SIZE {
         println!("⚠️ WASM binary size exceeded: {}", util::human_bytes(binary_size));
