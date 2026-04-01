@@ -5,3 +5,4 @@ pub mod config;
 pub mod create;
 pub mod publish;
 pub mod template;
+pub mod wizard;

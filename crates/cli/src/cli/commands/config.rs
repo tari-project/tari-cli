@@ -90,7 +90,7 @@ async fn handle_show() -> anyhow::Result<()> {
 
 /// Resolve where the config file should live:
 /// git repo root if in one, otherwise CWD.
-fn resolve_config_path() -> anyhow::Result<PathBuf> {
+pub fn resolve_config_path() -> anyhow::Result<PathBuf> {
     let root = find_repo_root().unwrap_or_else(|| std::env::current_dir().unwrap());
     Ok(root.join(CONFIG_FILE_NAME))
 }
@@ -113,7 +113,7 @@ fn find_existing_config() -> anyhow::Result<PathBuf> {
     ))
 }
 
-fn find_repo_root() -> Option<PathBuf> {
+pub fn find_repo_root() -> Option<PathBuf> {
     let mut dir = std::env::current_dir().ok()?;
     loop {
         if dir.join(".git").exists() {

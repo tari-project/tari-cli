@@ -8,7 +8,7 @@ use crate::cli::commands::publish::PublishArgs;
 use crate::cli::commands::template::TemplateCommand;
 use crate::{
     cli::{
-        commands::{config as config_cmd, create, template},
+        commands::{config as config_cmd, create, template, wizard},
         config::{Config, TemplateRepository},
         util,
     },
@@ -113,7 +113,7 @@ pub struct Cli {
     args: CommonArguments,
 
     #[command(subcommand)]
-    command: Command,
+    command: Option<Command>,
 }
 
 #[derive(Clone, Subcommand)]
@@ -217,9 +217,13 @@ impl Cli {
         Ok(repo)
     }
 
-    pub async fn handle_command(self) -> anyhow::Result<()> {
+    pub async fn handle_command(mut self) -> anyhow::Result<()> {
+        let Some(command) = self.command.take() else {
+            return wizard::handle().await;
+        };
+
         // Config command operates on project config, not CLI config
-        if let Command::Config { command } = self.command {
+        if let Command::Config { command } = command {
             return config_cmd::handle(command).await;
         }
 
@@ -230,9 +234,9 @@ impl Cli {
         )?;
 
         // Commands that don't need template repository refresh
-        match &self.command {
+        match &command {
             Command::Template { .. } | Command::Publish { .. } => {
-                return match self.command {
+                return match command {
                     Command::Template { command } => match command {
                         TemplateCommand::Init { args } => template::init_metadata::handle(args).await,
                         TemplateCommand::Inspect { args } => template::inspect_metadata::handle(args).await,
@@ -251,7 +255,7 @@ impl Cli {
             self.refresh_template_repository(&config.template_repository).await
         )?;
 
-        match self.command {
+        match command {
             Command::Create { args } => create::handle(config, template_repo.local_folder().clone(), args).await,
             _ => unreachable!(),
         }
