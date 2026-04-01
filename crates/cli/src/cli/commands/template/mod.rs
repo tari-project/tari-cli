@@ -25,7 +25,8 @@ pub enum TemplateCommand {
         args: TemplatePublishArgs,
     },
     /// Inspect a template metadata CBOR file.
-    InspectMetadata {
+    #[clap(alias = "inspect-metadata")]
+    Inspect {
         #[clap(flatten)]
         args: InspectMetadataArgs,
     },

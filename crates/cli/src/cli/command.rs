@@ -231,7 +231,7 @@ impl Cli {
         if let Command::Template { command } = self.command {
             return match command {
                 TemplateCommand::Init { args } => template::init_metadata::handle(args).await,
-                TemplateCommand::InspectMetadata { args } => template::inspect_metadata::handle(args).await,
+                TemplateCommand::Inspect { args } => template::inspect_metadata::handle(args).await,
                 TemplateCommand::Publish { args } => template::publish::handle(config, args).await,
             };
         }
