@@ -1,0 +1,52 @@
+---
+title: tari template publish
+description: Publish a template with its metadata hash.
+---
+
+Builds and publishes a template with its metadata hash anchored on-chain.
+
+```bash
+tari template publish [PATH] [OPTIONS]
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `[PATH]` | Path to the template crate directory (default: current directory) |
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-a, --account <ADDRESS\|NAME>` | Account for publishing fees |
+| `-c, --custom-network <NAME>` | Custom network name |
+| `-y, --yes` | Auto-confirm publishing |
+| `-f, --max-fee <AMOUNT>` | Maximum fee in microtari |
+| `--binary <PATH>` | Path to pre-compiled WASM binary |
+
+## Examples
+
+```bash
+# Build and publish with metadata from current directory
+tari template publish
+
+# Publish template at a specific path
+tari template publish ./templates/my-token
+
+# Auto-confirm
+tari template publish -y
+
+# Publish with a specific account
+tari template publish -a my-account
+```
+
+## How it works
+
+1. Builds the WASM template (`cargo build --target wasm32-unknown-unknown --release`)
+2. Finds the metadata CBOR file in the build output (`target/.../build/<crate>/out/template_metadata.cbor`)
+3. Computes the metadata hash using domain-separated SHA-256
+4. Submits both the WASM binary and metadata hash to the wallet daemon
+5. Waits for the transaction to finalize and returns the template address
+
+If no metadata CBOR is found, the template is published without a metadata hash (with a warning).

@@ -1,0 +1,47 @@
+---
+title: tari create
+description: Create a new Tari template crate from a starter template.
+---
+
+Creates a new Tari template crate from a starter template.
+
+```bash
+tari create <name> [OPTIONS]
+```
+
+**Alias:** `tari new`
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `<name>` | Name of the new crate (converted to snake_case) |
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-t, --template <ID>` | Template to use (e.g. "fungible", "meme_coin"). Prompted if not set. |
+| `-o, --output <PATH>` | Output directory (default: current directory) |
+| `--skip-init` | Skip git initialization |
+| `--skip-metadata` | Skip automatic metadata initialization |
+| `-v, --verbose` | Enable verbose output |
+
+## Examples
+
+```bash
+# Interactive - prompts for template selection
+tari create my-token
+
+# Specify template directly
+tari create my-token -t fungible
+
+# Custom output directory, no git init
+tari create my-token -o ~/projects --skip-init
+```
+
+## What it does
+
+1. Scaffolds a new template crate using `cargo-generate` from a starter template
+2. Sets up metadata generation (`build.rs` + `[package.metadata.tari-template]`)
+3. Initializes a git repository

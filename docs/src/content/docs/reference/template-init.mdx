@@ -1,0 +1,54 @@
+---
+title: tari template init
+description: Set up metadata generation for a template crate.
+---
+
+Sets up an existing template crate for metadata generation.
+
+```bash
+tari template init [PATH] [OPTIONS]
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `[PATH]` | Path to the template crate directory (default: `.`) |
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--tags <TAGS>` | Comma-separated tags (e.g. `token,fungible,defi`) |
+| `--category <CATEGORY>` | Template category (e.g. `token`, `nft`, `defi`) |
+| `--documentation <URL>` | Documentation URL |
+| `--homepage <URL>` | Homepage URL |
+| `-y, --non-interactive` | Skip interactive prompts, use only CLI args |
+
+## Examples
+
+### Interactive mode
+
+```bash
+tari template init ./my-template
+```
+
+Prompts for tags, category, documentation, and homepage.
+
+### Non-interactive mode
+
+```bash
+tari template init ./my-template -y \
+  --tags token,fungible,defi \
+  --category token \
+  --documentation https://docs.example.com \
+  --homepage https://example.com
+```
+
+## What it does
+
+1. Adds `tari_ootle_template_build` to `[build-dependencies]` in `Cargo.toml`
+2. Creates `build.rs` with `TemplateMetadataBuilder` (or warns if `build.rs` already exists)
+3. Writes `[package.metadata.tari-template]` section with the provided metadata fields
+
+The command is **idempotent** -- running it twice will not duplicate entries.

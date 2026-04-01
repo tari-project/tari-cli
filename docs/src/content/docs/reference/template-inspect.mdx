@@ -1,0 +1,63 @@
+---
+title: tari template inspect
+description: Inspect a template metadata CBOR file.
+---
+
+Inspects and displays the contents of a template metadata CBOR file.
+
+```bash
+tari template inspect [PATH] [OPTIONS]
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `[PATH]` | Path to the `.cbor` file (auto-detected from build output if not provided) |
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--project-dir <PATH>` | Project directory to search for build output (default: `.`) |
+| `--json` | Output as JSON instead of human-readable table |
+
+## Examples
+
+### Default (auto-detect)
+
+```bash
+tari template inspect
+```
+
+Output:
+```
+  Name:           fungible-token
+  Version:        1.2.0
+  Schema version: 1
+  Description:    A standard fungible token
+  Category:       token
+  Tags:           token, fungible, defi
+  License:        BSD-3-Clause
+  Repository:     https://github.com/example/fungible-token
+
+  Metadata hash:  12209f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+```
+
+### JSON output
+
+```bash
+tari template inspect --json
+```
+
+The JSON output goes to `stdout` and the metadata hash to `stderr`, so you can pipe the JSON directly:
+
+```bash
+tari template inspect --json | jq '.tags'
+```
+
+### Explicit path
+
+```bash
+tari template inspect ./path/to/template_metadata.cbor
+```

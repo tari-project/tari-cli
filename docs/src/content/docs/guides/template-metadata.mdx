@@ -1,0 +1,112 @@
+---
+title: Template Metadata
+description: How template metadata works and how to configure it.
+---
+
+Tari Ootle supports off-chain template metadata with on-chain hash anchoring. This allows template consumers to verify authorship, discover templates by category, and audit provenance.
+
+## How it works
+
+1. Template authors declare metadata in their `Cargo.toml`
+2. A `build.rs` script encodes the metadata as CBOR and computes a SHA-256 multihash
+3. The metadata hash is submitted on-chain alongside the WASM binary during publishing
+4. Anyone can verify the off-chain metadata matches the on-chain hash
+
+## Metadata fields
+
+Metadata is sourced from two sections of `Cargo.toml`:
+
+### Standard package fields
+
+These come from the `[package]` section:
+
+| Field         | Source                    |
+|---------------|---------------------------|
+| `name`        | `package.name`            |
+| `version`     | `package.version`         |
+| `description` | `package.description`     |
+| `license`     | `package.license`         |
+| `repository`  | `package.repository`      |
+
+### Template-specific fields
+
+These go under `[package.metadata.tari-template]`:
+
+| Field           | Type       | Description                   |
+|-----------------|------------|-------------------------------|
+| `tags`          | `string[]` | Searchable tags               |
+| `category`      | `string`   | Template category             |
+| `documentation` | `string`   | Documentation URL             |
+| `homepage`      | `string`   | Project homepage URL          |
+
+### Extra fields
+
+Arbitrary key-value pairs can be added under `[package.metadata.tari-template.extra]`:
+
+```toml
+[package.metadata.tari-template.extra]
+audit = "https://example.com/audit-report"
+```
+
+## Setting up metadata
+
+### Interactive
+
+```bash
+tari template init ./my-template
+```
+
+Prompts for tags, category, documentation URL, and homepage.
+
+### Non-interactive (scripting)
+
+```bash
+tari template init ./my-template -y \
+  --tags token,fungible,defi \
+  --category token \
+  --documentation https://docs.example.com \
+  --homepage https://example.com
+```
+
+### Automatic setup
+
+When you create a new template with `tari create`, metadata generation is automatically configured. Use `--skip-metadata` to opt out.
+
+## Example Cargo.toml
+
+```toml
+[package]
+name = "fungible-token"
+version = "1.2.0"
+description = "A standard fungible token"
+license = "BSD-3-Clause"
+repository = "https://github.com/example/fungible-token"
+
+[package.metadata.tari-template]
+tags = ["token", "fungible", "defi"]
+category = "token"
+documentation = "https://docs.example.com/fungible-token"
+homepage = "https://example.com"
+```
+
+## Inspecting metadata
+
+After building, inspect the generated metadata:
+
+```bash
+# Human-readable table
+tari template inspect
+
+# JSON output (pipe-friendly)
+tari template inspect --json
+```
+
+## Hash verification
+
+The metadata hash uses domain-separated SHA-256 encoded as a multihash (code `0x12`, compatible with IPFS CIDv1):
+
+```
+SHA-256("com.tari.ootle.TemplateMetadata" || cbor_bytes)
+```
+
+This hash is anchored on-chain when you publish with `tari template publish`.

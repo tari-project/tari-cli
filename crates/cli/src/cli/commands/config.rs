@@ -1,0 +1,168 @@
+// Copyright 2024 The Tari Project
+// SPDX-License-Identifier: BSD-3-Clause
+
+use std::path::PathBuf;
+
+use anyhow::{Context, anyhow};
+use clap::Subcommand;
+use tokio::fs;
+
+use crate::project::CONFIG_FILE_NAME;
+
+#[derive(Clone, Subcommand)]
+pub enum ConfigCommand {
+    /// Initialise a tari.config.toml in the project root.
+    Init,
+    /// Set a configuration value.
+    Set {
+        /// Configuration key (e.g. wallet-daemon-jrpc-address, default_account).
+        key: String,
+        /// Value to set.
+        value: String,
+    },
+    /// Get a configuration value.
+    Get {
+        /// Configuration key.
+        key: String,
+    },
+    /// Show the full configuration file.
+    Show,
+}
+
+pub async fn handle(command: ConfigCommand) -> anyhow::Result<()> {
+    match command {
+        ConfigCommand::Init => handle_init().await,
+        ConfigCommand::Set { key, value } => handle_set(&key, &value).await,
+        ConfigCommand::Get { key } => handle_get(&key).await,
+        ConfigCommand::Show => handle_show().await,
+    }
+}
+
+async fn handle_init() -> anyhow::Result<()> {
+    let config_path = resolve_config_path()?;
+    if config_path.exists() {
+        println!("ℹ️  {} already exists at {}", CONFIG_FILE_NAME, config_path.display());
+        return Ok(());
+    }
+
+    let default = toml::to_string_pretty(&crate::project::ProjectConfig::default())?;
+    fs::write(&config_path, &default).await.context("writing config file")?;
+    println!("✅ Created {} at {}", CONFIG_FILE_NAME, config_path.display());
+    Ok(())
+}
+
+async fn handle_set(key: &str, value: &str) -> anyhow::Result<()> {
+    let config_path = resolve_config_path()?;
+    if !config_path.exists() {
+        // Auto-create with defaults
+        let default = toml::to_string_pretty(&crate::project::ProjectConfig::default())?;
+        fs::write(&config_path, &default)
+            .await
+            .context("creating config file")?;
+        println!("✅ Created {} at {}", CONFIG_FILE_NAME, config_path.display());
+    }
+
+    let content = fs::read_to_string(&config_path).await.context("reading config")?;
+    let mut doc = content.parse::<toml_edit::DocumentMut>().context("parsing config")?;
+
+    set_dotted_key(&mut doc, key, value)?;
+
+    fs::write(&config_path, doc.to_string())
+        .await
+        .context("writing config")?;
+    println!("✅ Set {key} = {value}");
+    Ok(())
+}
+
+async fn handle_get(key: &str) -> anyhow::Result<()> {
+    let config_path = find_existing_config()?;
+    let content = fs::read_to_string(&config_path).await.context("reading config")?;
+    let doc = content.parse::<toml_edit::DocumentMut>().context("parsing config")?;
+
+    let value = get_dotted_key(&doc, key)?;
+    println!("{value}");
+    Ok(())
+}
+
+async fn handle_show() -> anyhow::Result<()> {
+    let config_path = find_existing_config()?;
+    let content = fs::read_to_string(&config_path).await.context("reading config")?;
+    println!("# {}\n", config_path.display());
+    print!("{content}");
+    Ok(())
+}
+
+/// Resolve where the config file should live:
+/// git repo root if in one, otherwise CWD.
+pub fn resolve_config_path() -> anyhow::Result<PathBuf> {
+    let root = find_repo_root().unwrap_or_else(|| std::env::current_dir().unwrap());
+    Ok(root.join(CONFIG_FILE_NAME))
+}
+
+/// Find an existing config file by walking up from CWD.
+fn find_existing_config() -> anyhow::Result<PathBuf> {
+    let mut dir = std::env::current_dir()?;
+    loop {
+        let candidate = dir.join(CONFIG_FILE_NAME);
+        if candidate.exists() {
+            return Ok(candidate);
+        }
+        if !dir.pop() {
+            break;
+        }
+    }
+    Err(anyhow!(
+        "No {} found. Run `tari config init` to create one.",
+        CONFIG_FILE_NAME
+    ))
+}
+
+pub fn find_repo_root() -> Option<PathBuf> {
+    let mut dir = std::env::current_dir().ok()?;
+    loop {
+        if dir.join(".git").exists() {
+            return Some(dir);
+        }
+        if !dir.pop() {
+            return None;
+        }
+    }
+}
+
+fn set_dotted_key(doc: &mut toml_edit::DocumentMut, key: &str, value: &str) -> anyhow::Result<()> {
+    let parts: Vec<&str> = key.split('.').collect();
+    match parts.len() {
+        1 => {
+            doc.insert(parts[0], toml_edit::value(value));
+        },
+        2 => {
+            let table = doc
+                .entry(parts[0])
+                .or_insert_with(|| toml_edit::Item::Table(toml_edit::Table::new()))
+                .as_table_mut()
+                .ok_or_else(|| anyhow!("'{key}' is not a table"))?;
+            table.insert(parts[1], toml_edit::value(value));
+        },
+        _ => return Err(anyhow!("Unsupported key depth: {key}")),
+    }
+    Ok(())
+}
+
+fn get_dotted_key(doc: &toml_edit::DocumentMut, key: &str) -> anyhow::Result<String> {
+    let parts: Vec<&str> = key.split('.').collect();
+    let item = match parts.len() {
+        1 => doc.get(parts[0]),
+        2 => doc.get(parts[0]).and_then(|t| t.get(parts[1])),
+        _ => return Err(anyhow!("Unsupported key depth: {key}")),
+    };
+
+    match item {
+        Some(toml_edit::Item::Value(v)) => {
+            let s = v.to_string();
+            Ok(s.trim().trim_matches('"').to_string())
+        },
+        Some(toml_edit::Item::Table(t)) => Ok(t.to_string()),
+        Some(_) => Ok(item.unwrap().to_string()),
+        None => Err(anyhow!("Key '{key}' not found")),
+    }
+}
