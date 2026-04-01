@@ -138,22 +138,46 @@ async fn step_project_config(_crate_dir: &PathBuf) -> anyhow::Result<()> {
 }
 
 async fn step_metadata(crate_dir: &PathBuf) -> anyhow::Result<()> {
-    let build_rs = crate_dir.join("build.rs");
-    if build_rs.exists() {
-        let content = tokio::fs::read_to_string(&build_rs).await?;
-        if content.contains("TemplateMetadataBuilder") {
-            println!("✅ Template metadata already configured");
-            return Ok(());
-        }
-    }
-
     let cargo_toml = crate_dir.join("Cargo.toml");
     if !cargo_toml.exists() {
-        // No crate to configure metadata for
         return Ok(());
     }
 
-    println!("📄 Template metadata not yet configured.");
+    // Check build.rs setup
+    let has_build_rs = {
+        let build_rs = crate_dir.join("build.rs");
+        if build_rs.exists() {
+            let content = tokio::fs::read_to_string(&build_rs).await?;
+            content.contains("TemplateMetadataBuilder")
+        } else {
+            false
+        }
+    };
+
+    // Check if metadata fields are populated (not just an empty section)
+    let has_metadata_fields = {
+        let content = tokio::fs::read_to_string(&cargo_toml).await?;
+        if let Ok(doc) = content.parse::<toml_edit::DocumentMut>() {
+            doc.get("package")
+                .and_then(|p| p.get("metadata"))
+                .and_then(|m| m.get("tari-template"))
+                .and_then(|t| t.as_table())
+                .is_some_and(|t| !t.is_empty())
+        } else {
+            false
+        }
+    };
+
+    if has_build_rs && has_metadata_fields {
+        println!("✅ Template metadata already configured");
+        return Ok(());
+    }
+
+    if has_build_rs && !has_metadata_fields {
+        println!("📄 Build script configured but metadata fields are empty.");
+    } else {
+        println!("📄 Template metadata not yet configured.");
+    }
 
     let should_init = Confirm::new()
         .with_prompt("Set up template metadata now?")
@@ -165,7 +189,6 @@ async fn step_metadata(crate_dir: &PathBuf) -> anyhow::Result<()> {
         return Ok(());
     }
 
-    // Run the interactive init
     let args = init_metadata::InitMetadataArgs {
         path: crate_dir.clone(),
         tags: vec![],
