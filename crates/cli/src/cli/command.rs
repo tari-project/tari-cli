@@ -1,6 +1,7 @@
 // Copyright 2024 The Tari Project
 // SPDX-License-Identifier: BSD-3-Clause
 
+use crate::cli::commands::build::BuildArgs;
 use crate::cli::commands::config::ConfigCommand;
 use crate::cli::commands::create::CreateArgs;
 use crate::cli::commands::publish;
@@ -8,7 +9,7 @@ use crate::cli::commands::publish::PublishArgs;
 use crate::cli::commands::template::TemplateCommand;
 use crate::{
     cli::{
-        commands::{config as config_cmd, create, template, wizard},
+        commands::{build, config as config_cmd, create, template, wizard},
         config::{Config, TemplateRepository},
         util,
     },
@@ -124,6 +125,11 @@ pub enum Command {
         #[clap(flatten)]
         args: CreateArgs,
     },
+    /// Build the template WASM binary.
+    Build {
+        #[clap(flatten)]
+        args: BuildArgs,
+    },
     /// Publish a Tari template to a network.
     #[clap(alias = "deploy")]
     Publish {
@@ -225,6 +231,10 @@ impl Cli {
         // Config command operates on project config, not CLI config
         if let Command::Config { command } = command {
             return config_cmd::handle(command).await;
+        }
+
+        if let Command::Build { args } = command {
+            return build::handle(args).await;
         }
 
         // init config and dirs
