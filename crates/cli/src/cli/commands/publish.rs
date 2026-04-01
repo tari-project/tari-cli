@@ -177,7 +177,7 @@ pub async fn handle(config: Config, mut args: PublishArgs) -> anyhow::Result<()>
     // publish
     let template_address = loading!(
         "Publishing template. This may take while...",
-        publisher.publish(&account, template, max_fee, None).await
+        publisher.publish(&account, template, max_fee, None, None).await
     )?;
 
     println!("⭐ Your new template's address: {template_address}");
@@ -221,7 +221,7 @@ async fn build_project(dir: &Path, name: &str) -> anyhow::Result<PathBuf> {
     Ok(output_bin)
 }
 
-async fn load_project_config(project_folder: &Path) -> anyhow::Result<project::ProjectConfig> {
+pub async fn load_project_config(project_folder: &Path) -> anyhow::Result<project::ProjectConfig> {
     let config_file = project_folder.join(project::CONFIG_FILE_NAME);
     if !config_file.exists() {
         return Ok(project::ProjectConfig::default());

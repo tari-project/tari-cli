@@ -5,9 +5,10 @@ use crate::cli::commands::add::AddArgs;
 use crate::cli::commands::create::CreateArgs;
 use crate::cli::commands::publish;
 use crate::cli::commands::publish::PublishArgs;
+use crate::cli::commands::template::TemplateCommand;
 use crate::{
     cli::{
-        commands::{add, create},
+        commands::{add, create, template},
         config::{Config, TemplateRepository},
         util,
     },
@@ -137,6 +138,11 @@ pub enum Command {
         #[clap(flatten)]
         args: PublishArgs,
     },
+    /// Template metadata tooling (init, inspect, publish with metadata)
+    Template {
+        #[command(subcommand)]
+        command: TemplateCommand,
+    },
 }
 
 impl Cli {
@@ -221,6 +227,15 @@ impl Cli {
             self.init_base_dir_and_config().await
         )?;
 
+        // Template subcommands don't need template repository refresh
+        if let Command::Template { command } = self.command {
+            return match command {
+                TemplateCommand::Init { args } => template::init_metadata::handle(args).await,
+                TemplateCommand::InspectMetadata { args } => template::inspect_metadata::handle(args).await,
+                TemplateCommand::Publish { args } => template::publish::handle(config, args).await,
+            };
+        }
+
         // refresh templates from provided repositories
         let project_template_repo = loading!(
             "Refresh project templates repository",
@@ -236,6 +251,7 @@ impl Cli {
             Command::Create { args } => create::handle(config, project_template_repo, wasm_template_repo, args).await,
             Command::Add { args } => add::handle(config, wasm_template_repo.local_folder().clone(), args).await,
             Command::Publish { args } => publish::handle(config, args).await,
+            Command::Template { .. } => unreachable!(),
         }
     }
 }

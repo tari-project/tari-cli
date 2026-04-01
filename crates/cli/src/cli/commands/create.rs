@@ -157,6 +157,7 @@ pub async fn handle(
                     template: Some(wasm_template_name.to_string()),
                     output: project_root.clone(),
                     verbose: args.verbose,
+                    skip_metadata: false,
                 },
             )
             .await?;

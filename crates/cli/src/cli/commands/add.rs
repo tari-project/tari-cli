@@ -9,6 +9,7 @@ use cargo_toml::{Manifest, Resolver, Workspace};
 use clap::Parser;
 use tokio::fs;
 
+use crate::cli::commands::template::init_metadata;
 use crate::git::find_git_root;
 use crate::{
     cli::{commands::create::CreateHandlerError, config::Config, util},
@@ -37,6 +38,13 @@ pub struct AddArgs {
     /// Enables more verbose output.
     #[arg(long, short = 'v', action)]
     pub verbose: bool,
+
+    /// Skip automatic template metadata initialisation.
+    /// By default, new templates are set up with build.rs and
+    /// [package.metadata.tari-template] for metadata generation.
+    /// Use `tari template init` later to configure metadata interactively.
+    #[arg(long, default_value_t = false)]
+    pub skip_metadata: bool,
 }
 
 /// Handle `add` command.
@@ -115,6 +123,15 @@ pub async fn handle(config: Config, local_template_repo_dir: PathBuf, args: AddA
         ..CargoGenerateArgs::default()
     };
     loading!("Generate new project", cargo_generate::generate(generate_args))?;
+
+    // initialise template metadata (build.rs + Cargo.toml metadata section)
+    if !args.skip_metadata {
+        let crate_dir = output.join(&args.name);
+        loading!(
+            format!("Initialising template metadata for **{}**", args.name),
+            init_metadata::auto_init(&crate_dir).await
+        )?;
+    }
 
     // check if target is a cargo project and update Cargo.toml if exists
     if let Some(workspace_toml_file) = workspace_toml_file {

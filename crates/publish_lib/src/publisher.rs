@@ -12,6 +12,7 @@ use tari_engine_types::commit_result::TransactionResult;
 use tari_engine_types::hashing::template_hasher32;
 use tari_engine_types::substate::SubstateId;
 use tari_ootle_common_types::optional::Optional;
+use tari_ootle_template_metadata::MetadataHash;
 use tari_ootle_walletd_client::permissions::JrpcPermission;
 use tari_ootle_walletd_client::types::{
     AccountsGetBalancesRequest, AuthCredentials, AuthGetMethodResponse, AuthLoginRequest, AuthLoginResponse,
@@ -52,10 +53,11 @@ impl TemplatePublisher {
         account: &ComponentAddressOrName,
         template: Template,
         max_fee: u64,
+        metadata_hash: Option<MetadataHash>,
         wait_timeout: Option<Duration>,
     ) -> Result<TemplateAddress> {
         let publish_template_request = self
-            .create_publish_template_request(account, &template, max_fee)
+            .create_publish_template_request(account, &template, max_fee, metadata_hash)
             .await?;
         self.check_balance_for_publish(account, &template).await?;
         self.publish_template(
@@ -69,7 +71,7 @@ impl TemplatePublisher {
     /// It does not publish anything, just gets the calculated fee for the template.
     pub async fn publish_fee(&self, account: &ComponentAddressOrName, template: &Template) -> Result<u64> {
         let mut request = self
-            .create_publish_template_request(account, template, 1_000_000)
+            .create_publish_template_request(account, template, 1_000_000, None)
             .await?;
         self.get_publish_fee(&mut request).await
     }
@@ -105,7 +107,7 @@ impl TemplatePublisher {
         template: &Template,
     ) -> Result<CheckBalanceResult> {
         let mut request = self
-            .create_publish_template_request(account, template, 1_000_000)
+            .create_publish_template_request(account, template, 1_000_000, None)
             .await?;
         let bin_size = request.binary.len();
         let max_fee = self.get_publish_fee(&mut request).await?;
@@ -177,12 +179,14 @@ impl TemplatePublisher {
         account: &ComponentAddressOrName,
         template: &Template,
         max_fee: u64,
+        metadata_hash: Option<MetadataHash>,
     ) -> Result<PublishTemplateRequest> {
         let (binary, _, _) = self.validate_and_load_wasm_template(template).await?;
         Ok(PublishTemplateRequest {
             binary: binary.into_owned(),
             fee_account: Some(account.clone()),
             max_fee,
+            metadata_hash,
             detect_inputs: true,
             dry_run: false,
         })

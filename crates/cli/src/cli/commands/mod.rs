@@ -4,3 +4,4 @@
 pub mod add;
 pub mod create;
 pub mod publish;
+pub mod template;
