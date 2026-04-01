@@ -1,0 +1,45 @@
+---
+title: Quick Start
+description: Create, build, and publish your first Tari template in minutes.
+---
+
+## Create a new project
+
+```bash
+tari create my-project
+```
+
+This scaffolds a new workspace with a template crate, automatically setting up metadata generation via `build.rs`.
+
+## Add a template
+
+To add another template crate to your project:
+
+```bash
+cd my-project
+tari add my-token
+```
+
+## Build
+
+```bash
+cargo build --target wasm32-unknown-unknown --release
+```
+
+## Inspect metadata
+
+After building, inspect the generated metadata:
+
+```bash
+tari template inspect
+```
+
+## Publish
+
+Publish your template to the Tari network:
+
+```bash
+tari template publish my-token
+```
+
+This builds the WASM, computes the metadata hash, and submits both to the wallet daemon.

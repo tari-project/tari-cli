@@ -1,0 +1,34 @@
+---
+title: Installation
+description: How to install the Tari CLI.
+---
+
+## Prerequisites
+
+- [Rust](https://rustup.rs/) (latest stable)
+- `wasm32-unknown-unknown` target:
+  ```bash
+  rustup target add wasm32-unknown-unknown
+  ```
+
+## Install from crates.io
+
+```bash
+cargo install tari-ootle-cli
+```
+
+This installs the `tari` binary.
+
+## Install from source
+
+```bash
+git clone https://github.com/tari-project/tari-cli.git
+cd tari-cli
+cargo install --path crates/cli
+```
+
+## Verify installation
+
+```bash
+tari --version
+```

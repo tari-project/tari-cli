@@ -1,0 +1,47 @@
+---
+title: tari add
+description: Add a new WASM template crate to a project.
+---
+
+Generates and adds a new Tari WASM template crate.
+
+```bash
+tari add <name> [OPTIONS]
+```
+
+**Aliases:** `tari generate`, `tari gen`
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `<name>` | Name of the new template crate (converted to snake_case) |
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-t, --template <ID>` | WASM template short name (prompted if not set) |
+| `-o, --output <PATH>` | Output directory (default: current directory) |
+| `--skip-metadata` | Skip automatic metadata initialization |
+| `-v, --verbose` | Enable verbose output |
+
+## Examples
+
+```bash
+# Interactive - prompts for template selection
+tari add my-token
+
+# Specify template directly
+tari add my-token -t fungible
+
+# Skip metadata setup
+tari add my-token --skip-metadata
+```
+
+## What it does
+
+1. Scaffolds a new WASM template crate using `cargo-generate`
+2. Adds the crate to the workspace `Cargo.toml` members
+3. Sets up metadata generation (`build.rs` + `[package.metadata.tari-template]`)
+4. Initializes git if not already in a repository
