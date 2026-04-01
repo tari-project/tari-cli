@@ -56,7 +56,9 @@ async fn handle_set(key: &str, value: &str) -> anyhow::Result<()> {
     if !config_path.exists() {
         // Auto-create with defaults
         let default = toml::to_string_pretty(&crate::project::ProjectConfig::default())?;
-        fs::write(&config_path, &default).await.context("creating config file")?;
+        fs::write(&config_path, &default)
+            .await
+            .context("creating config file")?;
         println!("✅ Created {} at {}", CONFIG_FILE_NAME, config_path.display());
     }
 
@@ -65,7 +67,9 @@ async fn handle_set(key: &str, value: &str) -> anyhow::Result<()> {
 
     set_dotted_key(&mut doc, key, value)?;
 
-    fs::write(&config_path, doc.to_string()).await.context("writing config")?;
+    fs::write(&config_path, doc.to_string())
+        .await
+        .context("writing config")?;
     println!("✅ Set {key} = {value}");
     Ok(())
 }

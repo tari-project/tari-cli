@@ -57,10 +57,7 @@ pub struct PublishArgs {
 pub async fn build_template(crate_dir: &Path) -> anyhow::Result<PathBuf> {
     let cargo_path = crate_dir.join("Cargo.toml");
     if !cargo_path.exists() {
-        return Err(anyhow!(
-            "No Cargo.toml found at {}",
-            cargo_path.display()
-        ));
+        return Err(anyhow!("No Cargo.toml found at {}", cargo_path.display()));
     }
 
     let manifest = Manifest::from_path(&cargo_path)?;
@@ -146,8 +143,7 @@ pub async fn find_target_dir(dir: &Path) -> anyhow::Result<PathBuf> {
         ));
     }
 
-    let metadata: serde_json::Value =
-        serde_json::from_slice(&output.stdout).context("parsing cargo metadata")?;
+    let metadata: serde_json::Value = serde_json::from_slice(&output.stdout).context("parsing cargo metadata")?;
 
     metadata["target_directory"]
         .as_str()

@@ -56,10 +56,7 @@ pub async fn handle(args: InspectMetadataArgs) -> anyhow::Result<()> {
 
 async fn find_metadata_cbor(project_dir: &Path) -> anyhow::Result<PathBuf> {
     let target_dir = crate::cli::commands::publish::find_target_dir(project_dir).await?;
-    let build_dir = target_dir
-        .join("wasm32-unknown-unknown")
-        .join("release")
-        .join("build");
+    let build_dir = target_dir.join("wasm32-unknown-unknown").join("release").join("build");
 
     if !build_dir.exists() {
         return Err(anyhow!(

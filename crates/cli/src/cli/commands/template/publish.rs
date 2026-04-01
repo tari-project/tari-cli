@@ -149,10 +149,7 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
 
 async fn find_metadata_cbor(crate_dir: &Path) -> anyhow::Result<PathBuf> {
     let target_dir = crate::cli::commands::publish::find_target_dir(crate_dir).await?;
-    let build_dir = target_dir
-        .join("wasm32-unknown-unknown")
-        .join("release")
-        .join("build");
+    let build_dir = target_dir.join("wasm32-unknown-unknown").join("release").join("build");
 
     if !build_dir.exists() {
         return Err(anyhow!("build output directory not found at {}", build_dir.display()));

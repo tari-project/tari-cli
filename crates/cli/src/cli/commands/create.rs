@@ -64,9 +64,7 @@ pub async fn handle(config: Config, template_repo_dir: PathBuf, args: CreateArgs
     let template = match &args.template {
         Some(template_id) => templates
             .iter()
-            .rfind(|t| {
-                t.id().eq_ignore_ascii_case(template_id) || t.name().eq_ignore_ascii_case(template_id)
-            })
+            .rfind(|t| t.id().eq_ignore_ascii_case(template_id) || t.name().eq_ignore_ascii_case(template_id))
             .ok_or_else(|| {
                 CreateHandlerError::TemplateNotFound(
                     template_id.to_string(),

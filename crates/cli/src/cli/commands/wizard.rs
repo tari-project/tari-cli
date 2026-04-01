@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use anyhow::Context;
 use dialoguer::{Confirm, Input};
 
-use crate::cli::commands::config::{resolve_config_path, ConfigCommand};
+use crate::cli::commands::config::{ConfigCommand, resolve_config_path};
 use crate::cli::commands::template::init_metadata;
 use crate::project::CONFIG_FILE_NAME;
 
@@ -65,9 +65,7 @@ async fn step_template_crate(cwd: &PathBuf) -> anyhow::Result<PathBuf> {
         return Ok(cwd.clone());
     }
 
-    let name: String = Input::new()
-        .with_prompt("Template crate name")
-        .interact_text()?;
+    let name: String = Input::new().with_prompt("Template crate name").interact_text()?;
 
     let name = convert_case::Casing::to_case(&name, convert_case::Case::Snake);
 
