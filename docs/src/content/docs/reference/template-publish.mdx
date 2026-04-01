@@ -6,14 +6,14 @@ description: Publish a template with its metadata hash.
 Builds and publishes a template with its metadata hash anchored on-chain.
 
 ```bash
-tari template publish [<template>] [OPTIONS]
+tari template publish [PATH] [OPTIONS]
 ```
 
 ## Arguments
 
 | Argument | Description |
 |----------|-------------|
-| `<template>` | Template project name (optional if `--binary` is provided) |
+| `[PATH]` | Path to the template crate directory (default: current directory) |
 
 ## Options
 
@@ -23,20 +23,22 @@ tari template publish [<template>] [OPTIONS]
 | `-c, --custom-network <NAME>` | Custom network name |
 | `-y, --yes` | Auto-confirm publishing |
 | `-f, --max-fee <AMOUNT>` | Maximum fee in microtari |
-| `--project-folder <PATH>` | Project folder with `tari.config.toml` (default: `.`) |
 | `--binary <PATH>` | Path to pre-compiled WASM binary |
 
 ## Examples
 
 ```bash
-# Build and publish with metadata
-tari template publish my-token
+# Build and publish with metadata from current directory
+tari template publish
+
+# Publish template at a specific path
+tari template publish ./templates/my-token
 
 # Auto-confirm
-tari template publish my-token -y
+tari template publish -y
 
 # Publish with a specific account
-tari template publish my-token -a my-account
+tari template publish -a my-account
 ```
 
 ## How it works

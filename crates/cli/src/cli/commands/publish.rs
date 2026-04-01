@@ -19,9 +19,10 @@ const MAX_WASM_SIZE: usize = 5 * 1000 * 1000; // 5 MB
 
 #[derive(Clone, Parser, Debug)]
 pub struct PublishArgs {
-    /// Template project to publish
-    #[arg()]
-    pub template: Option<String>,
+    /// Path to the template crate directory.
+    /// Defaults to the current directory.
+    #[arg(default_value = ".")]
+    pub path: PathBuf,
 
     /// Account to be used for publishing fees.
     #[arg(short = 'a', long)]
@@ -45,73 +46,47 @@ pub struct PublishArgs {
     #[arg(short = 'f', long)]
     pub max_fee: Option<u64>,
 
-    /// Project folder where we have the project configuration file (tari.config.toml).
-    #[arg(long, value_name = "PATH", default_value = crate::cli::command::default_output_dir().into_os_string())]
-    pub project_folder: PathBuf,
-
     /// (Optional) Path to the compiled WASM binary.
     /// If not set, the project will be built before publishing.
     #[arg(long, alias = "bin")]
     pub binary: Option<PathBuf>,
 }
 
-pub async fn build_template(args: &PublishArgs) -> anyhow::Result<PathBuf> {
-    // lookup project name and dir
-    let mut crate_dir = None;
-    let mut crate_name = String::new();
-    let cargo_path = args.project_folder.join("Cargo.toml");
+pub async fn build_template(crate_dir: &Path) -> anyhow::Result<PathBuf> {
+    let cargo_path = crate_dir.join("Cargo.toml");
     if !cargo_path.exists() {
         return Err(anyhow!(
-            "Project folder does not contain Cargo.toml file at {}",
+            "No Cargo.toml found at {}",
             cargo_path.display()
         ));
     }
-    let workspace_cargo_toml = Manifest::from_path(cargo_path)?;
-    let crates = workspace_cargo_toml
-        .workspace
-        .ok_or(anyhow!("Project is not a Cargo workspace project!"))?
-        .members;
-    let target_template = args
-        .template
-        .as_ref()
-        .ok_or(anyhow!("No template project name provided!"))?;
-    for project in crates {
-        let cargo_toml = Manifest::from_path(args.project_folder.join(project.clone()).join("Cargo.toml"))?;
-        let curr_crate_name = cargo_toml.package.ok_or(anyhow!("No package details set!"))?.name;
-        if curr_crate_name.eq_ignore_ascii_case(target_template) {
-            crate_dir = Some(args.project_folder.join(project));
-            crate_name = curr_crate_name;
-        }
-    }
-    let Some(crate_dir) = crate_dir else {
-        return Err(anyhow!("Project \"{}\" not found!", target_template));
-    };
 
-    // build
+    let manifest = Manifest::from_path(&cargo_path)?;
+    let crate_name = manifest
+        .package
+        .ok_or_else(|| anyhow!("No [package] section in {}", cargo_path.display()))?
+        .name;
+
     let template_bin = loading!(
         format!("Building WASM template project **{}**", crate_name),
-        build_project(&crate_dir, &crate_name).await
+        build_project(crate_dir, &crate_name).await
     )?;
 
     Ok(template_bin)
 }
 
 pub async fn handle(config: Config, mut args: PublishArgs) -> anyhow::Result<()> {
-    if args.binary.is_none() && args.template.is_none() {
-        return Err(anyhow!(
-            "Either a template name or a binary path must be provided for publishing!"
-        ));
-    }
+    let crate_dir = &args.path;
 
     // load network config from project config file
-    let project_config = load_project_config(&args.project_folder).await?;
+    let project_config = load_project_config(crate_dir).await?;
 
     let template_bin = match args.binary.take() {
         Some(bin_path) => {
             println!("📦 Using provided WASM binary at {}", bin_path.display());
             bin_path
         },
-        None => build_template(&args).await?,
+        None => build_template(crate_dir).await?,
     };
 
     // template publisher
@@ -206,11 +181,14 @@ async fn build_project(dir: &Path, name: &str) -> anyhow::Result<PathBuf> {
         ));
     }
 
-    let output_bin = dir
-        .join("target")
+    // Find the target directory (may be in a parent workspace)
+    let target_dir = find_target_dir(dir).await?;
+    let wasm_name = name.replace('-', "_");
+    let output_bin = target_dir
         .join("wasm32-unknown-unknown")
         .join("release")
-        .join(format!("{name}.wasm"));
+        .join(format!("{wasm_name}.wasm"));
+
     if !util::file_exists(&output_bin).await? {
         return Err(anyhow!(
             "Binary is not present after build at {:?}\n\nBuild Output:\n{}",
@@ -222,23 +200,55 @@ async fn build_project(dir: &Path, name: &str) -> anyhow::Result<PathBuf> {
     Ok(output_bin)
 }
 
-pub async fn load_project_config(project_folder: &Path) -> anyhow::Result<project::ProjectConfig> {
-    let config_file = project_folder.join(project::CONFIG_FILE_NAME);
-    if !config_file.exists() {
-        return Ok(project::ProjectConfig::default());
+async fn find_target_dir(dir: &Path) -> anyhow::Result<PathBuf> {
+    let output = Command::new("cargo")
+        .args(["metadata", "--format-version=1", "--no-deps"])
+        .current_dir(dir)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .await?;
+
+    if !output.status.success() {
+        return Err(anyhow!(
+            "Failed to get cargo metadata: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
     }
 
-    toml::from_str(
-        fs::read_to_string(&config_file)
-            .await
-            .map_err(|error| {
-                anyhow!(
-                    "Failed to load project config file (at {}): {}",
-                    config_file.display(),
-                    error
-                )
-            })?
-            .as_str(),
-    )
-    .context("parsing config toml")
+    let metadata: serde_json::Value =
+        serde_json::from_slice(&output.stdout).context("parsing cargo metadata")?;
+
+    metadata["target_directory"]
+        .as_str()
+        .map(PathBuf::from)
+        .ok_or_else(|| anyhow!("cargo metadata missing target_directory"))
+}
+
+pub async fn load_project_config(project_folder: &Path) -> anyhow::Result<project::ProjectConfig> {
+    // Search current dir and parents for tari.config.toml
+    let mut search_dir = project_folder.to_path_buf();
+    loop {
+        let config_file = search_dir.join(project::CONFIG_FILE_NAME);
+        if config_file.exists() {
+            return toml::from_str(
+                fs::read_to_string(&config_file)
+                    .await
+                    .map_err(|error| {
+                        anyhow!(
+                            "Failed to load project config file (at {}): {}",
+                            config_file.display(),
+                            error
+                        )
+                    })?
+                    .as_str(),
+            )
+            .context("parsing config toml");
+        }
+        if !search_dir.pop() {
+            break;
+        }
+    }
+
+    Ok(project::ProjectConfig::default())
 }

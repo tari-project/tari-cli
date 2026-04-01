@@ -32,6 +32,7 @@ human_bytes = "0.4.3"
 url = { workspace = true }
 tari_ootle_template_metadata = { workspace = true, features = ["json"] }
 toml_edit = "0.22"
+serde_json = "1.0"
 
 [dev-dependencies]
 tempdir = "0.3.7"

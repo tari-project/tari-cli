@@ -21,9 +21,10 @@ const METADATA_CBOR_FILENAME: &str = "template_metadata.cbor";
 
 #[derive(Clone, Parser, Debug)]
 pub struct TemplatePublishArgs {
-    /// Template project to publish.
-    #[arg()]
-    pub template: Option<String>,
+    /// Path to the template crate directory.
+    /// Defaults to the current directory.
+    #[arg(default_value = ".")]
+    pub path: PathBuf,
 
     /// Account to be used for publishing fees.
     #[arg(short = 'a', long)]
@@ -41,36 +42,27 @@ pub struct TemplatePublishArgs {
     #[arg(short = 'f', long)]
     pub max_fee: Option<u64>,
 
-    /// Project folder containing tari.config.toml.
-    #[arg(long, value_name = "PATH", default_value = crate::cli::command::default_output_dir().into_os_string())]
-    pub project_folder: PathBuf,
-
     /// (Optional) Path to a pre-compiled WASM binary.
     #[arg(long, alias = "bin")]
     pub binary: Option<PathBuf>,
 }
 
 pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Result<()> {
-    if args.binary.is_none() && args.template.is_none() {
-        return Err(anyhow!(
-            "Either a template name or a binary path must be provided for publishing!"
-        ));
-    }
+    let crate_dir = &args.path;
 
-    let project_config = load_project_config(&args.project_folder).await?;
+    let project_config = load_project_config(crate_dir).await?;
 
     // Build or use provided binary
-    let publish_args = to_publish_args(&args);
     let template_bin = match args.binary.take() {
         Some(bin_path) => {
             println!("📦 Using provided WASM binary at {}", bin_path.display());
             bin_path
         },
-        None => build_template(&publish_args).await?,
+        None => build_template(crate_dir).await?,
     };
 
     // Find and read metadata CBOR from build output
-    let metadata_hash = match find_metadata_cbor(&args.project_folder, args.template.as_deref()) {
+    let metadata_hash = match find_metadata_cbor(crate_dir) {
         Ok(cbor_path) => {
             println!("📄 Found metadata at {}", cbor_path.display());
             let file = std::fs::File::open(&cbor_path).context("opening metadata CBOR file")?;
@@ -135,8 +127,8 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
     Ok(())
 }
 
-fn find_metadata_cbor(project_folder: &Path, template_name: Option<&str>) -> anyhow::Result<PathBuf> {
-    let build_dir = project_folder
+fn find_metadata_cbor(crate_dir: &Path) -> anyhow::Result<PathBuf> {
+    let build_dir = crate_dir
         .join("target")
         .join("wasm32-unknown-unknown")
         .join("release")
@@ -149,34 +141,18 @@ fn find_metadata_cbor(project_folder: &Path, template_name: Option<&str>) -> any
     let mut found = Vec::new();
     for entry in std::fs::read_dir(&build_dir).context("reading build directory")? {
         let entry = entry?;
-        let dir_name = entry.file_name().to_string_lossy().to_string();
         let out_file = entry.path().join("out").join(METADATA_CBOR_FILENAME);
         if out_file.exists() {
-            found.push((dir_name, out_file));
+            found.push(out_file);
         }
     }
 
     match found.len() {
         0 => Err(anyhow!("no {METADATA_CBOR_FILENAME} in build output")),
-        1 => Ok(found.into_iter().next().unwrap().1),
-        _ => {
-            // Try to match by template name
-            if let Some(name) = template_name {
-                let name_normalized = name.replace('-', "_");
-                if let Some((_, path)) = found.iter().find(|(dir, _)| dir.starts_with(&name_normalized)) {
-                    return Ok(path.clone());
-                }
-                Err(anyhow!(
-                    "Multiple metadata files found, but none matched template '{name}'. \
-                     Specify the path to the CBOR file explicitly."
-                ))
-            } else {
-                Err(anyhow!(
-                    "Multiple metadata files found. Specify the template name or \
-                     the path to the CBOR file explicitly."
-                ))
-            }
-        },
+        1 => Ok(found.into_iter().next().unwrap()),
+        _ => Err(anyhow!(
+            "Multiple metadata files found. Specify the CBOR file path to `tari template inspect` instead."
+        )),
     }
 }
 
@@ -212,18 +188,5 @@ async fn resolve_account(
                 None => Err(anyhow!("No account found! Please create an account first.")),
             }
         },
-    }
-}
-
-/// Convert TemplatePublishArgs to the existing PublishArgs for reuse of build_template.
-fn to_publish_args(args: &TemplatePublishArgs) -> crate::cli::commands::publish::PublishArgs {
-    crate::cli::commands::publish::PublishArgs {
-        template: args.template.clone(),
-        account: args.account.clone(),
-        custom_network: args.custom_network.clone(),
-        yes: args.yes,
-        max_fee: args.max_fee,
-        project_folder: args.project_folder.clone(),
-        binary: args.binary.clone(),
     }
 }

@@ -6,7 +6,7 @@ description: Build and publish a template to the Tari network.
 Builds and publishes a Tari template to a network.
 
 ```bash
-tari publish [<template>] [OPTIONS]
+tari publish [PATH] [OPTIONS]
 ```
 
 **Alias:** `tari deploy`
@@ -19,7 +19,7 @@ This command publishes **without** a metadata hash. Use [`tari template publish`
 
 | Argument | Description |
 |----------|-------------|
-| `<template>` | Template project name (optional if `--binary` is provided) |
+| `[PATH]` | Path to the template crate directory (default: current directory) |
 
 ## Options
 
@@ -29,18 +29,20 @@ This command publishes **without** a metadata hash. Use [`tari template publish`
 | `-c, --custom-network <NAME>` | Custom network name |
 | `-y, --yes` | Auto-confirm publishing |
 | `-f, --max-fee <AMOUNT>` | Maximum fee in microtari |
-| `--project-folder <PATH>` | Project folder with `tari.config.toml` (default: `.`) |
 | `--binary <PATH>` | Path to pre-compiled WASM binary |
 
 ## Examples
 
 ```bash
-# Build and publish a template from a workspace
-tari publish my-token
+# Publish template in current directory
+tari publish
+
+# Publish template at a specific path
+tari publish ./templates/my-token
 
 # Publish a pre-compiled binary
 tari publish --binary target/wasm32-unknown-unknown/release/my_token.wasm
 
 # Auto-confirm with custom account
-tari publish my-token -y -a my-account
+tari publish -y -a my-account
 ```
