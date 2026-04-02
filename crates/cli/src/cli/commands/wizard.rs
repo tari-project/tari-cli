@@ -1,7 +1,7 @@
 // Copyright 2024 The Tari Project
 // SPDX-License-Identifier: BSD-3-Clause
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::Context;
 use dialoguer::{Confirm, Input};
@@ -43,13 +43,13 @@ pub async fn handle() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn step_template_crate(cwd: &PathBuf) -> anyhow::Result<PathBuf> {
+async fn step_template_crate(cwd: &Path) -> anyhow::Result<PathBuf> {
     let cargo_toml = cwd.join("Cargo.toml");
     if cargo_toml.exists() {
         let manifest = cargo_toml::Manifest::from_path(&cargo_toml)?;
         if let Some(pkg) = &manifest.package {
             println!("✅ Found template crate: {}", pkg.name);
-            return Ok(cwd.clone());
+            return Ok(cwd.to_path_buf());
         }
     }
 
@@ -62,7 +62,7 @@ async fn step_template_crate(cwd: &PathBuf) -> anyhow::Result<PathBuf> {
 
     if !should_create {
         println!("ℹ️  Skipping crate creation. Run `tari create <name>` when you're ready.");
-        return Ok(cwd.clone());
+        return Ok(cwd.to_path_buf());
     }
 
     let name: String = Input::new().with_prompt("Template crate name").interact_text()?;
@@ -80,7 +80,7 @@ async fn step_template_crate(cwd: &PathBuf) -> anyhow::Result<PathBuf> {
     let args = crate::cli::commands::create::CreateArgs {
         name: name.clone(),
         template: None,
-        output: cwd.clone(),
+        output: cwd.to_path_buf(),
         skip_init: false,
         skip_metadata: true, // We'll handle metadata in step 3
         verbose: false,
@@ -135,7 +135,7 @@ async fn step_project_config(_crate_dir: &PathBuf) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn step_metadata(crate_dir: &PathBuf) -> anyhow::Result<()> {
+async fn step_metadata(crate_dir: &Path) -> anyhow::Result<()> {
     let cargo_toml = crate_dir.join("Cargo.toml");
     if !cargo_toml.exists() {
         return Ok(());
@@ -188,7 +188,7 @@ async fn step_metadata(crate_dir: &PathBuf) -> anyhow::Result<()> {
     }
 
     let args = init_metadata::InitMetadataArgs {
-        path: crate_dir.clone(),
+        path: crate_dir.to_path_buf(),
         tags: vec![],
         category: None,
         documentation: None,
@@ -201,7 +201,7 @@ async fn step_metadata(crate_dir: &PathBuf) -> anyhow::Result<()> {
 }
 
 async fn refresh_template_repo(
-    base_dir: &PathBuf,
+    base_dir: &Path,
     template_repo: &crate::cli::config::TemplateRepository,
 ) -> anyhow::Result<PathBuf> {
     use crate::cli::util;
