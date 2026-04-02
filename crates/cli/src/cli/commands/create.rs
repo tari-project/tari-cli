@@ -102,12 +102,11 @@ pub async fn handle(config: Config, template_repo_dir: PathBuf, args: CreateArgs
         )?;
     }
 
-    if !args.skip_init {
-        if let Err(error) = GitRepository::new(crate_dir).init() {
-            if args.verbose {
-                println!("ℹ️ Git repository already initialized: {error}");
-            }
-        }
+    if !args.skip_init
+        && let Err(error) = GitRepository::new(crate_dir).init()
+        && args.verbose
+    {
+        println!("ℹ️ Git repository already initialized: {error}");
     }
 
     Ok(())
