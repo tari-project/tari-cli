@@ -11,6 +11,7 @@ use tari_ootle_publish_lib::publisher::{CheckBalanceResult, Template, TemplatePu
 use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use tari_ootle_template_metadata::TemplateMetadata;
 
+use crate::cli::commands::metadata::publish::publish_metadata_to_server;
 use crate::cli::commands::publish::{build_template, load_project_config};
 use crate::cli::config::Config;
 use crate::cli::util;
@@ -50,6 +51,14 @@ pub struct TemplatePublishArgs {
     /// Overrides the value in tari.config.toml and global CLI config.
     #[arg(long)]
     pub wallet_daemon_url: Option<url::Url>,
+
+    /// After publishing, automatically submit metadata to a metadata server.
+    #[arg(long, default_value_t = false)]
+    pub publish_metadata: bool,
+
+    /// Metadata server URL (used with --publish-metadata).
+    #[arg(long, default_value = "http://localhost:3000")]
+    pub metadata_server_url: url::Url,
 }
 
 pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Result<()> {
@@ -138,11 +147,32 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
     let template_address = loading!(
         "Publishing template. This may take while...",
         publisher
-            .publish(&account, template, max_fee, metadata_hash, None)
+            .publish(&account, template, max_fee, metadata_hash.clone(), None)
             .await
     )?;
 
     println!("⭐ Your new template's address: {template_address}");
+
+    if args.publish_metadata && metadata_hash.is_some() {
+        let cbor_path = find_metadata_cbor(crate_dir).await?;
+        let cbor_bytes = std::fs::read(&cbor_path).context("reading metadata CBOR for server publish")?;
+
+        println!("⏳ Waiting 20 seconds for on-chain confirmation before publishing metadata...");
+        tokio::time::sleep(std::time::Duration::from_secs(20)).await;
+
+        match publish_metadata_to_server(&args.metadata_server_url, &template_address.to_string(), &cbor_bytes).await {
+            Ok(()) => {},
+            Err(e) => {
+                println!("⚠️  Failed to publish metadata to server: {e}");
+                println!(
+                    "   You can retry with: tari metadata publish --template-address {template_address} --metadata-server-url {}",
+                    args.metadata_server_url
+                );
+            },
+        }
+    } else if args.publish_metadata && metadata_hash.is_none() {
+        println!("⚠️  --publish-metadata was set but no metadata was found, skipping");
+    }
 
     Ok(())
 }

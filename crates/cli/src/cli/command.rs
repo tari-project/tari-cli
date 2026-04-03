@@ -4,12 +4,13 @@
 use crate::cli::commands::build::BuildArgs;
 use crate::cli::commands::config::ConfigCommand;
 use crate::cli::commands::create::CreateArgs;
+use crate::cli::commands::metadata::MetadataCommand;
 use crate::cli::commands::publish;
 use crate::cli::commands::publish::PublishArgs;
 use crate::cli::commands::template::TemplateCommand;
 use crate::{
     cli::{
-        commands::{build, config as config_cmd, create, template, wizard},
+        commands::{build, config as config_cmd, create, metadata, template, wizard},
         config::{Config, TemplateRepository},
         util,
     },
@@ -141,6 +142,11 @@ pub enum Command {
         #[command(subcommand)]
         command: TemplateCommand,
     },
+    /// Template metadata operations (inspect, publish to server).
+    Metadata {
+        #[command(subcommand)]
+        command: MetadataCommand,
+    },
     /// Manage project configuration (tari.config.toml).
     Config {
         #[command(subcommand)]
@@ -235,6 +241,13 @@ impl Cli {
 
         if let Command::Build { args } = command {
             return build::handle(args).await;
+        }
+
+        if let Command::Metadata { command } = command {
+            return match command {
+                MetadataCommand::Inspect { args } => template::inspect_metadata::handle(args).await,
+                MetadataCommand::Publish { args } => metadata::publish::handle(args).await,
+            };
         }
 
         // init config and dirs
