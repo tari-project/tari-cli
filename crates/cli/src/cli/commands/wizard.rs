@@ -78,7 +78,7 @@ async fn step_template_crate(cwd: &Path) -> anyhow::Result<PathBuf> {
     let repo_dir = refresh_template_repo(&base_dir, &config.template_repository).await?;
 
     let args = crate::cli::commands::create::CreateArgs {
-        name: name.clone(),
+        name: Some(name.clone()),
         template: None,
         output: cwd.to_path_buf(),
         skip_init: false,
