@@ -1,4 +1,4 @@
-# 🚀 Tari CLI
+# 🚀 Tari Ootle CLI
 
 > **The complete toolkit for developing Tari smart contracts**
 
