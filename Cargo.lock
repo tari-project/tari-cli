@@ -2720,7 +2720,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.5.10",
+ "socket2 0.6.3",
  "system-configuration",
  "tokio",
  "tower-service",
@@ -4199,7 +4199,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "27c6023962132f4b30eb4c172c91ce92d933da334c59c23cddee82358ddafb0b"
 dependencies = [
  "anyhow",
- "itertools 0.13.0",
+ "itertools 0.14.0",
  "proc-macro2",
  "quote",
  "syn 2.0.117",
@@ -4263,7 +4263,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash",
  "rustls",
- "socket2 0.5.10",
+ "socket2 0.6.3",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
@@ -4301,7 +4301,7 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.5.10",
+ "socket2 0.6.3",
  "tracing",
  "windows-sys 0.60.2",
 ]
@@ -5475,7 +5475,7 @@ dependencies = [
  "serde_json",
  "spinners",
  "tari_ootle_publish_lib",
- "tari_ootle_template_metadata",
+ "tari_ootle_template_metadata 0.4.0",
  "tempdir",
  "termimad",
  "thiserror 2.0.18",
@@ -5636,7 +5636,7 @@ dependencies = [
  "tari_crypto",
  "tari_engine_types",
  "tari_ootle_common_types",
- "tari_ootle_template_metadata",
+ "tari_ootle_template_metadata 0.3.1",
  "tari_ootle_transaction",
  "tari_template_abi",
  "tari_template_builtin",
@@ -5669,7 +5669,7 @@ dependencies = [
  "tari_bor",
  "tari_crypto",
  "tari_hashing",
- "tari_ootle_template_metadata",
+ "tari_ootle_template_metadata 0.3.1",
  "tari_template_abi",
  "tari_template_lib",
  "thiserror 2.0.18",
@@ -5710,7 +5710,7 @@ dependencies = [
  "tari_consensus_types",
  "tari_engine_types",
  "tari_ootle_common_types",
- "tari_ootle_template_metadata",
+ "tari_ootle_template_metadata 0.3.1",
  "tari_ootle_transaction",
  "tari_template_abi",
  "tari_template_lib_types",
@@ -5795,7 +5795,7 @@ dependencies = [
  "tari_engine",
  "tari_engine_types",
  "tari_ootle_common_types",
- "tari_ootle_template_metadata",
+ "tari_ootle_template_metadata 0.4.0",
  "tari_ootle_walletd_client",
  "tari_template_lib_types",
  "thiserror 2.0.18",
@@ -5811,6 +5811,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a8293234a0652af44c3031d681fc3ec848efc726c7d84e6a0ae5529c0e074ee"
 dependencies = [
  "borsh",
+ "cargo_toml 0.22.3",
+ "hex",
+ "multihash 0.19.3",
+ "serde",
+ "sha2 0.10.9",
+ "tari_bor",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "tari_ootle_template_metadata"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2b30736577e4d734127722ee98bf4e9685a9e728b29939cc37f1212b790f833"
+dependencies = [
  "cargo_toml 0.22.3",
  "hex",
  "multihash 0.19.3",
@@ -5840,7 +5855,7 @@ dependencies = [
  "tari_engine_types",
  "tari_hashing",
  "tari_ootle_common_types",
- "tari_ootle_template_metadata",
+ "tari_ootle_template_metadata 0.3.1",
  "tari_template_lib_types",
  "thiserror 2.0.18",
 ]
@@ -5922,7 +5937,7 @@ dependencies = [
  "tari_engine_types",
  "tari_ootle_address",
  "tari_ootle_common_types",
- "tari_ootle_template_metadata",
+ "tari_ootle_template_metadata 0.3.1",
  "tari_ootle_transaction",
  "tari_ootle_wallet_sdk",
  "tari_template_abi",
