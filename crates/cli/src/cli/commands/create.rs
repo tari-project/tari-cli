@@ -59,11 +59,9 @@ pub async fn handle(config: Config, template_repo_dir: PathBuf, mut args: Create
     let name = match args.name.take() {
         Some(name) => name,
         None => {
-            let raw: String = Input::new()
-                .with_prompt("Template crate name")
-                .interact_text()?;
+            let raw: String = Input::new().with_prompt("Template crate name").interact_text()?;
             project_name_parser(&raw).map_err(|e| anyhow!(e))?
-        }
+        },
     };
 
     let templates = loading!(

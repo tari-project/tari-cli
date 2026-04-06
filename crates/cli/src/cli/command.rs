@@ -243,7 +243,10 @@ impl Cli {
             return build::handle(args).await;
         }
 
-        if let Command::Metadata { command: MetadataCommand::Inspect { args } } = command {
+        if let Command::Metadata {
+            command: MetadataCommand::Inspect { args },
+        } = command
+        {
             return template::inspect_metadata::handle(args).await;
         }
 

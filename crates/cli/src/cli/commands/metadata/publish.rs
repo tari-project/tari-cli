@@ -70,8 +70,8 @@ pub async fn handle(config: Config, args: PublishMetadataArgs) -> anyhow::Result
     );
 
     if args.signed {
-        let template_address = TemplateAddress::from_hex(&args.template_address)
-            .map_err(|e| anyhow!("invalid template address: {e}"))?;
+        let template_address =
+            TemplateAddress::from_hex(&args.template_address).map_err(|e| anyhow!("invalid template address: {e}"))?;
 
         let url_override = args.wallet_daemon_url.as_ref().or(config.wallet_daemon_url.as_ref());
         let project_config = load_project_config(&args.path, url_override).await?;

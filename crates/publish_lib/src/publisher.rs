@@ -14,8 +14,8 @@ use tari_engine_types::hashing::template_hasher32;
 use tari_engine_types::substate::SubstateId;
 use tari_ootle_common_types::optional::Optional;
 use tari_ootle_template_metadata::MetadataHash;
-use tari_ootle_walletd_client::permissions::JrpcPermission;
 use tari_ootle_template_metadata::TemplateMetadata;
+use tari_ootle_walletd_client::permissions::JrpcPermission;
 use tari_ootle_walletd_client::types::{
     AccountsGetBalancesRequest, AuthCredentials, AuthGetMethodResponse, AuthLoginRequest, AuthLoginResponse,
     AuthMethod, PublishTemplateMetadata, PublishTemplateRequest, SignTemplateMetadataRequest,
@@ -114,10 +114,8 @@ impl TemplatePublisher {
     ) -> Result<SignedMetadataPayload> {
         use tari_ootle_walletd_client::types::SignTemplateMetadataRequest;
 
-        let key_id = tari_ootle_wallet_sdk::models::KeyId::derived(
-            tari_ootle_wallet_sdk::models::KeyBranch::Account,
-            key_index,
-        );
+        let key_id =
+            tari_ootle_wallet_sdk::models::KeyId::derived(tari_ootle_wallet_sdk::models::KeyBranch::Account, key_index);
 
         let response = self
             .sign_template_metadata(SignTemplateMetadataRequest {
