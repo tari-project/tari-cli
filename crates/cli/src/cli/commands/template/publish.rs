@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, anyhow};
 use clap::Parser;
 use dialoguer::Confirm;
+use tari_engine_types::published_template::PublishedTemplateAddress;
 use tari_ootle_publish_lib::publisher::{CheckBalanceResult, Template, TemplatePublisher};
 use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use tari_ootle_template_metadata::TemplateMetadata;
@@ -158,13 +159,14 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
         let cbor_bytes = std::fs::read(&cbor_path).context("reading metadata CBOR for server publish")?;
 
         println!("📡 Publishing metadata to {}...", args.metadata_server_url);
-        match publish_metadata_to_server(&args.metadata_server_url, &template_address.to_string(), &cbor_bytes, 6).await
+        let published_addr = PublishedTemplateAddress::from_template_address(template_address);
+        match publish_metadata_to_server(&args.metadata_server_url, &published_addr, &cbor_bytes, 6).await
         {
             Ok(()) => {},
             Err(e) => {
                 println!("⚠️  Failed to publish metadata to server: {e}");
                 println!(
-                    "   You can retry with: tari metadata publish --template-address {template_address} --metadata-server-url {}",
+                    "   You can retry with: tari metadata publish --template-address {published_addr} --metadata-server-url {}",
                     args.metadata_server_url
                 );
             },

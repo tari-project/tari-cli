@@ -69,7 +69,7 @@ pub async fn handle(config: Config, args: PublishMetadataArgs) -> anyhow::Result
         metadata.name, metadata.version, args.metadata_server_url
     );
 
-    let addr_hex = args.template_address.as_template_address().to_string();
+    let addr = args.template_address;
 
     if args.signed {
         let url_override = args.wallet_daemon_url.as_ref().or(config.wallet_daemon_url.as_ref());
@@ -77,27 +77,28 @@ pub async fn handle(config: Config, args: PublishMetadataArgs) -> anyhow::Result
         let publisher = TemplatePublisher::new(project_config.network().clone());
 
         let payload = publisher
-            .sign_metadata_for_publish(args.key_index, args.template_address.as_template_address(), metadata)
+            .sign_metadata_for_publish(args.key_index, addr.as_template_address(), metadata)
             .await
             .context("signing metadata via wallet daemon")?;
 
         println!("🔑 Signed as author: {}", payload.public_key);
 
-        publish_metadata_signed(&args.metadata_server_url, &addr_hex, &payload, args.max_retries).await
+        publish_metadata_signed(&args.metadata_server_url, &addr, &payload, args.max_retries).await
     } else {
-        publish_metadata_to_server(&args.metadata_server_url, &addr_hex, &cbor_bytes, args.max_retries).await
+        publish_metadata_to_server(&args.metadata_server_url, &addr, &cbor_bytes, args.max_retries).await
     }
 }
 
 /// Flow 1: Hash-verified metadata publish (POST raw CBOR).
 pub async fn publish_metadata_to_server(
     server_url: &Url,
-    template_address: &str,
+    template_address: &PublishedTemplateAddress,
     cbor_bytes: &[u8],
     max_retries: u32,
 ) -> anyhow::Result<()> {
+    let addr = template_address.as_template_address();
     let url = server_url
-        .join(&format!("/api/templates/{template_address}/metadata"))
+        .join(&format!("/api/templates/{addr}/metadata"))
         .context("building metadata endpoint URL")?;
 
     let client = reqwest::Client::new();
@@ -141,12 +142,13 @@ pub async fn publish_metadata_to_server(
 /// Flow 2: Author-signed metadata publish (POST JSON with Schnorr signature from walletd).
 pub async fn publish_metadata_signed(
     server_url: &Url,
-    template_address: &str,
+    template_address: &PublishedTemplateAddress,
     payload: &SignedMetadataPayload,
     max_retries: u32,
 ) -> anyhow::Result<()> {
+    let addr = template_address.as_template_address();
     let url = server_url
-        .join(&format!("/api/templates/{template_address}/metadata/signed"))
+        .join(&format!("/api/templates/{addr}/metadata/signed"))
         .context("building signed metadata endpoint URL")?;
 
     let client = reqwest::Client::new();
