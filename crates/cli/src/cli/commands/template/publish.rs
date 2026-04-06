@@ -157,10 +157,15 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
         let cbor_path = find_metadata_cbor(crate_dir).await?;
         let cbor_bytes = std::fs::read(&cbor_path).context("reading metadata CBOR for server publish")?;
 
-        println!("⏳ Waiting 20 seconds for on-chain confirmation before publishing metadata...");
-        tokio::time::sleep(std::time::Duration::from_secs(20)).await;
-
-        match publish_metadata_to_server(&args.metadata_server_url, &template_address.to_string(), &cbor_bytes).await {
+        println!("📡 Publishing metadata to {}...", args.metadata_server_url);
+        match publish_metadata_to_server(
+            &args.metadata_server_url,
+            &template_address.to_string(),
+            &cbor_bytes,
+            6,
+        )
+        .await
+        {
             Ok(()) => {},
             Err(e) => {
                 println!("⚠️  Failed to publish metadata to server: {e}");

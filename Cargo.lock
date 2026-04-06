@@ -5519,6 +5519,7 @@ name = "tari-ootle-cli"
 version = "0.10.0"
 dependencies = [
  "anyhow",
+ "blake2",
  "cargo-generate",
  "cargo_toml 0.21.0",
  "clap 4.5.61",
@@ -5526,11 +5527,14 @@ dependencies = [
  "dialoguer 0.11.0",
  "dirs-next 2.0.0",
  "git2",
+ "hex",
  "human_bytes",
+ "rand 0.8.5",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
  "spinners",
+ "tari_crypto",
  "tari_ootle_publish_lib",
  "tari_ootle_template_metadata",
  "tempdir",
