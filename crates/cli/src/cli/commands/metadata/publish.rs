@@ -6,9 +6,9 @@ use std::time::Duration;
 
 use anyhow::{Context, anyhow};
 use clap::Parser;
+use tari_engine_types::published_template::PublishedTemplateAddress;
 use tari_ootle_publish_lib::publisher::{SignedMetadataPayload, TemplatePublisher};
 use tari_ootle_template_metadata::TemplateMetadata;
-use tari_template_lib_types::TemplateAddress;
 use url::Url;
 
 use crate::cli::commands::publish::load_project_config;
@@ -28,9 +28,9 @@ pub struct PublishMetadataArgs {
     #[arg(default_value = ".")]
     pub path: PathBuf,
 
-    /// Template address to publish metadata for.
+    /// Template address to publish metadata for (e.g. template_bce07f... or raw hex).
     #[arg(long, short = 't')]
-    pub template_address: String,
+    pub template_address: PublishedTemplateAddress,
 
     /// Metadata server URL.
     #[arg(long, default_value = DEFAULT_METADATA_SERVER)]
@@ -69,36 +69,23 @@ pub async fn handle(config: Config, args: PublishMetadataArgs) -> anyhow::Result
         metadata.name, metadata.version, args.metadata_server_url
     );
 
-    if args.signed {
-        let template_address =
-            TemplateAddress::from_hex(&args.template_address).map_err(|e| anyhow!("invalid template address: {e}"))?;
+    let addr_hex = args.template_address.as_template_address().to_string();
 
+    if args.signed {
         let url_override = args.wallet_daemon_url.as_ref().or(config.wallet_daemon_url.as_ref());
         let project_config = load_project_config(&args.path, url_override).await?;
         let publisher = TemplatePublisher::new(project_config.network().clone());
 
         let payload = publisher
-            .sign_metadata_for_publish(args.key_index, template_address, metadata)
+            .sign_metadata_for_publish(args.key_index, args.template_address.as_template_address(), metadata)
             .await
             .context("signing metadata via wallet daemon")?;
 
         println!("🔑 Signed as author: {}", payload.public_key);
 
-        publish_metadata_signed(
-            &args.metadata_server_url,
-            &args.template_address,
-            &payload,
-            args.max_retries,
-        )
-        .await
+        publish_metadata_signed(&args.metadata_server_url, &addr_hex, &payload, args.max_retries).await
     } else {
-        publish_metadata_to_server(
-            &args.metadata_server_url,
-            &args.template_address,
-            &cbor_bytes,
-            args.max_retries,
-        )
-        .await
+        publish_metadata_to_server(&args.metadata_server_url, &addr_hex, &cbor_bytes, args.max_retries).await
     }
 }
 

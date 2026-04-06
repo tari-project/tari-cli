@@ -5531,6 +5531,7 @@ dependencies = [
  "serde",
  "serde_json",
  "spinners",
+ "tari_engine_types",
  "tari_ootle_publish_lib",
  "tari_ootle_template_metadata",
  "tari_template_lib_types",
