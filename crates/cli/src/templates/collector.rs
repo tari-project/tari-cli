@@ -89,7 +89,7 @@ mod tests {
     use super::*;
     use std::collections::HashMap;
     use std::path::Path;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     struct TemplateToGenerate<'a> {
         name: &'a str,
@@ -143,7 +143,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_collect() {
-        let temp_dir = TempDir::new("tari_cli_test_collect_templates").unwrap();
+        let temp_dir = TempDir::new().unwrap();
         let temp_dir_path = temp_dir.path().to_path_buf();
         let templates_to_generate = vec![
             TemplateToGenerate::new("template1", "description1", None),
