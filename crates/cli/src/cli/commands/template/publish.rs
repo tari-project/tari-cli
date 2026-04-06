@@ -58,8 +58,9 @@ pub struct TemplatePublishArgs {
     pub publish_metadata: bool,
 
     /// Metadata server URL (used with --publish-metadata).
-    #[arg(long, default_value = "http://localhost:3000")]
-    pub metadata_server_url: url::Url,
+    /// Overrides the value in tari.config.toml and global CLI config.
+    #[arg(long)]
+    pub metadata_server_url: Option<url::Url>,
 }
 
 pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Result<()> {
@@ -158,16 +159,22 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
         let cbor_path = find_metadata_cbor(crate_dir).await?;
         let cbor_bytes = std::fs::read(&cbor_path).context("reading metadata CBOR for server publish")?;
 
-        println!("📡 Publishing metadata to {}...", args.metadata_server_url);
+        let default_url: url::Url = "http://localhost:3000".parse().unwrap();
+        let metadata_server_url = args
+            .metadata_server_url
+            .as_ref()
+            .or(project_config.metadata_server_url())
+            .or(config.metadata_server_url.as_ref())
+            .unwrap_or(&default_url);
+
+        println!("📡 Publishing metadata to {metadata_server_url}...");
         let published_addr = PublishedTemplateAddress::from_template_address(template_address);
-        match publish_metadata_to_server(&args.metadata_server_url, &published_addr, &cbor_bytes, 6).await
-        {
+        match publish_metadata_to_server(metadata_server_url, &published_addr, &cbor_bytes, 6).await {
             Ok(()) => {},
             Err(e) => {
                 println!("⚠️  Failed to publish metadata to server: {e}");
                 println!(
-                    "   You can retry with: tari metadata publish --template-address {published_addr} --metadata-server-url {}",
-                    args.metadata_server_url
+                    "   You can retry with: tari metadata publish --template-address {published_addr} --metadata-server-url {metadata_server_url}",
                 );
             },
         }

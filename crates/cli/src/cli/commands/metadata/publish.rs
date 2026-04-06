@@ -32,9 +32,9 @@ pub struct PublishMetadataArgs {
     #[arg(long, short = 't')]
     pub template_address: PublishedTemplateAddress,
 
-    /// Metadata server URL.
-    #[arg(long, default_value = DEFAULT_METADATA_SERVER)]
-    pub metadata_server_url: Url,
+    /// Metadata server URL. Overrides the value in tari.config.toml and global CLI config.
+    #[arg(long)]
+    pub metadata_server_url: Option<Url>,
 
     /// Maximum number of retry attempts for 404 (template not yet synced).
     #[arg(long, default_value_t = DEFAULT_MAX_RETRIES)]
@@ -62,18 +62,28 @@ pub async fn handle(config: Config, args: PublishMetadataArgs) -> anyhow::Result
     let cbor_path = find_metadata_cbor(&args.path).await?;
     let cbor_bytes = std::fs::read(&cbor_path).context("reading metadata CBOR file")?;
 
+    let url_override = args.wallet_daemon_url.as_ref().or(config.wallet_daemon_url.as_ref());
+    let project_config = load_project_config(&args.path, url_override).await?;
+
+    // Resolve metadata server URL: CLI flag > project config > global config > default
+    let default_url: Url = DEFAULT_METADATA_SERVER.parse().unwrap();
+    let metadata_server_url = args
+        .metadata_server_url
+        .as_ref()
+        .or(project_config.metadata_server_url())
+        .or(config.metadata_server_url.as_ref())
+        .unwrap_or(&default_url);
+
     let metadata =
         TemplateMetadata::from_cbor(&cbor_bytes).context("metadata CBOR is invalid — cannot publish corrupt data")?;
     println!(
         "📄 Publishing metadata for {} v{} to {}",
-        metadata.name, metadata.version, args.metadata_server_url
+        metadata.name, metadata.version, metadata_server_url
     );
 
     let addr = args.template_address;
 
     if args.signed {
-        let url_override = args.wallet_daemon_url.as_ref().or(config.wallet_daemon_url.as_ref());
-        let project_config = load_project_config(&args.path, url_override).await?;
         let publisher = TemplatePublisher::new(project_config.network().clone());
 
         let payload = publisher
@@ -83,9 +93,9 @@ pub async fn handle(config: Config, args: PublishMetadataArgs) -> anyhow::Result
 
         println!("🔑 Signed as author: {}", payload.public_key);
 
-        publish_metadata_signed(&args.metadata_server_url, &addr, &payload, args.max_retries).await
+        publish_metadata_signed(metadata_server_url, &addr, &payload, args.max_retries).await
     } else {
-        publish_metadata_to_server(&args.metadata_server_url, &addr, &cbor_bytes, args.max_retries).await
+        publish_metadata_to_server(metadata_server_url, &addr, &cbor_bytes, args.max_retries).await
     }
 }
 

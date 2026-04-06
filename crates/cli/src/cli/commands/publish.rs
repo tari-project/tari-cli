@@ -58,8 +58,9 @@ pub struct PublishArgs {
     pub publish_metadata: bool,
 
     /// Metadata server URL (used with --publish-metadata).
-    #[arg(long, default_value = "http://localhost:3000")]
-    pub metadata_server_url: url::Url,
+    /// Overrides the value in tari.config.toml and global CLI config.
+    #[arg(long)]
+    pub metadata_server_url: Option<url::Url>,
 }
 
 pub async fn build_template(crate_dir: &Path) -> anyhow::Result<PathBuf> {
