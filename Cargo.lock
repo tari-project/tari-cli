@@ -5482,7 +5482,6 @@ dependencies = [
  "tari_engine_types",
  "tari_ootle_publish_lib",
  "tari_ootle_template_metadata",
- "tari_template_lib_types",
  "tempfile",
  "termimad",
  "thiserror 2.0.18",

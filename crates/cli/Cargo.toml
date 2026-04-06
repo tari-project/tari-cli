@@ -13,29 +13,28 @@ path = "src/main.rs"
 
 [dependencies]
 tari_ootle_publish_lib = { workspace = true }
+tari_ootle_template_metadata = { workspace = true, features = ["json"] }
+tari_engine_types = { workspace = true }
 
 anyhow = "1.0.102"
-clap = { version = "4.5.20", features = ["derive", "string"] }
-dirs-next = "2.0.0"
-tokio = { workspace = true }
-toml = "1.1.2"
-serde = { workspace = true }
-termimad = "0.34.1"
 cargo-generate = "^0.23.7"
-git2 = { version = "^0.20", features = ["default"] }
-thiserror = { workspace = true }
-spinners = "4.1.1"
+cargo_toml = "0.21.0"
+clap = { version = "4.5.20", features = ["derive", "string"] }
 convert_case = "0.11.0"
 dialoguer = { version = "0.11.0", features = ["default", "fuzzy-select"] }
-cargo_toml = "0.21.0"
+dirs-next = "2.0.0"
+git2 = { version = "^0.20", features = ["default"] }
 human_bytes = "0.4.3"
-url = { workspace = true }
-tari_ootle_template_metadata = { workspace = true, features = ["json"] }
-tari_template_lib_types = { workspace = true }
-tari_engine_types = { workspace = true }
-toml_edit = "0.25"
-serde_json = "1.0"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+serde = { workspace = true }
+serde_json = "1.0"
+spinners = "4.1.1"
+termimad = "0.34.1"
+thiserror = { workspace = true }
+tokio = { workspace = true }
+toml = "1.1.2"
+toml_edit = "0.25"
+url = { workspace = true }
 
 [dev-dependencies]
 tempfile = "3"
