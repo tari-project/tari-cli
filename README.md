@@ -2,8 +2,10 @@
 
 > **The complete toolkit for developing Tari smart contracts**
 
-![GitHub Release](https://img.shields.io/github/v/release/tari-project/tari-cli)
-![CI Build Status](https://img.shields.io/github/actions/workflow/status/tari-project/tari-cli/ci.yml)
+[![GitHub Release](https://img.shields.io/github/v/release/tari-project/tari-cli)](https://github.com/tari-project/tari-cli/releases)
+[![CI Build Status](https://img.shields.io/github/actions/workflow/status/tari-project/tari-cli/pr-check.yml)](https://github.com/tari-project/tari-cli/actions/workflows/pr-check.yml)
+[![Crates.io](https://img.shields.io/crates/v/tari-ootle-cli)](https://crates.io/crates/tari-ootle-cli)
+[![docs.rs](https://img.shields.io/docsrs/tari-ootle-cli)](https://docs.rs/tari-ootle-cli)
 
 The **Tari CLI** smart contract development tool for the Tari Layer-2 blockchain.
 
@@ -126,9 +128,9 @@ See the [Configuration Guide](docs/02-guides/project-configuration.md) for netwo
 
 ## 📊 Project Status
 
-- **Build Status**: ![CI](https://img.shields.io/github/actions/workflow/status/tari-project/tari-cli/ci.yml)
-- **Test Coverage**: ![Coverage](https://img.shields.io/codecov/c/github/tari-project/tari-cli)
-- **Latest Release**: ![Release](https://img.shields.io/github/v/release/tari-project/tari-cli)
+- **Build Status**: [![CI](https://img.shields.io/github/actions/workflow/status/tari-project/tari-cli/pr-check.yml)](https://github.com/tari-project/tari-cli/actions/workflows/pr-check.yml)
+- **Latest Release**: [![Release](https://img.shields.io/github/v/release/tari-project/tari-cli)](https://github.com/tari-project/tari-cli/releases)
+- **Crates.io**: [![Crates.io](https://img.shields.io/crates/v/tari-ootle-cli)](https://crates.io/crates/tari-ootle-cli)
 
 ---
 
