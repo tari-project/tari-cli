@@ -4,12 +4,13 @@
 use crate::cli::commands::build::BuildArgs;
 use crate::cli::commands::config::ConfigCommand;
 use crate::cli::commands::create::CreateArgs;
+use crate::cli::commands::metadata::MetadataCommand;
 use crate::cli::commands::publish;
 use crate::cli::commands::publish::PublishArgs;
 use crate::cli::commands::template::TemplateCommand;
 use crate::{
     cli::{
-        commands::{build, config as config_cmd, create, template, wizard},
+        commands::{build, config as config_cmd, create, metadata, template, wizard},
         config::{Config, TemplateRepository},
         util,
     },
@@ -141,6 +142,11 @@ pub enum Command {
         #[command(subcommand)]
         command: TemplateCommand,
     },
+    /// Template metadata operations (inspect, publish to server).
+    Metadata {
+        #[command(subcommand)]
+        command: MetadataCommand,
+    },
     /// Manage project configuration (tari.config.toml).
     Config {
         #[command(subcommand)]
@@ -237,6 +243,13 @@ impl Cli {
             return build::handle(args).await;
         }
 
+        if let Command::Metadata {
+            command: MetadataCommand::Inspect { args },
+        } = command
+        {
+            return template::inspect_metadata::handle(args).await;
+        }
+
         // init config and dirs
         let config = loading!(
             "Init configuration and directories",
@@ -245,7 +258,7 @@ impl Cli {
 
         // Commands that don't need template repository refresh
         match &command {
-            Command::Template { .. } | Command::Publish { .. } => {
+            Command::Template { .. } | Command::Publish { .. } | Command::Metadata { .. } => {
                 return match command {
                     Command::Template { command } => match command {
                         TemplateCommand::Init { args } => template::init_metadata::handle(args).await,
@@ -253,6 +266,10 @@ impl Cli {
                         TemplateCommand::Publish { args } => template::publish::handle(config, args).await,
                     },
                     Command::Publish { args } => publish::handle(config, args).await,
+                    Command::Metadata { command } => match command {
+                        MetadataCommand::Publish { args } => metadata::publish::handle(config, args).await,
+                        MetadataCommand::Inspect { .. } => unreachable!(),
+                    },
                     _ => unreachable!(),
                 };
             },

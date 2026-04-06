@@ -52,6 +52,15 @@ pub struct PublishArgs {
     /// Overrides the value in tari.config.toml and global CLI config.
     #[arg(long)]
     pub wallet_daemon_url: Option<url::Url>,
+
+    /// After publishing, automatically submit metadata to a metadata server.
+    #[arg(long, default_value_t = false)]
+    pub publish_metadata: bool,
+
+    /// Metadata server URL (used with --publish-metadata).
+    /// Overrides the value in tari.config.toml and global CLI config.
+    #[arg(long)]
+    pub metadata_server_url: Option<url::Url>,
 }
 
 pub async fn build_template(crate_dir: &Path) -> anyhow::Result<PathBuf> {
@@ -84,6 +93,8 @@ pub async fn handle(config: Config, args: PublishArgs) -> anyhow::Result<()> {
         max_fee: args.max_fee,
         binary: args.binary,
         wallet_daemon_url: args.wallet_daemon_url,
+        publish_metadata: args.publish_metadata,
+        metadata_server_url: args.metadata_server_url,
     };
     crate::cli::commands::template::publish::handle(config, template_args).await
 }

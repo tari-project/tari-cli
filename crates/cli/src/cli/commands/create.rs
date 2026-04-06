@@ -6,11 +6,12 @@ use std::path::PathBuf;
 use anyhow::anyhow;
 use cargo_generate::{GenerateArgs as CargoGenerateArgs, TemplatePath};
 use clap::Parser;
+use dialoguer::Input;
 use thiserror::Error;
 
 use crate::cli::commands::template::init_metadata;
 use crate::{
-    cli::{config::Config, util},
+    cli::{command::project_name_parser, config::Config, util},
     git::repository::GitRepository,
     loading,
     templates::Collector,
@@ -18,9 +19,10 @@ use crate::{
 
 #[derive(Clone, Parser, Debug)]
 pub struct CreateArgs {
-    /// Name of the new template crate
-    #[arg(value_parser = crate::cli::command::project_name_parser)]
-    pub name: String,
+    /// Name of the new template crate.
+    /// If not provided, you will be prompted to enter one.
+    #[arg(value_parser = project_name_parser)]
+    pub name: Option<String>,
 
     /// (Optional) Template to use (e.g. "fungible", "meme_coin").
     /// You will be prompted to select a template if not set.
@@ -53,7 +55,15 @@ pub enum CreateHandlerError {
     TemplateNotFound(String, Vec<String>),
 }
 
-pub async fn handle(config: Config, template_repo_dir: PathBuf, args: CreateArgs) -> anyhow::Result<()> {
+pub async fn handle(config: Config, template_repo_dir: PathBuf, mut args: CreateArgs) -> anyhow::Result<()> {
+    let name = match args.name.take() {
+        Some(name) => name,
+        None => {
+            let raw: String = Input::new().with_prompt("Template crate name").interact_text()?;
+            project_name_parser(&raw).map_err(|e| anyhow!(e))?
+        },
+    };
+
     let templates = loading!(
         "Collecting available templates",
         Collector::new(template_repo_dir.join(&config.template_repository.folder))
@@ -81,7 +91,7 @@ pub async fn handle(config: Config, template_repo_dir: PathBuf, args: CreateArgs
         .to_string();
 
     let generate_args = CargoGenerateArgs {
-        name: Some(args.name.clone()),
+        name: Some(name.clone()),
         destination: Some(args.output.clone()),
         template_path: TemplatePath {
             path: Some(template_path),
@@ -92,12 +102,12 @@ pub async fn handle(config: Config, template_repo_dir: PathBuf, args: CreateArgs
     };
     loading!("Generating template crate", cargo_generate::generate(generate_args))?;
 
-    let crate_dir = args.output.join(&args.name);
+    let crate_dir = args.output.join(&name);
 
     // initialise template metadata (build.rs + Cargo.toml metadata section)
     if !args.skip_metadata {
         loading!(
-            format!("Initialising template metadata for **{}**", args.name),
+            format!("Initialising template metadata for **{}**", name),
             init_metadata::auto_init(&crate_dir).await
         )?;
     }

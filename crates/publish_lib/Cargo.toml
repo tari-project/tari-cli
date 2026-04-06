@@ -14,6 +14,8 @@ tari_engine = { workspace = true }
 tari_engine_types = { workspace = true }
 tari_template_lib_types = { workspace = true }
 tari_ootle_template_metadata = { workspace = true }
+tari_ootle_wallet_sdk = "0.28"
+ootle_serde = { version = "0.2", features = ["hex"] }
 
 tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros"] }
 serde = { workspace = true }

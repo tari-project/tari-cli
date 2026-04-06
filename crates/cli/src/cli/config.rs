@@ -14,6 +14,7 @@ pub const VALID_OVERRIDE_KEYS: &[&str] = &[
     "template_repository.folder",
     "default_account",
     "wallet_daemon_url",
+    "metadata_server_url",
 ];
 
 /// CLI configuration.
@@ -25,6 +26,8 @@ pub struct Config {
     /// Global default wallet daemon JSON-RPC URL.
     /// Used when no tari.config.toml is found in the project tree.
     pub wallet_daemon_url: Option<url::Url>,
+    /// Default metadata server URL for publishing template metadata.
+    pub metadata_server_url: Option<url::Url>,
 }
 
 /// Repository that holds templates to generate Tari template crates.
@@ -46,6 +49,7 @@ impl Default for Config {
             },
             default_account: None,
             wallet_daemon_url: None,
+            metadata_server_url: None,
         }
     }
 }
@@ -93,6 +97,9 @@ impl Config {
             },
             "wallet_daemon_url" => {
                 self.wallet_daemon_url = Some(value.parse().map_err(|e| anyhow!("Invalid URL: {e}"))?);
+            },
+            "metadata_server_url" => {
+                self.metadata_server_url = Some(value.parse().map_err(|e| anyhow!("Invalid URL: {e}"))?);
             },
             _ => {},
         }

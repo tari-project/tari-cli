@@ -107,6 +107,9 @@ fn print_metadata_table(metadata: &TemplateMetadata, hash: &tari_ootle_template_
     if let Some(ref homepage) = metadata.homepage {
         println!("  Homepage:       {homepage}");
     }
+    if let Some(ref logo_url) = metadata.logo_url {
+        println!("  Logo URL:       {logo_url}");
+    }
     if !metadata.extra.is_empty() {
         println!("  Extra:");
         for (key, value) in &metadata.extra {

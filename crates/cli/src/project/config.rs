@@ -11,6 +11,8 @@ use url::Url;
 pub struct ProjectConfig {
     network: NetworkConfig,
     default_account: Option<String>,
+    /// Metadata server URL for publishing template metadata.
+    metadata_server_url: Option<url::Url>,
 }
 
 impl ProjectConfig {
@@ -20,6 +22,10 @@ impl ProjectConfig {
 
     pub fn set_wallet_daemon_url(&mut self, url: Url) {
         self.network = NetworkConfig::new(url);
+    }
+
+    pub fn metadata_server_url(&self) -> Option<&url::Url> {
+        self.metadata_server_url.as_ref()
     }
 
     pub fn parsed_default_account(&self) -> anyhow::Result<Option<ComponentAddressOrName>> {
@@ -33,6 +39,7 @@ impl Default for ProjectConfig {
         Self {
             network: NetworkConfig::new(Url::parse("http://127.0.0.1:9000/json_rpc").unwrap()),
             default_account: None,
+            metadata_server_url: None,
         }
     }
 }

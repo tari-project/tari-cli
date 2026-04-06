@@ -42,6 +42,10 @@ pub struct InitMetadataArgs {
     #[arg(long)]
     pub homepage: Option<String>,
 
+    /// Logo URL (e.g. a link to the template's icon or logo image).
+    #[arg(long)]
+    pub logo_url: Option<String>,
+
     /// Skip interactive prompts (use only provided CLI args).
     #[arg(long, short = 'y')]
     pub non_interactive: bool,
@@ -79,6 +83,7 @@ struct TemplateMetadataInput {
     category: Option<String>,
     documentation: Option<String>,
     homepage: Option<String>,
+    logo_url: Option<String>,
 }
 
 fn resolve_metadata(args: &InitMetadataArgs) -> anyhow::Result<TemplateMetadataInput> {
@@ -88,6 +93,7 @@ fn resolve_metadata(args: &InitMetadataArgs) -> anyhow::Result<TemplateMetadataI
             category: args.category.clone(),
             documentation: args.documentation.clone(),
             homepage: args.homepage.clone(),
+            logo_url: args.logo_url.clone(),
         });
     }
 
@@ -129,11 +135,19 @@ fn resolve_metadata(args: &InitMetadataArgs) -> anyhow::Result<TemplateMetadataI
         .interact_text()?;
     let homepage = if homepage.is_empty() { None } else { Some(homepage) };
 
+    let logo_url: String = Input::new()
+        .with_prompt("Logo URL")
+        .default(args.logo_url.clone().unwrap_or_default())
+        .allow_empty(true)
+        .interact_text()?;
+    let logo_url = if logo_url.is_empty() { None } else { Some(logo_url) };
+
     Ok(TemplateMetadataInput {
         tags,
         category,
         documentation,
         homepage,
+        logo_url,
     })
 }
 
@@ -202,6 +216,10 @@ fn add_template_metadata(cargo_toml_content: &str, metadata: &TemplateMetadataIn
         tari_template.insert("homepage", toml_edit::value(homepage.as_str()));
     }
 
+    if let Some(ref logo_url) = metadata.logo_url {
+        tari_template.insert("logo_url", toml_edit::value(logo_url.as_str()));
+    }
+
     Ok(doc.to_string())
 }
 
@@ -225,6 +243,7 @@ pub async fn auto_init(crate_dir: &Path) -> anyhow::Result<()> {
         category: None,
         documentation: None,
         homepage: None,
+        logo_url: None,
     };
 
     let updated = add_build_dependency(&content)?;
@@ -309,6 +328,7 @@ version = "0.1.0"
             category: Some("token".to_string()),
             documentation: None,
             homepage: Some("https://example.com".to_string()),
+            logo_url: None,
         };
         let result = add_template_metadata(input, &metadata).unwrap();
         assert!(result.contains("[package.metadata.tari-template]"));
@@ -333,6 +353,7 @@ category = "old-category"
             category: Some("new-category".to_string()),
             documentation: None,
             homepage: None,
+            logo_url: None,
         };
         let result = add_template_metadata(input, &metadata).unwrap();
         assert!(result.contains("new-category"));
@@ -350,6 +371,7 @@ version = "0.1.0"
             category: None,
             documentation: None,
             homepage: None,
+            logo_url: None,
         };
         let result = add_template_metadata(input, &metadata).unwrap();
         // Should still create the section even if empty
