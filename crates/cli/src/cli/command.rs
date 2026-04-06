@@ -243,11 +243,8 @@ impl Cli {
             return build::handle(args).await;
         }
 
-        if let Command::Metadata { command } = command {
-            return match command {
-                MetadataCommand::Inspect { args } => template::inspect_metadata::handle(args).await,
-                MetadataCommand::Publish { args } => metadata::publish::handle(args).await,
-            };
+        if let Command::Metadata { command: MetadataCommand::Inspect { args } } = command {
+            return template::inspect_metadata::handle(args).await;
         }
 
         // init config and dirs
@@ -258,7 +255,7 @@ impl Cli {
 
         // Commands that don't need template repository refresh
         match &command {
-            Command::Template { .. } | Command::Publish { .. } => {
+            Command::Template { .. } | Command::Publish { .. } | Command::Metadata { .. } => {
                 return match command {
                     Command::Template { command } => match command {
                         TemplateCommand::Init { args } => template::init_metadata::handle(args).await,
@@ -266,6 +263,10 @@ impl Cli {
                         TemplateCommand::Publish { args } => template::publish::handle(config, args).await,
                     },
                     Command::Publish { args } => publish::handle(config, args).await,
+                    Command::Metadata { command } => match command {
+                        MetadataCommand::Publish { args } => metadata::publish::handle(config, args).await,
+                        MetadataCommand::Inspect { .. } => unreachable!(),
+                    },
                     _ => unreachable!(),
                 };
             },

@@ -2719,7 +2719,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.6.3",
+ "socket2 0.5.10",
  "system-configuration",
  "tokio",
  "tower-service",
@@ -4205,7 +4205,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "27c6023962132f4b30eb4c172c91ce92d933da334c59c23cddee82358ddafb0b"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.13.0",
  "proc-macro2",
  "quote",
  "syn 2.0.117",
@@ -4269,7 +4269,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash",
  "rustls",
- "socket2 0.6.3",
+ "socket2 0.5.10",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
@@ -4307,7 +4307,7 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.6.3",
+ "socket2 0.5.10",
  "tracing",
  "windows-sys 0.60.2",
 ]
@@ -5519,7 +5519,6 @@ name = "tari-ootle-cli"
 version = "0.10.0"
 dependencies = [
  "anyhow",
- "blake2",
  "cargo-generate",
  "cargo_toml 0.21.0",
  "clap 4.5.61",
@@ -5527,16 +5526,14 @@ dependencies = [
  "dialoguer 0.11.0",
  "dirs-next 2.0.0",
  "git2",
- "hex",
  "human_bytes",
- "rand 0.8.5",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
  "spinners",
- "tari_crypto",
  "tari_ootle_publish_lib",
  "tari_ootle_template_metadata",
+ "tari_template_lib_types",
  "tempdir",
  "termimad",
  "thiserror 2.0.18",
@@ -5853,11 +5850,13 @@ name = "tari_ootle_publish_lib"
 version = "0.10.0"
 dependencies = [
  "hickory-proto",
+ "ootle_serde",
  "serde",
  "tari_engine",
  "tari_engine_types",
  "tari_ootle_common_types",
  "tari_ootle_template_metadata",
+ "tari_ootle_wallet_sdk",
  "tari_ootle_walletd_client",
  "tari_template_lib_types",
  "thiserror 2.0.18",
@@ -5972,9 +5971,9 @@ dependencies = [
 
 [[package]]
 name = "tari_ootle_walletd_client"
-version = "0.28.4"
+version = "0.28.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24c925ce301512ff091870687184ab91b42be7edae71c15e4358d075f24339bd"
+checksum = "d09b478cea32fb526f6baca1d60345624733af58f8aa17407e775d6499988362"
 dependencies = [
  "hex",
  "ootle_serde",

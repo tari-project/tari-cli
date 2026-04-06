@@ -3,6 +3,7 @@
 
 use crate::error::Error;
 use crate::{NetworkConfig, PublisherError};
+use serde::Serialize;
 use std::borrow::Cow;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -14,9 +15,11 @@ use tari_engine_types::substate::SubstateId;
 use tari_ootle_common_types::optional::Optional;
 use tari_ootle_template_metadata::MetadataHash;
 use tari_ootle_walletd_client::permissions::JrpcPermission;
+use tari_ootle_template_metadata::TemplateMetadata;
 use tari_ootle_walletd_client::types::{
     AccountsGetBalancesRequest, AuthCredentials, AuthGetMethodResponse, AuthLoginRequest, AuthLoginResponse,
-    AuthMethod, PublishTemplateRequest, TransactionWaitResultRequest, WalletGetInfoResponse,
+    AuthMethod, PublishTemplateMetadata, PublishTemplateRequest, SignTemplateMetadataRequest,
+    SignTemplateMetadataResponse, TransactionWaitResultRequest, WalletGetInfoResponse,
 };
 use tari_ootle_walletd_client::{ComponentAddressOrName, WalletDaemonClient};
 use tari_template_lib_types::Hash32;
@@ -88,6 +91,49 @@ impl TemplatePublisher {
         let mut client = self.wallet_daemon_client().await?;
         let info = client.get_wallet_info().await?;
         Ok(info)
+    }
+
+    /// Signs template metadata using the wallet daemon's key management.
+    pub async fn sign_template_metadata(
+        &self,
+        request: SignTemplateMetadataRequest,
+    ) -> Result<SignTemplateMetadataResponse> {
+        let mut client = self.wallet_daemon_client().await?;
+        let response = client.sign_template_metadata(request).await?;
+        Ok(response)
+    }
+
+    /// Higher-level helper: sign metadata for a template using the default account key.
+    ///
+    /// Returns a [`SignedMetadataPayload`] with all fields needed to POST to the community server.
+    pub async fn sign_metadata_for_publish(
+        &self,
+        key_index: u64,
+        template_address: TemplateAddress,
+        metadata: TemplateMetadata,
+    ) -> Result<SignedMetadataPayload> {
+        use tari_ootle_walletd_client::types::SignTemplateMetadataRequest;
+
+        let key_id = tari_ootle_wallet_sdk::models::KeyId::derived(
+            tari_ootle_wallet_sdk::models::KeyBranch::Account,
+            key_index,
+        );
+
+        let response = self
+            .sign_template_metadata(SignTemplateMetadataRequest {
+                key_id,
+                template_address,
+                metadata,
+            })
+            .await?;
+
+        Ok(SignedMetadataPayload {
+            metadata_cbor: response.metadata_cbor,
+            public_nonce: response.public_nonce,
+            signature: response.signature,
+            public_key: response.public_key,
+            metadata_hash: response.metadata_hash,
+        })
     }
 
     /// Get publish fee based on a [`PublishTemplateRequest`].
@@ -188,7 +234,7 @@ impl TemplatePublisher {
             binary: binary.into_owned(),
             fee_account: Some(account.clone()),
             max_fee,
-            metadata_hash,
+            metadata: metadata_hash.map(PublishTemplateMetadata::Hash),
             detect_inputs: true,
             dry_run: false,
         })
@@ -260,4 +306,18 @@ impl TemplatePublisher {
 pub struct CheckBalanceResult {
     pub max_fee: u64,
     pub binary_size: usize,
+}
+
+/// All fields needed to POST signed metadata to the community server.
+///
+/// Serializes to JSON matching the community server's expected format:
+/// `{ "metadata_cbor": "<hex>", "public_nonce": "<hex>", "signature": "<hex>" }`
+#[derive(Debug, Clone, Serialize)]
+pub struct SignedMetadataPayload {
+    #[serde(with = "ootle_serde::hex")]
+    pub metadata_cbor: Vec<u8>,
+    pub public_nonce: tari_template_lib_types::crypto::RistrettoPublicKeyBytes,
+    pub signature: tari_template_lib_types::crypto::Scalar32Bytes,
+    pub public_key: tari_template_lib_types::crypto::RistrettoPublicKeyBytes,
+    pub metadata_hash: MetadataHash,
 }

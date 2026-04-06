@@ -5,17 +5,17 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use anyhow::{Context, anyhow};
-use blake2::{Blake2b512, Digest};
 use clap::Parser;
-use tari_crypto::keys::{PublicKey, SecretKey};
-use tari_crypto::ristretto::{RistrettoPublicKey, RistrettoSchnorr, RistrettoSecretKey};
-use tari_crypto::tari_utilities::ByteArray;
+use tari_ootle_publish_lib::publisher::{SignedMetadataPayload, TemplatePublisher};
 use tari_ootle_template_metadata::TemplateMetadata;
+use tari_template_lib_types::TemplateAddress;
 use url::Url;
+
+use crate::cli::commands::publish::load_project_config;
+use crate::cli::config::Config;
 
 const DEFAULT_METADATA_SERVER: &str = "http://localhost:3000";
 const METADATA_CBOR_FILENAME: &str = "template_metadata.cbor";
-const SIGNED_METADATA_DOMAIN: &[u8] = b"com.tari.ootle.community.SignedMetadataUpdate";
 
 /// Default retry settings: 6 attempts, 10s initial backoff (10, 20, 40, 80, 160s ≈ ~5 min total).
 const DEFAULT_MAX_RETRIES: u32 = 6;
@@ -40,22 +40,28 @@ pub struct PublishMetadataArgs {
     #[arg(long, default_value_t = DEFAULT_MAX_RETRIES)]
     pub max_retries: u32,
 
-    /// Use author-signed metadata submission (Flow 2).
-    /// Allows updating metadata without republishing the template on-chain.
+    /// Use author-signed metadata submission.
+    /// Signs via the wallet daemon and allows updating metadata without
+    /// republishing the template on-chain.
     #[arg(long)]
     pub signed: bool,
 
-    /// Author secret key (hex). Required with --signed.
-    /// If not provided, you will be prompted.
+    /// Key index for the author signing key (default: 0).
+    /// Used with --signed to identify which derived account key to sign with.
+    #[arg(long, default_value_t = 0)]
+    pub key_index: u64,
+
+    /// Wallet daemon JSON-RPC URL.
+    /// Overrides the value in tari.config.toml and global CLI config.
+    /// Required with --signed.
     #[arg(long)]
-    pub secret_key: Option<String>,
+    pub wallet_daemon_url: Option<url::Url>,
 }
 
-pub async fn handle(args: PublishMetadataArgs) -> anyhow::Result<()> {
+pub async fn handle(config: Config, args: PublishMetadataArgs) -> anyhow::Result<()> {
     let cbor_path = find_metadata_cbor(&args.path).await?;
     let cbor_bytes = std::fs::read(&cbor_path).context("reading metadata CBOR file")?;
 
-    // Verify it decodes before sending
     let metadata =
         TemplateMetadata::from_cbor(&cbor_bytes).context("metadata CBOR is invalid — cannot publish corrupt data")?;
     println!(
@@ -64,11 +70,24 @@ pub async fn handle(args: PublishMetadataArgs) -> anyhow::Result<()> {
     );
 
     if args.signed {
+        let template_address = TemplateAddress::from_hex(&args.template_address)
+            .map_err(|e| anyhow!("invalid template address: {e}"))?;
+
+        let url_override = args.wallet_daemon_url.as_ref().or(config.wallet_daemon_url.as_ref());
+        let project_config = load_project_config(&args.path, url_override).await?;
+        let publisher = TemplatePublisher::new(project_config.network().clone());
+
+        let payload = publisher
+            .sign_metadata_for_publish(args.key_index, template_address, metadata)
+            .await
+            .context("signing metadata via wallet daemon")?;
+
+        println!("🔑 Signed as author: {}", payload.public_key);
+
         publish_metadata_signed(
             &args.metadata_server_url,
             &args.template_address,
-            &cbor_bytes,
-            args.secret_key.as_deref(),
+            &payload,
             args.max_retries,
         )
         .await
@@ -114,7 +133,6 @@ pub async fn publish_metadata_to_server(
 
         let body = resp.text().await.unwrap_or_default();
 
-        // 404 means the template hasn't been synced by the server yet — retry with backoff
         if status == reqwest::StatusCode::NOT_FOUND && attempt < max_retries {
             println!(
                 "⏳ Template not yet synced by server (attempt {}/{}), retrying in {}s...",
@@ -133,54 +151,13 @@ pub async fn publish_metadata_to_server(
     unreachable!()
 }
 
-/// Flow 2: Author-signed metadata publish (POST JSON with Schnorr signature).
+/// Flow 2: Author-signed metadata publish (POST JSON with Schnorr signature from walletd).
 pub async fn publish_metadata_signed(
     server_url: &Url,
     template_address: &str,
-    cbor_bytes: &[u8],
-    secret_key_hex: Option<&str>,
+    payload: &SignedMetadataPayload,
     max_retries: u32,
 ) -> anyhow::Result<()> {
-    let secret_key_hex = match secret_key_hex {
-        Some(hex) => hex.to_string(),
-        None => {
-            let input: String = dialoguer::Password::new()
-                .with_prompt("Author secret key (hex)")
-                .interact()?;
-            input.trim().to_string()
-        },
-    };
-
-    let secret_key_bytes = hex::decode(&secret_key_hex).context("invalid hex for secret key")?;
-    let secret_key =
-        RistrettoSecretKey::from_canonical_bytes(&secret_key_bytes).map_err(|e| anyhow!("invalid secret key: {e}"))?;
-    let public_key = RistrettoPublicKey::from_secret_key(&secret_key);
-
-    println!("🔑 Signing as author: {}", hex::encode(public_key.as_bytes()));
-
-    // Generate nonce
-    let nonce = RistrettoSecretKey::random(&mut rand::thread_rng());
-    let public_nonce = RistrettoPublicKey::from_secret_key(&nonce);
-
-    // Construct challenge: Blake2b-512(domain || nonce || pk || addr || cbor)
-    let addr_bytes = hex::decode(template_address).context("invalid hex for template address")?;
-    let challenge = Blake2b512::new()
-        .chain_update(SIGNED_METADATA_DOMAIN)
-        .chain_update(public_nonce.as_bytes())
-        .chain_update(public_key.as_bytes())
-        .chain_update(&addr_bytes)
-        .chain_update(cbor_bytes)
-        .finalize();
-
-    let signature = RistrettoSchnorr::sign_raw_uniform(&secret_key, nonce, &challenge)
-        .map_err(|e| anyhow!("signing failed: {e}"))?;
-
-    let body = serde_json::json!({
-        "metadata_cbor": hex::encode(cbor_bytes),
-        "public_nonce": hex::encode(signature.get_public_nonce().as_bytes()),
-        "signature": hex::encode(signature.get_signature().as_bytes()),
-    });
-
     let url = server_url
         .join(&format!("/api/templates/{template_address}/metadata/signed"))
         .context("building signed metadata endpoint URL")?;
@@ -192,7 +169,7 @@ pub async fn publish_metadata_signed(
         let resp = client
             .post(url.clone())
             .header("Content-Type", "application/json")
-            .json(&body)
+            .json(payload)
             .send()
             .await
             .with_context(|| format!("POST {url}"))?;
