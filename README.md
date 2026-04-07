@@ -6,6 +6,7 @@
 [![CI Build Status](https://img.shields.io/github/actions/workflow/status/tari-project/tari-cli/pr-check.yml)](https://github.com/tari-project/tari-cli/actions/workflows/pr-check.yml)
 [![Crates.io](https://img.shields.io/crates/v/tari-ootle-cli)](https://crates.io/crates/tari-ootle-cli)
 [![docs.rs](https://img.shields.io/docsrs/tari-ootle-cli)](https://docs.rs/tari-ootle-cli)
+[![Documentation](https://img.shields.io/badge/docs-documentation-blue)](https://tari-project.github.io/tari-cli/)
 
 The **Tari CLI** smart contract development tool for the Tari Layer-2 blockchain.
 
