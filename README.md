@@ -1,138 +1,120 @@
-# 🚀 Tari Ootle CLI
+# Tari Ootle CLI
 
-> **The complete toolkit for developing Tari smart contracts**
-
-[![GitHub Release](https://img.shields.io/github/v/release/tari-project/tari-cli)](https://github.com/tari-project/tari-cli/releases)
 [![CI Build Status](https://img.shields.io/github/actions/workflow/status/tari-project/tari-cli/pr-check.yml)](https://github.com/tari-project/tari-cli/actions/workflows/pr-check.yml)
 [![Crates.io](https://img.shields.io/crates/v/tari-ootle-cli)](https://crates.io/crates/tari-ootle-cli)
 [![docs.rs](https://img.shields.io/docsrs/tari-ootle-cli)](https://docs.rs/tari-ootle-cli)
-[![Documentation](https://img.shields.io/badge/docs-documentation-blue)](https://tari-project.github.io/tari-cli/)
+[![Docs](https://img.shields.io/badge/docs-tari--cli-blue)](https://tari-project.github.io/tari-cli/)
 
-The **Tari CLI** smart contract development tool for the Tari Layer-2 blockchain.
+The **Tari CLI** is the development tool for building and publishing smart contract templates on the [Tari Ootle](https://www.tari.com/) Layer-2 network.
 
-This CLI provides a streamlined workflow for building, testing, and publishing smart contracts on the Tari network. 
-With a focus on simplicity and developer experience, the Tari CLI abstracts away complex blockchain interactions, 
-allowing you to focus on writing your smart contract logic.
+## Quick Start
 
-## ✨ What You Can Build
-
-- **NFT Collections**: Create unique digital assets with custom metadata
-- **Token Systems**: Build fungible tokens with advanced features  
-- **DeFi Protocols**: Develop decentralized finance applications
-- **Custom Templates**: Design reusable smart contract patterns
-
-## 🚀 Quick Start
-
-Get your first Tari smart contract published in under 5 minutes:
-
-### 1. Install Tari CLI
+### Install
 
 ```bash
-# Using Cargo
-cargo install tari-cli 
-
-# Or download from releases
-curl -L https://github.com/tari-project/tari-cli/releases/download/latest/tari-linux-x86_64.tar.gz | tar xz
+cargo install tari-ootle-cli
 ```
 
-### 2. Create Your First Project
+Requires the WASM target:
 
-<!-- SOURCE: Actual CLI output from README.md:49-57 -->
 ```bash
-tari create my-first-contract
-
-# ✅ Init configuration and directories
-# ✅ Refresh project templates repository  
-# ✅ Refresh wasm templates repository
-# ✅ Collecting available project templates
-# 🔎 Select project template: Basic - The basic project template to get started
-# ✅ Generate new project
+rustup target add wasm32-unknown-unknown
 ```
 
-### 3. Add a Smart Contract
+### Create a template
 
-<!-- SOURCE: Actual CLI output from README.md:67-77 -->
 ```bash
-cd my-first-contract
-tari new MyToken
-
-# ✅ Init configuration and directories
-# ✅ Collecting available WASM templates  
-# 🔎 Select WASM template: NFT - A simple NFT template to create your own
-# ✅ Generate new project
-# ✅ Update Cargo.toml
+tari create my-token
 ```
 
-### 4. Publish to Network
+You'll be prompted to pick a starter template. This scaffolds a crate with `build.rs` and metadata configuration ready to go.
 
-<!-- SOURCE: Actual CLI output from README.md:89-97 -->
+### Build
+
 ```bash
-tari publish --account myaccount MyToken
-
-# ✅ Building WASM template project "MyToken"
-# ❓ Publishing this template costs 256875 XTR (estimated), are you sure to continue? yes
-# ✅ Publishing template. This may take a while...
-# ⭐ Your new template's address: f807989828e70a18050e5785f30a7bd01475797d76d6b4700af175b859c32774
+cd my-token
+tari build
+# ✅ WASM binary: target/.../my_token.wasm (42.3 KB)
+# 📄 Metadata:    target/.../template_metadata.cbor
 ```
 
-🎉 **Congratulations!** Your smart contract is live on Tari.
+### Inspect metadata
 
-## 📚 Documentation
+```bash
+tari metadata inspect
 
-### 🎯 Essential Guides
-- **[Getting Started](docs/01-getting-started/installation.md)** - Complete setup and first project
-- **[Template Development](docs/02-guides/template-development.md)** - Creating custom smart contracts
-- **[Configuration Guide](docs/02-guides/project-configuration.md)** - Project and network setup
-- **[Publishing Guide](docs/02-guides/deployment.md)** - From build to blockchain
+#   Name:           my-token
+#   Version:        0.1.0
+#   Tags:           token, defi
+#   Category:       token
+#   Logo URL:       https://example.com/logo.png
+#   Metadata hash:  ...
+```
 
-### 📖 Reference
-- **[CLI Commands](docs/03-reference/cli-commands.md)** - Complete command reference
-- **[Configuration Schema](docs/03-reference/configuration-schema.md)** - All configuration options
-- **[API Patterns](docs/03-reference/api-patterns.md)** - Implementation patterns from real code
+### Publish to network
 
-### 🔧 Help & Troubleshooting  
-- **[Common Issues](docs/04-troubleshooting/common-issues.md)** - Solutions to frequent problems
-- **[Advanced Debugging](docs/04-troubleshooting/debugging.md)** - Deep troubleshooting techniques
-- **[FAQ](docs/04-troubleshooting/faq.md)** - Frequently asked questions
+```bash
+tari publish -a myaccount
 
-### 🤝 Contributing
-- **[Development Setup](docs/05-contributing/development-setup.md)** - Contributor environment
-- **[Testing Guide](docs/05-contributing/testing.md)** - Test framework and practices
+# ✅ WASM size: 42.3 KB
+# 🔑 Metadata hash: ...
+# ⭐ Your new template's address: template_f807989828e70a...
+```
 
-## 🔧 Prerequisites
+### Publish metadata to community server
 
-<!-- SOURCE: Verified against actual config defaults -->
-Before using Tari CLI, ensure you have:
+```bash
+# Hash-verified (template must have been published with metadata hash)
+tari metadata publish -t template_f807989828e70a...
 
-- **[Tari Wallet Daemon](https://github.com/tari-project/tari-dan)** running locally
-- **Rust toolchain** with `wasm32-unknown-unknown` target:
-  ```bash
-  rustup target add wasm32-unknown-unknown
-  ```
+# Author-signed (signs via wallet daemon, no secret keys in the CLI)
+tari metadata publish -t template_f807989828e70a... --signed
+```
 
-The CLI automatically detects your development environment and guides you through any missing setup.
+## Commands
 
-## 🌐 Networks
+| Command | Description |
+|---------|-------------|
+| `tari create [NAME]` | Create a new template crate (interactive if name omitted) |
+| `tari build [PATH]` | Build the WASM binary |
+| `tari publish [PATH]` | Publish template to the network |
+| `tari template init` | Set up metadata generation in an existing crate |
+| `tari template inspect` | Inspect built metadata |
+| `tari metadata publish` | Publish metadata to a community server |
+| `tari metadata inspect` | Inspect built metadata (alias) |
+| `tari config init/set/get/show` | Manage project configuration |
 
-- **Local Development**: Perfect for testing and iteration
-- **Testnet**: Pre-production validation
-- **Mainnet**: Production publishing
+Run `tari --help` or `tari <command> --help` for full details.
 
-See the [Configuration Guide](docs/02-guides/project-configuration.md) for network-specific setup.
+## Configuration
 
-## 🆘 Get Help
+Project config lives in `tari.config.toml` (created by `tari config init` or the wizard):
 
-- **📖 Documentation**: Comprehensive guides above
-- **🐛 Bug Reports**: [GitHub Issues](https://github.com/tari-project/tari-cli/issues)
-- **💬 Community**: [Tari Discord](https://discord.gg/tari)
-- **📧 Questions**: [GitHub Discussions](https://github.com/tari-project/tari/discussions)
+```toml
+[network]
+wallet-daemon-jrpc-address = "http://127.0.0.1:9000/json_rpc"
 
-## 📊 Project Status
+# metadata-server-url = "http://localhost:3000"
+# default_account = "myaccount"
+```
 
-- **Build Status**: [![CI](https://img.shields.io/github/actions/workflow/status/tari-project/tari-cli/pr-check.yml)](https://github.com/tari-project/tari-cli/actions/workflows/pr-check.yml)
-- **Latest Release**: [![Release](https://img.shields.io/github/v/release/tari-project/tari-cli)](https://github.com/tari-project/tari-cli/releases)
-- **Crates.io**: [![Crates.io](https://img.shields.io/crates/v/tari-ootle-cli)](https://crates.io/crates/tari-ootle-cli)
+Settings are resolved: **CLI flag > project config > global config > default**.
 
----
+See the [Configuration Schema Reference](https://tari-project.github.io/tari-cli/03-reference/configuration-schema/) for all options.
 
-**Ready to build the future of decentralized applications?** [Get started now](docs/01-getting-started/installation.md) or explore our [template gallery](docs/02-guides/template-development.md#template-examples).
+## Documentation
+
+Full documentation is available at **[tari-project.github.io/tari-cli](https://tari-project.github.io/tari-cli/)**.
+
+- [CLI Commands Reference](https://tari-project.github.io/tari-cli/03-reference/cli-commands/)
+- [Configuration Schema](https://tari-project.github.io/tari-cli/03-reference/configuration-schema/)
+- [Getting Started](https://tari-project.github.io/tari-cli/01-getting-started/quick-start/)
+
+## Prerequisites
+
+- [Tari Wallet Daemon](https://github.com/tari-project/tari-dan) running and accessible
+- Rust toolchain with `wasm32-unknown-unknown` target
+
+## License
+
+BSD-3-Clause. See [LICENSE](LICENSE).

@@ -1,462 +1,243 @@
 ---
 title: Configuration Schema Reference
 description: Complete reference for all Tari CLI configuration options and file formats
-last_updated: 2025-06-26
-version: Latest (main branch)
+last_updated: 2026-04-07
+version: "0.11"
 verified_against: crates/cli/src/cli/config.rs, crates/cli/src/project/config.rs
 audience: users
 ---
 
 # Configuration Schema Reference
 
-> **Complete reference** for all Tari CLI configuration files, options, and environment variables
+> **Complete reference** for all Tari CLI configuration files and options
 
 ## Configuration Hierarchy
 
-The Tari CLI uses a hierarchical configuration system with the following precedence (highest to lowest):
+Settings are resolved in this order (highest priority first):
 
-1. **Command-line arguments** (`--account`, `--max-fee`, etc.)
+1. **Command-line flags** (`--wallet-daemon-url`, `--metadata-server-url`, etc.)
 2. **CLI overrides** (`-e KEY=VALUE`)
-3. **Project configuration** (`project_dir/tari.config.toml`)
+3. **Project configuration** (`tari.config.toml` in project or git root)
 4. **Global CLI configuration** (`~/.config/tari_cli/tari.config.toml`)
 5. **Built-in defaults**
 
+---
+
 ## Global CLI Configuration
 
-<!-- SOURCE: Verified against crates/cli/src/cli/config.rs -->
 ### File Location
 
-**Default path**: `~/.config/tari_cli/tari.config.toml`
+**Default**: `~/.config/tari_cli/tari.config.toml`
 
-**Custom path**: Use `--config-file-path` or `-c` flag
+**Custom**: use `--config-file-path` or `-c`
 
-### CLI Configuration Schema
+### Schema
 
 ```toml
 # ~/.config/tari_cli/tari.config.toml
 
-[project-template-repository]
-url = "https://github.com/tari-project/wasm-template"
-branch = "main"
-folder = "project_templates"
-
-[wasm-template-repository]  
+[template-repository]
 url = "https://github.com/tari-project/wasm-template"
 branch = "main"
 folder = "wasm_templates"
+
+# Optional
+# wallet-daemon-url = "http://127.0.0.1:9000/json_rpc"
+# metadata-server-url = "http://localhost:3000"
+# default-account = "myaccount"
 ```
 
-### CLI Configuration Fields
+### Fields
 
-<!-- SOURCE: Verified against config.rs lines 22-51 -->
-#### `[project-template-repository]`
+#### `[template-repository]`
 
-Controls where project templates are sourced from:
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `url` | String | `https://github.com/tari-project/wasm-template` | Git repository URL for templates |
+| `branch` | String | `main` | Git branch |
+| `folder` | String | `wasm_templates` | Subdirectory containing templates |
 
-| Field | Type | Description | Default |
-|-------|------|-------------|---------|
-| `url` | String | Git repository URL for project templates | `"https://github.com/tari-project/wasm-template"` |
-| `branch` | String | Git branch to use | `"main"` |
-| `folder` | String | Subdirectory containing templates | `"project_templates"` |
+#### Top-level optional fields
 
-#### `[wasm-template-repository]`
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `wallet-daemon-url` | URL | None | Global wallet daemon JSON-RPC URL |
+| `metadata-server-url` | URL | None | Global metadata server URL |
+| `default-account` | String | None | Default wallet account for publishing |
 
-Controls where WASM templates are sourced from:
+### CLI Overrides (`-e`)
 
-| Field | Type | Description | Default |
-|-------|------|-------------|---------|
-| `url` | String | Git repository URL for WASM templates | `"https://github.com/tari-project/wasm-template"` |
-| `branch` | String | Git branch to use | `"main"` |
-| `folder` | String | Subdirectory containing templates | `"wasm_templates"` |
+Valid override keys:
 
-### CLI Configuration Overrides
-
-<!-- SOURCE: Verified against config.rs VALID_OVERRIDE_KEYS lines 10-17 -->
-Override configuration via command line:
+| Key | Example |
+|-----|---------|
+| `template_repository.url` | `https://github.com/my-org/templates` |
+| `template_repository.branch` | `development` |
+| `template_repository.folder` | `my_templates` |
+| `default_account` | `myaccount` |
+| `wallet_daemon_url` | `http://localhost:12008/json_rpc` |
+| `metadata_server_url` | `http://community.example.com` |
 
 ```bash
-# Override project template repository
-tari -e "project_template_repository.url=https://github.com/my-org/templates" create my-project
-
-# Override template branch
-tari -e "wasm_template_repository.branch=development" new my-template
-
-# Multiple overrides
-tari -e "project_template_repository.url=https://custom.git" \
-     -e "wasm_template_repository.branch=custom" \
-     create my-project
+tari -e "wallet_daemon_url=http://localhost:12008/json_rpc" publish
 ```
 
-**Valid Override Keys**:
-- `project_template_repository.url`
-- `project_template_repository.branch`
-- `project_template_repository.folder`
-- `wasm_template_repository.url`
-- `wasm_template_repository.branch`
-- `wasm_template_repository.folder`
+---
 
 ## Project Configuration
 
-<!-- SOURCE: Verified against crates/cli/src/project/config.rs -->
 ### File Location
 
-**Required location**: `{project_root}/tari.config.toml`
+`tari.config.toml` in the project root or git repository root. Created with `tari config init` or automatically by the wizard.
 
-### Project Configuration Schema
+### Schema
 
 ```toml
-# tari.config.toml (in project root)
+# tari.config.toml
 
 [network]
-wallet-daemon-jrpc-address = "http://127.0.0.1:9000/"
+wallet-daemon-jrpc-address = "http://127.0.0.1:9000/json_rpc"
+
+# Optional
+# default_account = "myaccount"
+# metadata-server-url = "http://localhost:3000"
 ```
 
-### Project Configuration Fields
+### Fields
 
-<!-- SOURCE: Verified against project/config.rs lines 16-33 -->
 #### `[network]`
 
-Network and publishing configuration:
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `wallet-daemon-jrpc-address` | URL | `http://127.0.0.1:9000/json_rpc` | Wallet daemon JSON-RPC endpoint |
 
-| Field | Type | Description | Default | Required |
-|-------|------|-------------|---------|----------|
-| `wallet-daemon-jrpc-address` | String (URL) | JSON-RPC endpoint for Tari Wallet Daemon | `"http://127.0.0.1:9000/"` | Yes |
+#### Top-level optional fields
 
-**URL Format Requirements**:
-- Must be valid HTTP/HTTPS URL
-- Must include protocol (`http://` or `https://`)
-- Must include port number
-- Examples: `http://127.0.0.1:9000/`, `https://testnet-node:9000/`
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `default_account` | String | None | Default wallet account |
+| `metadata-server-url` | URL | None | Metadata server URL |
 
-### Network Configuration Examples
+### Managing Project Configuration
 
-**Local Development**:
-```toml
-[network]
-wallet-daemon-jrpc-address = "http://127.0.0.1:9000/"
+```bash
+# Create default config
+tari config init
+
+# Set wallet daemon URL
+tari config set network.wallet-daemon-jrpc-address http://localhost:12008/json_rpc
+
+# Set metadata server
+tari config set metadata_server_url http://community.example.com
+
+# View current config
+tari config show
 ```
 
-**Remote Testnet**:
+---
+
+## Template Metadata Configuration
+
+Template metadata is stored in `Cargo.toml` under `[package.metadata.tari-template]`. It is read at build time by `tari_ootle_template_build` and encoded as CBOR.
+
+### Schema
+
 ```toml
-[network]
-wallet-daemon-jrpc-address = "https://testnet-wallet.tari.com:9000/"
+[package]
+name = "my-template"
+version = "1.0.0"
+description = "A fungible token with mint/burn/transfer"
+license = "BSD-3-Clause"
+repository = "https://github.com/example/my-template"
+
+[package.metadata.tari-template]
+tags = ["token", "fungible", "defi"]
+category = "token"
+documentation = "https://docs.example.com/"
+homepage = "https://example.com/"
+logo_url = "https://example.com/logo.png"
+
+[package.metadata.tari-template.extra]
+audit = "https://example.com/audit-report"
 ```
 
-**Custom Port**:
-```toml
-[network]
-wallet-daemon-jrpc-address = "http://127.0.0.1:9001/"
+### Fields
+
+Fields from `[package]` (read automatically):
+
+| Field | Source | Description |
+|-------|--------|-------------|
+| `name` | `[package].name` | Template name (required) |
+| `version` | `[package].version` | Template version (required) |
+| `description` | `[package].description` | Description |
+| `license` | `[package].license` | License identifier |
+| `repository` | `[package].repository` | Repository URL |
+
+Fields from `[package.metadata.tari-template]`:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `tags` | Array of strings | Searchable tags |
+| `category` | String | Template category |
+| `documentation` | String | Documentation URL |
+| `homepage` | String | Homepage URL |
+| `logo_url` | String | Logo/icon image URL |
+
+Fields from `[package.metadata.tari-template.extra]`:
+
+Arbitrary key-value pairs (string values only).
+
+### Setting Up Metadata
+
+```bash
+# Interactive setup (adds build.rs and Cargo.toml section)
+tari template init
+
+# Non-interactive
+tari template init -y --tags token,defi --category token --logo-url https://example.com/logo.png
 ```
 
-## Template Configuration
+### Inspecting Metadata
 
-### Template Descriptor Schema
+```bash
+# Human-readable table
+tari metadata inspect
 
-<!-- SOURCE: Verified against crates/cli/src/templates/collector.rs lines 136-152 -->
-Every template requires a `template.toml` file:
+# JSON output
+tari metadata inspect --json
+```
+
+---
+
+## Template Descriptor
+
+Template repositories use `template.toml` to describe each starter template:
 
 ```toml
-# template.toml
+name = "fungible-token"
+description = "A standard fungible token with mint/burn/transfer"
 
-name = "template-name"
-description = "Human-readable template description"
-
-# Optional extra configuration
 [extra]
-templates_dir = "templates"
-wasm_templates = "true"
 category = "tokens"
 complexity = "beginner"
 ```
 
-### Template Fields Reference
-
-#### Required Fields
-
-| Field | Type | Description | Example |
-|-------|------|-------------|---------|
-| `name` | String | Template identifier (converted to snake_case) | `"nft-template"` |
-| `description` | String | Human-readable description shown during selection | `"A simple NFT template"` |
-
-#### Optional `[extra]` Fields
-
-| Field | Type | Description | Usage |
-|-------|------|-------------|-------|
-| `templates_dir` | String | Subdirectory containing template files | Project templates with nested WASM templates |
-| `wasm_templates` | String | Comma-separated list of initial WASM templates | Auto-generate templates on project creation |
-| `category` | String | Template category for organization | `"tokens"`, `"defi"`, `"governance"` |
-| `complexity` | String | Difficulty level indicator | `"beginner"`, `"intermediate"`, `"advanced"` |
-
-### Template Repository Structure
-
-<!-- SOURCE: Verified against collector.rs template discovery logic -->
-Templates are discovered by scanning for `template.toml` files:
-
-```
-template-repository/
-├── basic-project/
-│   ├── template.toml           # Project template descriptor
-│   ├── Cargo.toml             # Project workspace config
-│   └── src/                   # Template source files
-├── templates/
-│   ├── nft/
-│   │   ├── template.toml      # WASM template descriptor  
-│   │   ├── Cargo.toml         # Crate configuration
-│   │   └── src/lib.rs         # Smart contract implementation
-│   └── token/
-│       ├── template.toml
-│       ├── Cargo.toml
-│       └── src/lib.rs
-```
-
-**Discovery Rules**:
-- CLI recursively scans repository for `template.toml` files
-- Template ID derived from directory name (converted to snake_case)
-- Templates can be nested in any directory structure
-- Both root-level and subdirectory templates are supported
-
-## Command-Line Configuration
-
-### Global Arguments
-
-<!-- SOURCE: Verified against crates/cli/src/cli/arguments.rs lines 88-104 -->
-Available for all commands:
-
-```bash
-tari [GLOBAL_OPTIONS] <COMMAND> [COMMAND_OPTIONS]
-```
-
-| Option | Short | Type | Description | Default |
-|--------|-------|------|-------------|---------|
-| `--base-dir <PATH>` | `-b` | Path | Base directory for CLI data | `~/.local/share/tari_cli` |
-| `--config-file-path <PATH>` | `-c` | Path | Config file location | `~/.config/tari_cli/tari.config.toml` |
-| `--config-overrides <KEY=VALUE>` | `-e` | String | Config overrides | None |
-
-### Command-Specific Arguments
-
-#### `create` Command
-
-```bash
-tari create [OPTIONS] <NAME>
-```
-
-| Option | Short | Type | Description | Default |
-|--------|-------|------|-------------|---------|
-| `<NAME>` | | String | Project name (converted to snake_case) | Required |
-| `--template <TEMPLATE>` | `-t` | String | Project template ID | Interactive selection |
-| `--target <PATH>` | | Path | Target directory | Current directory |
-
-#### `new` Command
-
-```bash
-tari new [OPTIONS] <NAME>
-```
-
-| Option | Short | Type | Description | Default |
-|--------|-------|------|-------------|---------|
-| `<NAME>` | | String | Template name (converted to snake_case) | Required |
-| `--template <TEMPLATE>` | `-t` | String | WASM template ID | Interactive selection |
-| `--target <PATH>` | | Path | Target directory | Current directory |
-
-#### `deploy` Command
-
-<!-- SOURCE: Verified against crates/cli/src/cli/commands/deploy.rs lines 18-50 -->
-```bash
-tari deploy [OPTIONS] <TEMPLATE>
-```
-
-| Option | Short | Type | Description | Default |
-|--------|-------|------|-------------|---------|
-| `<TEMPLATE>` | | String | Template project to deploy | Required |
-| `--account <ACCOUNT>` | `-a` | String | Account for deployment fees | Required |
-| `--custom-network <NETWORK>` | `-c` | String | Custom network name | Project config default |
-| `--yes` | `-y` | Flag | Auto-confirm deployment | `false` |
-| `--max-fee <MAX_FEE>` | `-f` | u64 | Maximum deployment fee | Auto-estimated |
-| `--project-folder <PATH>` | | Path | Project folder location | Current directory |
-
-## Environment Variables
-
-### CLI Data Directories
-
-<!-- SOURCE: Verified against arguments.rs default directory functions -->
-The CLI uses standard system directories:
-
-**Linux/macOS**:
-- **Data**: `~/.local/share/tari_cli/`
-- **Config**: `~/.config/tari_cli/`
-- **Templates**: `~/.local/share/tari_cli/template_repositories/`
-
-**Windows**:
-- **Data**: `%APPDATA%\tari_cli\`
-- **Config**: `%APPDATA%\tari_cli\`
-- **Templates**: `%APPDATA%\tari_cli\template_repositories\`
-
-### Build Environment Variables
-
-These affect WASM compilation and deployment:
-
-| Variable | Effect | Example |
-|----------|--------|---------|
-| `RUST_LOG` | Enable debug logging | `RUST_LOG=debug tari create my-project` |
-| `CARGO_TARGET_DIR` | Override build directory | `CARGO_TARGET_DIR=./build tari publish` |
-| `RUSTFLAGS` | Pass flags to Rust compiler | `RUSTFLAGS="-C target-cpu=native"` |
-
-### Network Environment Variables
-
-<!-- SOURCE: Verified against CI configuration -->
-Used in CI/CD and testing:
-
-| Variable | Effect | Example |
-|----------|--------|---------|
-| `TARI_NETWORK` | Set target network | `TARI_NETWORK=testnet` |
-| `TARI_TARGET_NETWORK` | Set deployment target | `TARI_TARGET_NETWORK=localnet` |
-
-## Validation and Errors
-
-### Configuration Validation
-
-The CLI validates all configuration at startup:
-
-**URL Validation**:
-```rust
-// Must be valid URL with protocol and port
-Url::parse("http://127.0.0.1:9000/").unwrap()
-```
-
-**Override Key Validation**:
-```rust
-// Only specific keys are allowed for overrides
-const VALID_OVERRIDE_KEYS: &[&str] = &[
-    "project_template_repository.url",
-    "wasm_template_repository.branch",
-    // ... other valid keys
-];
-```
-
-### Common Configuration Errors
-
-**Invalid URL Format**:
-```
-Error: URL parsing error: invalid port number
-```
-**Solution**: Ensure URL includes protocol and valid port
-
-**Invalid Override Key**:
-```
-Error: Invalid key: invalid.override.key
-```
-**Solution**: Use only valid override keys from reference
-
-**Missing Configuration File**:
-```
-Failed to load project config file (at /path/to/tari.config.toml)
-```
-**Solution**: Create `tari.config.toml` in project root
-
-**Invalid TOML Syntax**:
-```
-Error: Failed to deserialize TOML
-```
-**Solution**: Validate TOML syntax and field names
-
-## Configuration Examples
-
-### Development Setup
-
-Complete configuration for local development:
-
-```toml
-# ~/.config/tari_cli/tari.config.toml
-[project-template-repository]
-url = "https://github.com/tari-project/wasm-template"
-branch = "main"
-folder = "project_templates"
-
-[wasm-template-repository]
-url = "https://github.com/tari-project/wasm-template"  
-branch = "main"
-folder = "wasm_templates"
-```
-
-```toml
-# project_root/tari.config.toml
-[network]
-wallet-daemon-jrpc-address = "http://127.0.0.1:9000/"
-```
-
-### Multi-Environment Setup
-
-Different configurations for various environments:
-
-**Development** (`tari.config.dev.toml`):
-```toml
-[network]
-wallet-daemon-jrpc-address = "http://127.0.0.1:9000/"
-```
-
-**Testnet** (`tari.config.testnet.toml`):
-```toml
-[network]
-wallet-daemon-jrpc-address = "https://testnet-wallet:9000/"
-```
-
-**Production** (`tari.config.prod.toml`):
-```toml
-[network]
-wallet-daemon-jrpc-address = "https://mainnet-wallet.secure.com:9000/"
-```
-
-### Custom Template Repository
-
-Using organization-specific templates:
-
-```toml
-# ~/.config/tari_cli/tari.config.toml
-[project-template-repository]
-url = "https://github.com/my-org/tari-templates"
-branch = "stable"
-folder = "projects"
-
-[wasm-template-repository]
-url = "https://github.com/my-org/tari-templates"
-branch = "stable"  
-folder = "contracts"
-```
-
-### CI/CD Configuration
-
-Minimal configuration for automated environments:
-
-```bash
-# Environment-based configuration
-export TARI_NETWORK=testnet
-export CARGO_TARGET_DIR=/tmp/build
-
-# CLI with overrides
-tari -b /tmp/tari_cli \
-     -e "wasm_template_repository.branch=ci-stable" \
-     deploy --account ci-account --yes my_template
-```
-
-## Migration and Upgrades
-
-### Configuration Version Compatibility
-
-The CLI maintains backward compatibility for configuration files:
-
-- **Missing fields**: Filled with defaults
-- **Extra fields**: Ignored gracefully  
-- **Deprecated fields**: Warnings displayed
-
-### Migrating Between Versions
-
-When upgrading Tari CLI:
-
-1. **Backup existing config**: Copy current `tari.config.toml` files
-2. **Check deprecation warnings**: Note any warnings on startup
-3. **Update templates**: Refresh template repositories after upgrade
-4. **Validate deployment**: Test deployment on development network
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Template identifier |
+| `description` | Yes | Shown during interactive selection |
+| `[extra]` | No | Arbitrary metadata |
 
 ---
 
-**Need help with configuration?** Check our [Common Issues](../04-troubleshooting/common-issues.md#project-configuration-issues) or [CLI Commands Reference](cli-commands.md) for specific usage examples.
+## Data Directories
+
+| Directory | macOS/Linux | Purpose |
+|-----------|-------------|---------|
+| Data | `~/.local/share/tari_cli/` | CLI data and cached repos |
+| Config | `~/.config/tari_cli/` | Global config file |
+| Templates | `~/.local/share/tari_cli/template_repositories/` | Cloned template repos |
+
+---
+
+For command usage, see the [CLI Commands Reference](cli-commands.md).
