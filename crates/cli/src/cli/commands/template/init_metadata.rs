@@ -9,7 +9,7 @@ use dialoguer::Input;
 use tokio::fs;
 
 const BUILD_DEP_KEY: &str = "tari_ootle_template_build";
-const BUILD_DEP_VERSION: &str = "0.3";
+const BUILD_DEP_VERSION: &str = "0.4";
 const BUILD_RS_CONTENT: &str = r#"fn main() {
     tari_ootle_template_build::TemplateMetadataBuilder::new()
         .build()
