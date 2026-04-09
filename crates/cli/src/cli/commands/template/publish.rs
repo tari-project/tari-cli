@@ -185,7 +185,18 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
         println!("📝 Saved template address to {}", config_path.display());
     }
 
-    if args.publish_metadata && metadata_hash.is_some() {
+    let should_publish_metadata = if args.publish_metadata {
+        metadata_hash.is_some()
+    } else if metadata_hash.is_some() {
+        Confirm::new()
+            .with_prompt("Publish metadata to community server?")
+            .default(false)
+            .interact()?
+    } else {
+        false
+    };
+
+    if should_publish_metadata {
         let cbor_path = find_metadata_cbor(crate_dir).await?;
         let cbor_bytes = std::fs::read(&cbor_path).context("reading metadata CBOR for server publish")?;
 
@@ -207,8 +218,6 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
                 );
             },
         }
-    } else if args.publish_metadata && metadata_hash.is_none() {
-        println!("⚠️  --publish-metadata was set but no metadata was found, skipping");
     }
 
     Ok(())
