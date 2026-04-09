@@ -1,12 +1,14 @@
 // Copyright 2024 The Tari Project
 // SPDX-License-Identifier: BSD-3-Clause
 
-use std::io::BufReader;
 use std::path::PathBuf;
 
 use anyhow::{Context, anyhow};
 use clap::Parser;
+use dialoguer::Confirm;
 use tari_ootle_template_metadata::TemplateMetadata;
+
+use crate::cli::commands::publish::{build_template, find_metadata_cbor};
 
 #[derive(Clone, Parser, Debug)]
 pub struct InspectMetadataArgs {
@@ -27,7 +29,7 @@ pub struct InspectMetadataArgs {
 pub async fn handle(args: InspectMetadataArgs) -> anyhow::Result<()> {
     let cbor_path = match args.path {
         Some(p) => p,
-        None => crate::cli::commands::publish::find_metadata_cbor(&args.project_dir).await?,
+        None => find_metadata_cbor(&args.project_dir).await?,
     };
 
     if !cbor_path.exists() {
@@ -36,9 +38,36 @@ pub async fn handle(args: InspectMetadataArgs) -> anyhow::Result<()> {
 
     println!("📄 Reading metadata from {}", cbor_path.display());
 
-    let file = std::fs::File::open(&cbor_path).context("opening metadata CBOR file")?;
-    let reader = BufReader::new(file);
-    let metadata = TemplateMetadata::read_cbor_from(reader).context("decoding metadata CBOR")?;
+    let mut cbor_bytes = std::fs::read(&cbor_path).context("reading metadata CBOR file")?;
+    let mut metadata =
+        TemplateMetadata::from_cbor(&cbor_bytes).context("decoding metadata CBOR")?;
+
+    // Check if built metadata matches Cargo.toml
+    let cargo_toml_path = args.project_dir.join("Cargo.toml");
+    if cargo_toml_path.exists() {
+        match tari_ootle_template_metadata::from_cargo_toml(&cargo_toml_path) {
+            Ok(current) if current != metadata => {
+                println!("⚠️  Built metadata does not match Cargo.toml (metadata may be stale)");
+                let rebuild = Confirm::new()
+                    .with_prompt("Rebuild to update metadata?")
+                    .default(true)
+                    .interact()?;
+                if rebuild {
+                    build_template(&args.project_dir).await?;
+                    let new_cbor_path = find_metadata_cbor(&args.project_dir).await?;
+                    cbor_bytes = std::fs::read(&new_cbor_path).context("reading rebuilt metadata CBOR")?;
+                    metadata = TemplateMetadata::from_cbor(&cbor_bytes)
+                        .context("rebuilt metadata CBOR is invalid")?;
+                    println!("✅ Metadata rebuilt");
+                }
+            },
+            Ok(_) => {},
+            Err(e) => {
+                println!("⚠️  Could not read Cargo.toml metadata for freshness check: {e}");
+            },
+        }
+    }
+
     let hash = metadata.hash().context("computing metadata hash")?;
 
     if args.json {
