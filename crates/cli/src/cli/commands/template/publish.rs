@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 use std::io::BufReader;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use anyhow::{Context, anyhow};
 use clap::Parser;
@@ -13,13 +13,12 @@ use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use tari_ootle_template_metadata::TemplateMetadata;
 
 use crate::cli::commands::metadata::publish::publish_metadata_to_server;
-use crate::cli::commands::publish::{build_template, load_project_config};
+use crate::cli::commands::publish::{build_template, find_metadata_cbor, load_project_config};
 use crate::cli::config::Config;
 use crate::cli::util;
 use crate::loading;
 
 const MAX_WASM_SIZE: usize = 5 * 1000 * 1000; // 5 MB
-const METADATA_CBOR_FILENAME: &str = "template_metadata.cbor";
 
 #[derive(Clone, Parser, Debug)]
 pub struct TemplatePublishArgs {
@@ -183,32 +182,6 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
     }
 
     Ok(())
-}
-
-async fn find_metadata_cbor(crate_dir: &Path) -> anyhow::Result<PathBuf> {
-    let target_dir = crate::cli::commands::publish::find_target_dir(crate_dir).await?;
-    let build_dir = target_dir.join("wasm32-unknown-unknown").join("release").join("build");
-
-    if !build_dir.exists() {
-        return Err(anyhow!("build output directory not found at {}", build_dir.display()));
-    }
-
-    let mut found = Vec::new();
-    for entry in std::fs::read_dir(&build_dir).context("reading build directory")? {
-        let entry = entry?;
-        let out_file = entry.path().join("out").join(METADATA_CBOR_FILENAME);
-        if out_file.exists() {
-            found.push(out_file);
-        }
-    }
-
-    match found.len() {
-        0 => Err(anyhow!("no {METADATA_CBOR_FILENAME} in build output")),
-        1 => Ok(found.into_iter().next().unwrap()),
-        _ => Err(anyhow!(
-            "Multiple metadata files found. Specify the CBOR file path to `tari template inspect` instead."
-        )),
-    }
 }
 
 async fn resolve_account(

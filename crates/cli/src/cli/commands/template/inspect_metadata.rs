@@ -2,13 +2,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 use std::io::BufReader;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use anyhow::{Context, anyhow};
 use clap::Parser;
 use tari_ootle_template_metadata::TemplateMetadata;
-
-const METADATA_CBOR_FILENAME: &str = "template_metadata.cbor";
 
 #[derive(Clone, Parser, Debug)]
 pub struct InspectMetadataArgs {
@@ -29,7 +27,7 @@ pub struct InspectMetadataArgs {
 pub async fn handle(args: InspectMetadataArgs) -> anyhow::Result<()> {
     let cbor_path = match args.path {
         Some(p) => p,
-        None => find_metadata_cbor(&args.project_dir).await?,
+        None => crate::cli::commands::publish::find_metadata_cbor(&args.project_dir).await?,
     };
 
     if !cbor_path.exists() {
@@ -54,32 +52,6 @@ pub async fn handle(args: InspectMetadataArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn find_metadata_cbor(project_dir: &Path) -> anyhow::Result<PathBuf> {
-    let target_dir = crate::cli::commands::publish::find_target_dir(project_dir).await?;
-    let build_dir = target_dir.join("wasm32-unknown-unknown").join("release").join("build");
-
-    if !build_dir.exists() {
-        return Err(anyhow!(
-            "Build output directory not found at {}. Run `tari build` first.",
-            build_dir.display()
-        ));
-    }
-
-    // Search build output directories for the metadata CBOR file
-    for entry in std::fs::read_dir(&build_dir).context("reading build directory")? {
-        let entry = entry?;
-        let out_dir = entry.path().join("out").join(METADATA_CBOR_FILENAME);
-        if out_dir.exists() {
-            return Ok(out_dir);
-        }
-    }
-
-    Err(anyhow!(
-        "No {METADATA_CBOR_FILENAME} found in build output. \
-         Make sure the template uses tari_ootle_template_build in build.rs \
-         and has been built with `cargo build --target wasm32-unknown-unknown --release`."
-    ))
-}
 
 fn print_metadata_table(metadata: &TemplateMetadata, hash: &tari_ootle_template_metadata::MetadataHash) {
     println!();

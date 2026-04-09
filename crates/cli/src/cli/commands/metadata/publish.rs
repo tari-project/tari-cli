@@ -1,7 +1,7 @@
 // Copyright 2024 The Tari Project
 // SPDX-License-Identifier: BSD-3-Clause
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::Duration;
 
 use anyhow::{Context, anyhow};
@@ -11,11 +11,10 @@ use tari_ootle_publish_lib::publisher::{SignedMetadataPayload, TemplatePublisher
 use tari_ootle_template_metadata::TemplateMetadata;
 use url::Url;
 
-use crate::cli::commands::publish::load_project_config;
+use crate::cli::commands::publish::{find_metadata_cbor, load_project_config};
 use crate::cli::config::Config;
 
 const DEFAULT_METADATA_SERVER: &str = "http://localhost:3000";
-const METADATA_CBOR_FILENAME: &str = "template_metadata.cbor";
 
 /// Default retry settings: 6 attempts, 10s initial backoff (10, 20, 40, 80, 160s ≈ ~5 min total).
 const DEFAULT_MAX_RETRIES: u32 = 6;
@@ -199,28 +198,4 @@ pub async fn publish_metadata_signed(
     unreachable!()
 }
 
-async fn find_metadata_cbor(crate_dir: &Path) -> anyhow::Result<PathBuf> {
-    let target_dir = crate::cli::commands::publish::find_target_dir(crate_dir).await?;
-    let build_dir = target_dir.join("wasm32-unknown-unknown").join("release").join("build");
 
-    if !build_dir.exists() {
-        return Err(anyhow!(
-            "Build output directory not found at {}. Run `tari build` first.",
-            build_dir.display()
-        ));
-    }
-
-    for entry in std::fs::read_dir(&build_dir).context("reading build directory")? {
-        let entry = entry?;
-        let out_file = entry.path().join("out").join(METADATA_CBOR_FILENAME);
-        if out_file.exists() {
-            return Ok(out_file);
-        }
-    }
-
-    Err(anyhow!(
-        "No {METADATA_CBOR_FILENAME} found in build output. \
-         Make sure the template uses tari_ootle_template_build in build.rs \
-         and has been built with `tari build`."
-    ))
-}

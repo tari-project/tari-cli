@@ -162,6 +162,43 @@ pub async fn find_target_dir(dir: &Path) -> anyhow::Result<PathBuf> {
         .ok_or_else(|| anyhow!("cargo metadata missing target_directory"))
 }
 
+const METADATA_CBOR_FILENAME: &str = "template_metadata.cbor";
+
+/// Find the most recently generated metadata CBOR file in the build output.
+pub async fn find_metadata_cbor(project_dir: &Path) -> anyhow::Result<PathBuf> {
+    let target_dir = find_target_dir(project_dir).await?;
+    let build_dir = target_dir.join("wasm32-unknown-unknown").join("release").join("build");
+
+    if !build_dir.exists() {
+        return Err(anyhow!(
+            "Build output directory not found at {}. Run `tari build` first.",
+            build_dir.display()
+        ));
+    }
+
+    let mut newest: Option<(PathBuf, std::time::SystemTime)> = None;
+    for entry in std::fs::read_dir(&build_dir).context("reading build directory")? {
+        let entry = entry?;
+        let out_file = entry.path().join("out").join(METADATA_CBOR_FILENAME);
+        if out_file.exists() {
+            let modified = std::fs::metadata(&out_file)
+                .and_then(|m| m.modified())
+                .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+            if newest.as_ref().map_or(true, |(_, t)| modified > *t) {
+                newest = Some((out_file, modified));
+            }
+        }
+    }
+
+    newest
+        .map(|(path, _)| path)
+        .ok_or_else(|| anyhow!(
+            "No {METADATA_CBOR_FILENAME} found in build output. \
+             Make sure the template uses tari_ootle_template_build in build.rs \
+             and has been built with `tari build`."
+        ))
+}
+
 pub async fn load_project_config(
     project_folder: &Path,
     wallet_daemon_url_override: Option<&url::Url>,
