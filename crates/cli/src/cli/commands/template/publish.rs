@@ -70,9 +70,7 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
 
     // Warn if template address already exists in config (republishing)
     if let Some(existing_addr) = project_config.template_address() {
-        println!(
-            "⚠️  A template has already been published from this project: {existing_addr}"
-        );
+        println!("⚠️  A template has already been published from this project: {existing_addr}");
         println!("   If the template binary is unchanged, the transaction will fail.");
         println!("   If changed, a new template address will be generated.");
         let proceed = Confirm::new()

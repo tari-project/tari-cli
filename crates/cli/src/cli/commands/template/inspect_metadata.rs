@@ -39,8 +39,7 @@ pub async fn handle(args: InspectMetadataArgs) -> anyhow::Result<()> {
     println!("📄 Reading metadata from {}", cbor_path.display());
 
     let mut cbor_bytes = std::fs::read(&cbor_path).context("reading metadata CBOR file")?;
-    let mut metadata =
-        TemplateMetadata::from_cbor(&cbor_bytes).context("decoding metadata CBOR")?;
+    let mut metadata = TemplateMetadata::from_cbor(&cbor_bytes).context("decoding metadata CBOR")?;
 
     // Check if built metadata matches Cargo.toml
     let cargo_toml_path = args.project_dir.join("Cargo.toml");
@@ -56,8 +55,7 @@ pub async fn handle(args: InspectMetadataArgs) -> anyhow::Result<()> {
                     build_template(&args.project_dir).await?;
                     let new_cbor_path = find_metadata_cbor(&args.project_dir).await?;
                     cbor_bytes = std::fs::read(&new_cbor_path).context("reading rebuilt metadata CBOR")?;
-                    metadata = TemplateMetadata::from_cbor(&cbor_bytes)
-                        .context("rebuilt metadata CBOR is invalid")?;
+                    metadata = TemplateMetadata::from_cbor(&cbor_bytes).context("rebuilt metadata CBOR is invalid")?;
                     println!("✅ Metadata rebuilt");
                 }
             },
