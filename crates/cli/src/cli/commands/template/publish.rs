@@ -178,7 +178,7 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
             .await
             .context("reading config")?;
         let mut doc = content.parse::<toml_edit::DocumentMut>().context("parsing config")?;
-        doc.insert("template-address", toml_edit::value(published_addr.to_string()));
+        doc.insert("template_address", toml_edit::value(published_addr.to_string()));
         tokio::fs::write(&config_path, doc.to_string())
             .await
             .context("writing config")?;
