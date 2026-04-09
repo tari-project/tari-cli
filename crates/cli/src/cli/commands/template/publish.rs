@@ -68,6 +68,22 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
     let url_override = args.wallet_daemon_url.as_ref().or(config.wallet_daemon_url.as_ref());
     let project_config = load_project_config(crate_dir, url_override).await?;
 
+    // Warn if template address already exists in config (republishing)
+    if let Some(existing_addr) = project_config.template_address() {
+        println!(
+            "⚠️  A template has already been published from this project: {existing_addr}"
+        );
+        println!("   If the template binary is unchanged, the transaction will fail.");
+        println!("   If changed, a new template address will be generated.");
+        let proceed = Confirm::new()
+            .with_prompt("Continue with publish?")
+            .default(false)
+            .interact()?;
+        if !proceed {
+            return Err(anyhow!("Publishing aborted"));
+        }
+    }
+
     // Build or use provided binary
     let template_bin = match args.binary.take() {
         Some(bin_path) => {
