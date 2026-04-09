@@ -17,9 +17,9 @@ serde = { version = "1.0.215", features = ["derive"] }
 thiserror = "2.0.12"
 url = { version = "2.5.3", features = ["default", "serde"] }
 
-tari_ootle_walletd_client = "0.28"
+tari_ootle_walletd_client = "0.29"
 tari_engine = "0.28"
 tari_engine_types = "0.28"
 tari_ootle_common_types = "0.28"
-tari_template_lib_types = "0.23"
+tari_template_lib_types = "0.24"
 tari_ootle_template_metadata = "0.4"
