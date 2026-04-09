@@ -184,7 +184,7 @@ pub async fn find_metadata_cbor(project_dir: &Path) -> anyhow::Result<PathBuf> {
             let modified = std::fs::metadata(&out_file)
                 .and_then(|m| m.modified())
                 .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
-            if newest.as_ref().map_or(true, |(_, t)| modified > *t) {
+            if newest.as_ref().is_none_or(|(_, t)| modified > *t) {
                 newest = Some((out_file, modified));
             }
         }
