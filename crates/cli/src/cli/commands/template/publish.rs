@@ -176,11 +176,16 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
             .await
             .context("reading config")?;
         let mut doc = content.parse::<toml_edit::DocumentMut>().context("parsing config")?;
-        doc.insert("template_address", toml_edit::value(published_addr.to_string()));
+        doc.insert("template-address", toml_edit::value(published_addr.to_string()));
         tokio::fs::write(&config_path, doc.to_string())
             .await
             .context("writing config")?;
         println!("📝 Saved template address to {}", config_path.display());
+    } else {
+        println!(
+            "ℹ️  Config file not found at {}. Run `tari config init` to create one.",
+            config_path.display()
+        );
     }
 
     let should_publish_metadata = if args.publish_metadata {
