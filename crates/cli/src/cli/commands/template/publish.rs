@@ -152,7 +152,22 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
             .await
     )?;
 
-    println!("⭐ Your new template's address: {template_address}");
+    let published_addr = PublishedTemplateAddress::from_template_address(template_address);
+    println!("⭐ Your new template's address: {published_addr}");
+
+    // Save template address to project config
+    let config_path = crate::cli::commands::config::resolve_config_path()?;
+    if config_path.exists() {
+        let content = tokio::fs::read_to_string(&config_path)
+            .await
+            .context("reading config")?;
+        let mut doc = content.parse::<toml_edit::DocumentMut>().context("parsing config")?;
+        doc.insert("template-address", toml_edit::value(published_addr.to_string()));
+        tokio::fs::write(&config_path, doc.to_string())
+            .await
+            .context("writing config")?;
+        println!("📝 Saved template address to {}", config_path.display());
+    }
 
     if args.publish_metadata && metadata_hash.is_some() {
         let cbor_path = find_metadata_cbor(crate_dir).await?;
@@ -167,7 +182,6 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
             .unwrap_or(&default_url);
 
         println!("📡 Publishing metadata to {metadata_server_url}...");
-        let published_addr = PublishedTemplateAddress::from_template_address(template_address);
         match publish_metadata_to_server(metadata_server_url, &published_addr, &cbor_bytes, 6).await {
             Ok(()) => {},
             Err(e) => {

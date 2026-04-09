@@ -52,7 +52,6 @@ pub async fn handle(args: InspectMetadataArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
-
 fn print_metadata_table(metadata: &TemplateMetadata, hash: &tari_ootle_template_metadata::MetadataHash) {
     println!();
     println!("  Name:           {}", metadata.name);

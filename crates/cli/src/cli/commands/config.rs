@@ -93,9 +93,14 @@ async fn handle_show() -> anyhow::Result<()> {
 }
 
 /// Resolve where the config file should live:
-/// git repo root if in one, otherwise CWD.
+/// crate root (Cargo.toml) if in one, then git repo root, otherwise CWD.
 pub fn resolve_config_path() -> anyhow::Result<PathBuf> {
-    let root = find_repo_root().unwrap_or_else(|| std::env::current_dir().unwrap());
+    let cwd = std::env::current_dir()?;
+    let root = if cwd.join("Cargo.toml").exists() {
+        cwd
+    } else {
+        find_repo_root().unwrap_or(cwd)
+    };
     Ok(root.join(CONFIG_FILE_NAME))
 }
 

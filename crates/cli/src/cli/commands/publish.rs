@@ -190,13 +190,13 @@ pub async fn find_metadata_cbor(project_dir: &Path) -> anyhow::Result<PathBuf> {
         }
     }
 
-    newest
-        .map(|(path, _)| path)
-        .ok_or_else(|| anyhow!(
+    newest.map(|(path, _)| path).ok_or_else(|| {
+        anyhow!(
             "No {METADATA_CBOR_FILENAME} found in build output. \
              Make sure the template uses tari_ootle_template_build in build.rs \
              and has been built with `tari build`."
-        ))
+        )
+    })
 }
 
 pub async fn load_project_config(

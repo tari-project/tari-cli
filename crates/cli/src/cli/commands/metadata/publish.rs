@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use anyhow::{Context, anyhow};
 use clap::Parser;
+use dialoguer::Confirm;
 use tari_engine_types::published_template::PublishedTemplateAddress;
 use tari_ootle_publish_lib::publisher::{SignedMetadataPayload, TemplatePublisher};
 use tari_ootle_template_metadata::TemplateMetadata;
@@ -28,8 +29,9 @@ pub struct PublishMetadataArgs {
     pub path: PathBuf,
 
     /// Template address to publish metadata for (e.g. template_bce07f... or raw hex).
+    /// If omitted, uses the address saved in tari.config.toml from the last publish.
     #[arg(long, short = 't')]
-    pub template_address: PublishedTemplateAddress,
+    pub template_address: Option<PublishedTemplateAddress>,
 
     /// Metadata server URL. Overrides the value in tari.config.toml and global CLI config.
     #[arg(long)]
@@ -59,7 +61,7 @@ pub struct PublishMetadataArgs {
 
 pub async fn handle(config: Config, args: PublishMetadataArgs) -> anyhow::Result<()> {
     let cbor_path = find_metadata_cbor(&args.path).await?;
-    let cbor_bytes = std::fs::read(&cbor_path).context("reading metadata CBOR file")?;
+    let mut cbor_bytes = std::fs::read(&cbor_path).context("reading metadata CBOR file")?;
 
     let url_override = args.wallet_daemon_url.as_ref().or(config.wallet_daemon_url.as_ref());
     let project_config = load_project_config(&args.path, url_override).await?;
@@ -73,14 +75,49 @@ pub async fn handle(config: Config, args: PublishMetadataArgs) -> anyhow::Result
         .or(config.metadata_server_url.as_ref())
         .unwrap_or(&default_url);
 
-    let metadata =
+    let mut metadata =
         TemplateMetadata::from_cbor(&cbor_bytes).context("metadata CBOR is invalid — cannot publish corrupt data")?;
-    println!(
-        "📄 Publishing metadata for {} v{} to {}",
-        metadata.name, metadata.version, metadata_server_url
-    );
 
-    let addr = args.template_address;
+    // Check if built metadata matches Cargo.toml
+    let cargo_toml_path = args.path.join("Cargo.toml");
+    if cargo_toml_path.exists() {
+        match tari_ootle_template_metadata::from_cargo_toml(&cargo_toml_path) {
+            Ok(current) if current != metadata => {
+                println!("⚠️  Built metadata does not match Cargo.toml (metadata may be stale)");
+                let rebuild = Confirm::new()
+                    .with_prompt("Rebuild to update metadata?")
+                    .default(true)
+                    .interact()?;
+                if rebuild {
+                    crate::cli::commands::publish::build_template(&args.path).await?;
+                    let new_cbor_path = find_metadata_cbor(&args.path).await?;
+                    cbor_bytes = std::fs::read(&new_cbor_path).context("reading rebuilt metadata CBOR")?;
+                    metadata = TemplateMetadata::from_cbor(&cbor_bytes).context("rebuilt metadata CBOR is invalid")?;
+                    println!("✅ Metadata rebuilt");
+                }
+            },
+            Ok(_) => {},
+            Err(e) => {
+                println!("⚠️  Could not read Cargo.toml metadata for freshness check: {e}");
+            },
+        }
+    }
+
+    // Resolve template address: CLI flag > project config
+    let addr = args
+        .template_address
+        .or_else(|| project_config.template_address().cloned())
+        .ok_or_else(|| {
+            anyhow!(
+                "No template address provided. Use --template-address or publish the template first \
+                 (`tari publish`) to save the address in tari.config.toml."
+            )
+        })?;
+
+    println!(
+        "📄 Publishing metadata for {} v{} to {} (template: {})",
+        metadata.name, metadata.version, metadata_server_url, addr
+    );
 
     if args.signed {
         let publisher = TemplatePublisher::new(project_config.network().clone());
@@ -197,5 +234,3 @@ pub async fn publish_metadata_signed(
 
     unreachable!()
 }
-
-
