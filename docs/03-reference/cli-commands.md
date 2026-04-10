@@ -110,6 +110,11 @@ tari publish [OPTIONS] [PATH]
 | `--publish-metadata` | Flag | `false` | Auto-submit metadata to server after publishing |
 | `--metadata-server-url` | URL | Config or `localhost:3000` | Metadata server URL (with `--publish-metadata`) |
 
+After publishing:
+- The template address is saved to `tari.config.toml` (so `tari metadata publish` can omit `--template-address`)
+- If metadata is detected and `--publish-metadata` is not set, you will be prompted to publish it
+- If a template address already exists in config (republishing), a warning is shown
+
 ### Example
 
 ```bash
@@ -117,7 +122,7 @@ tari publish [OPTIONS] [PATH]
 tari publish -a myaccount -y
 
 # Publish and auto-submit metadata
-tari publish -a myaccount --publish-metadata --metadata-server-url http://community.example.com
+tari publish -a myaccount --publish-metadata
 ```
 
 ---
@@ -137,6 +142,7 @@ tari template init [OPTIONS] [PATH]
 | Argument / Option | Type | Default | Description |
 |-------------------|------|---------|-------------|
 | `[PATH]` | Path | `.` | Path to template crate directory |
+| `--description` | String | *prompted if missing* | Template description (written to `[package].description`) |
 | `--tags` | String (comma-separated) | *prompted* | Tags (e.g. "token,fungible,defi") |
 | `--category` | String | *prompted* | Template category |
 | `--documentation` | String | *prompted* | Documentation URL |
@@ -149,6 +155,8 @@ Adds `tari_ootle_template_build` to `[build-dependencies]`, creates `build.rs`, 
 ### `template inspect`
 
 Inspects a template metadata CBOR file. Alias: `template inspect-metadata`.
+
+If the built metadata doesn't match `Cargo.toml`, you will be prompted to rebuild.
 
 ```bash
 tari template inspect [OPTIONS] [PATH]
@@ -179,13 +187,13 @@ Alias for [`template inspect`](#template-inspect).
 Publishes template metadata to a community metadata server.
 
 ```bash
-tari metadata publish [OPTIONS] -t <TEMPLATE_ADDRESS>
+tari metadata publish [OPTIONS] [-t <TEMPLATE_ADDRESS>]
 ```
 
 | Argument / Option | Type | Default | Description |
 |-------------------|------|---------|-------------|
 | `[PATH]` | Path | `.` | Path to template crate directory |
-| `-t, --template-address` | Address | **required** | Template address (e.g. `template_bce07f...` or raw hex) |
+| `-t, --template-address` | Address | From config | Template address. If omitted, uses the address saved by `tari publish` |
 | `--metadata-server-url` | URL | Config or `localhost:3000` | Metadata server URL |
 | `--max-retries` | u32 | `6` | Max retry attempts for 404 (template not yet synced) |
 | `--signed` | Flag | `false` | Use author-signed submission via wallet daemon |
