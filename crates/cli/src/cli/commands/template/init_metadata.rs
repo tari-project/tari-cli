@@ -26,6 +26,10 @@ pub struct InitMetadataArgs {
     #[arg(default_value = ".")]
     pub path: PathBuf,
 
+    /// Template description (written to [package].description).
+    #[arg(long)]
+    pub description: Option<String>,
+
     /// Comma-separated tags (e.g. "token,fungible,defi").
     #[arg(long, value_delimiter = ',')]
     pub tags: Vec<String>,
@@ -79,6 +83,7 @@ pub async fn handle(args: InitMetadataArgs) -> anyhow::Result<()> {
 }
 
 struct TemplateMetadataInput {
+    description: Option<String>,
     tags: Vec<String>,
     category: Option<String>,
     documentation: Option<String>,
@@ -87,8 +92,22 @@ struct TemplateMetadataInput {
 }
 
 fn resolve_metadata(args: &InitMetadataArgs) -> anyhow::Result<TemplateMetadataInput> {
+    // Check if [package].description already exists
+    let cargo_toml_path = args.path.join("Cargo.toml");
+    let has_description = if cargo_toml_path.exists() {
+        let content = std::fs::read_to_string(&cargo_toml_path)?;
+        let doc = content.parse::<toml_edit::DocumentMut>()?;
+        doc.get("package")
+            .and_then(|p| p.get("description"))
+            .and_then(|d| d.as_str())
+            .is_some_and(|s| !s.is_empty())
+    } else {
+        false
+    };
+
     if args.non_interactive {
         return Ok(TemplateMetadataInput {
+            description: args.description.clone(),
             tags: args.tags.clone(),
             category: args.category.clone(),
             documentation: args.documentation.clone(),
@@ -96,6 +115,18 @@ fn resolve_metadata(args: &InitMetadataArgs) -> anyhow::Result<TemplateMetadataI
             logo_url: args.logo_url.clone(),
         });
     }
+
+    // Prompt for description if not already in [package]
+    let description = if has_description {
+        None
+    } else {
+        let desc: String = Input::new()
+            .with_prompt("Description")
+            .default(args.description.clone().unwrap_or_default())
+            .allow_empty(true)
+            .interact_text()?;
+        if desc.is_empty() { None } else { Some(desc) }
+    };
 
     // Interactive prompts, using CLI args as defaults
     let tags_default = args.tags.join(", ");
@@ -143,6 +174,7 @@ fn resolve_metadata(args: &InitMetadataArgs) -> anyhow::Result<TemplateMetadataI
     let logo_url = if logo_url.is_empty() { None } else { Some(logo_url) };
 
     Ok(TemplateMetadataInput {
+        description,
         tags,
         category,
         documentation,
@@ -177,12 +209,17 @@ fn add_template_metadata(cargo_toml_content: &str, metadata: &TemplateMetadataIn
         .parse::<toml_edit::DocumentMut>()
         .context("parsing Cargo.toml")?;
 
-    // Navigate to [package.metadata.tari-template]
     let package = doc
         .get_mut("package")
         .and_then(|p| p.as_table_mut())
         .ok_or_else(|| anyhow!("missing [package] section"))?;
 
+    // Write description to [package].description
+    if let Some(ref description) = metadata.description {
+        package.insert("description", toml_edit::value(description.as_str()));
+    }
+
+    // Navigate to [package.metadata.tari-template]
     let pkg_metadata = package
         .entry("metadata")
         .or_insert_with(|| toml_edit::Item::Table(toml_edit::Table::new()))
@@ -239,6 +276,7 @@ pub async fn auto_init(crate_dir: &Path) -> anyhow::Result<()> {
         .context("reading Cargo.toml")?;
 
     let empty_metadata = TemplateMetadataInput {
+        description: None,
         tags: vec![],
         category: None,
         documentation: None,
@@ -324,6 +362,7 @@ name = "my-template"
 version = "0.1.0"
 "#;
         let metadata = TemplateMetadataInput {
+            description: None,
             tags: vec!["token".to_string(), "defi".to_string()],
             category: Some("token".to_string()),
             documentation: None,
@@ -349,6 +388,7 @@ tags = ["old"]
 category = "old-category"
 "#;
         let metadata = TemplateMetadataInput {
+            description: None,
             tags: vec!["new".to_string()],
             category: Some("new-category".to_string()),
             documentation: None,
@@ -367,6 +407,7 @@ name = "my-template"
 version = "0.1.0"
 "#;
         let metadata = TemplateMetadataInput {
+            description: None,
             tags: vec![],
             category: None,
             documentation: None,

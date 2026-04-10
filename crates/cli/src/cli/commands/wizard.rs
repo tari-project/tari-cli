@@ -189,6 +189,7 @@ async fn step_metadata(crate_dir: &Path) -> anyhow::Result<()> {
 
     let args = init_metadata::InitMetadataArgs {
         path: crate_dir.to_path_buf(),
+        description: None,
         tags: vec![],
         category: None,
         documentation: None,
