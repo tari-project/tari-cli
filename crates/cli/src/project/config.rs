@@ -45,7 +45,7 @@ impl ProjectConfig {
 impl Default for ProjectConfig {
     fn default() -> Self {
         Self {
-            network: NetworkConfig::new(Url::parse("http://127.0.0.1:9000/json_rpc").unwrap()),
+            network: NetworkConfig::new(Url::parse("http://127.0.0.1:5100/json_rpc").unwrap()),
             default_account: None,
             metadata_server_url: None,
             template_address: None,

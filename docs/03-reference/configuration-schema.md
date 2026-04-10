@@ -96,11 +96,12 @@ tari -e "wallet_daemon_url=http://localhost:12008/json_rpc" publish
 # tari.config.toml
 
 [network]
-wallet-daemon-jrpc-address = "http://127.0.0.1:9000/json_rpc"
+wallet-daemon-jrpc-address = "http://127.0.0.1:5100/json_rpc"
 
 # Optional
-# default_account = "myaccount"
+# default-account = "myaccount"
 # metadata-server-url = "http://localhost:3000"
+# template-address = "template_abc123..."
 ```
 
 ### Fields
@@ -109,14 +110,15 @@ wallet-daemon-jrpc-address = "http://127.0.0.1:9000/json_rpc"
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `wallet-daemon-jrpc-address` | URL | `http://127.0.0.1:9000/json_rpc` | Wallet daemon JSON-RPC endpoint |
+| `wallet-daemon-jrpc-address` | URL | `http://127.0.0.1:5100/json_rpc` | Wallet daemon JSON-RPC endpoint |
 
 #### Top-level optional fields
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `default_account` | String | None | Default wallet account |
+| `default-account` | String | None | Default wallet account |
 | `metadata-server-url` | URL | None | Metadata server URL |
+| `template-address` | Address | None | Template address (saved automatically by `tari publish`) |
 
 ### Managing Project Configuration
 

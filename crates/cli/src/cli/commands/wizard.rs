@@ -121,10 +121,10 @@ async fn step_project_config(_crate_dir: &PathBuf) -> anyhow::Result<()> {
     // Ask for wallet daemon URL
     let url: String = Input::new()
         .with_prompt("Wallet daemon JSON-RPC URL")
-        .default("http://127.0.0.1:9000/json_rpc".to_string())
+        .default("http://127.0.0.1:5100/json_rpc".to_string())
         .interact_text()?;
 
-    if url != "http://127.0.0.1:9000/json_rpc" {
+    if url != "http://127.0.0.1:5100/json_rpc" {
         crate::cli::commands::config::handle(ConfigCommand::Set {
             key: "network.wallet-daemon-jrpc-address".to_string(),
             value: url,
@@ -189,6 +189,7 @@ async fn step_metadata(crate_dir: &Path) -> anyhow::Result<()> {
 
     let args = init_metadata::InitMetadataArgs {
         path: crate_dir.to_path_buf(),
+        description: None,
         tags: vec![],
         category: None,
         documentation: None,
