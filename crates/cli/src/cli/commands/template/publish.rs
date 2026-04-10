@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 use std::io::BufReader;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use anyhow::{Context, anyhow};
 use clap::Parser;
@@ -13,13 +13,12 @@ use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use tari_ootle_template_metadata::TemplateMetadata;
 
 use crate::cli::commands::metadata::publish::publish_metadata_to_server;
-use crate::cli::commands::publish::{build_template, load_project_config};
+use crate::cli::commands::publish::{build_template, find_metadata_cbor, load_project_config};
 use crate::cli::config::Config;
 use crate::cli::util;
 use crate::loading;
 
 const MAX_WASM_SIZE: usize = 5 * 1000 * 1000; // 5 MB
-const METADATA_CBOR_FILENAME: &str = "template_metadata.cbor";
 
 #[derive(Clone, Parser, Debug)]
 pub struct TemplatePublishArgs {
@@ -68,6 +67,20 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
 
     let url_override = args.wallet_daemon_url.as_ref().or(config.wallet_daemon_url.as_ref());
     let project_config = load_project_config(crate_dir, url_override).await?;
+
+    // Warn if template address already exists in config (republishing)
+    if let Some(existing_addr) = project_config.template_address() {
+        println!("⚠️  A template has already been published from this project: {existing_addr}");
+        println!("   If the template binary is unchanged, the transaction will fail.");
+        println!("   If changed, a new template address will be generated.");
+        let proceed = Confirm::new()
+            .with_prompt("Continue with publish?")
+            .default(false)
+            .interact()?;
+        if !proceed {
+            return Err(anyhow!("Publishing aborted"));
+        }
+    }
 
     // Build or use provided binary
     let template_bin = match args.binary.take() {
@@ -153,9 +166,40 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
             .await
     )?;
 
-    println!("⭐ Your new template's address: {template_address}");
+    let published_addr = PublishedTemplateAddress::from_template_address(template_address);
+    println!("⭐ Your new template's address: {published_addr}");
 
-    if args.publish_metadata && metadata_hash.is_some() {
+    // Save template address to project config
+    let config_path = crate::cli::commands::config::resolve_config_path()?;
+    if config_path.exists() {
+        let content = tokio::fs::read_to_string(&config_path)
+            .await
+            .context("reading config")?;
+        let mut doc = content.parse::<toml_edit::DocumentMut>().context("parsing config")?;
+        doc.insert("template-address", toml_edit::value(published_addr.to_string()));
+        tokio::fs::write(&config_path, doc.to_string())
+            .await
+            .context("writing config")?;
+        println!("📝 Saved template address to {}", config_path.display());
+    } else {
+        println!(
+            "ℹ️  Config file not found at {}. Run `tari config init` to create one.",
+            config_path.display()
+        );
+    }
+
+    let should_publish_metadata = if args.publish_metadata {
+        metadata_hash.is_some()
+    } else if metadata_hash.is_some() {
+        Confirm::new()
+            .with_prompt("Publish metadata to community server?")
+            .default(false)
+            .interact()?
+    } else {
+        false
+    };
+
+    if should_publish_metadata {
         let cbor_path = find_metadata_cbor(crate_dir).await?;
         let cbor_bytes = std::fs::read(&cbor_path).context("reading metadata CBOR for server publish")?;
 
@@ -168,7 +212,6 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
             .unwrap_or(&default_url);
 
         println!("📡 Publishing metadata to {metadata_server_url}...");
-        let published_addr = PublishedTemplateAddress::from_template_address(template_address);
         match publish_metadata_to_server(metadata_server_url, &published_addr, &cbor_bytes, 6).await {
             Ok(()) => {},
             Err(e) => {
@@ -178,37 +221,9 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
                 );
             },
         }
-    } else if args.publish_metadata && metadata_hash.is_none() {
-        println!("⚠️  --publish-metadata was set but no metadata was found, skipping");
     }
 
     Ok(())
-}
-
-async fn find_metadata_cbor(crate_dir: &Path) -> anyhow::Result<PathBuf> {
-    let target_dir = crate::cli::commands::publish::find_target_dir(crate_dir).await?;
-    let build_dir = target_dir.join("wasm32-unknown-unknown").join("release").join("build");
-
-    if !build_dir.exists() {
-        return Err(anyhow!("build output directory not found at {}", build_dir.display()));
-    }
-
-    let mut found = Vec::new();
-    for entry in std::fs::read_dir(&build_dir).context("reading build directory")? {
-        let entry = entry?;
-        let out_file = entry.path().join("out").join(METADATA_CBOR_FILENAME);
-        if out_file.exists() {
-            found.push(out_file);
-        }
-    }
-
-    match found.len() {
-        0 => Err(anyhow!("no {METADATA_CBOR_FILENAME} in build output")),
-        1 => Ok(found.into_iter().next().unwrap()),
-        _ => Err(anyhow!(
-            "Multiple metadata files found. Specify the CBOR file path to `tari template inspect` instead."
-        )),
-    }
 }
 
 async fn resolve_account(
