@@ -21,7 +21,7 @@ cargo-generate = "^0.23.7"
 cargo_toml = "0.21.0"
 clap = { version = "4.5.20", features = ["derive", "string"] }
 convert_case = "0.11.0"
-dialoguer = { version = "0.11.0", features = ["default", "fuzzy-select"] }
+dialoguer = { version = "0.12.0", features = ["default", "fuzzy-select"] }
 dirs-next = "2.0.0"
 git2 = { version = "^0.20", features = ["default"] }
 human_bytes = "0.4.3"
