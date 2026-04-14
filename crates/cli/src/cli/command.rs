@@ -121,7 +121,7 @@ pub struct Cli {
 
 #[derive(Clone, Subcommand)]
 pub enum Command {
-    /// Initialise the project config and template build.rs in the current crate.
+    /// Initialise the project config and template metadata in a Tari template crate.
     Init {
         #[clap(flatten)]
         args: InitArgs,
