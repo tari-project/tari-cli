@@ -4,13 +4,14 @@
 use crate::cli::commands::build::BuildArgs;
 use crate::cli::commands::config::ConfigCommand;
 use crate::cli::commands::create::CreateArgs;
+use crate::cli::commands::init::InitArgs;
 use crate::cli::commands::metadata::MetadataCommand;
 use crate::cli::commands::publish;
 use crate::cli::commands::publish::PublishArgs;
 use crate::cli::commands::template::TemplateCommand;
 use crate::{
     cli::{
-        commands::{build, config as config_cmd, create, metadata, template, wizard},
+        commands::{build, config as config_cmd, create, init, metadata, template, wizard},
         config::{Config, TemplateRepository},
         util,
     },
@@ -120,6 +121,11 @@ pub struct Cli {
 
 #[derive(Clone, Subcommand)]
 pub enum Command {
+    /// Initialise the project config and template build.rs in the current crate.
+    Init {
+        #[clap(flatten)]
+        args: InitArgs,
+    },
     /// Create a new Tari template crate from a starter template.
     #[clap(alias = "new")]
     Create {
@@ -237,6 +243,10 @@ impl Cli {
         // Config command operates on project config, not CLI config
         if let Command::Config { command } = command {
             return config_cmd::handle(command).await;
+        }
+
+        if let Command::Init { args } = command {
+            return init::handle(args).await;
         }
 
         if let Command::Build { args } = command {
