@@ -22,7 +22,7 @@ pub async fn path_metadata(path: &PathBuf) -> io::Result<Metadata> {
     fs::metadata(path).await
 }
 
-pub fn cli_select<'a, T: ToString>(prompt: &str, items: &'a [T]) -> anyhow::Result<&'a T> {
+pub fn cli_select<'a, T: std::fmt::Display>(prompt: &str, items: &'a [T]) -> anyhow::Result<&'a T> {
     let selection = FuzzySelect::new()
         .with_prompt(prompt)
         .highlight_matches(true)
