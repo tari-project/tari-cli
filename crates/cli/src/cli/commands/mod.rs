@@ -4,6 +4,7 @@
 pub mod build;
 pub mod config;
 pub mod create;
+pub mod init;
 pub mod metadata;
 pub mod publish;
 pub mod template;

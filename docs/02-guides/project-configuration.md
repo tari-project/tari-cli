@@ -87,6 +87,27 @@ template-repo/
 
 ## Command-Line Arguments
 
+### `tari init` Options
+
+```bash
+tari init [OPTIONS] [PATH]
+
+Arguments:
+  [PATH]  Path to the template crate directory [default: .]
+
+Options:
+      --description <DESCRIPTION>      Template description
+      --tags <TAGS>                    Comma-separated tags
+      --category <CATEGORY>            Template category
+      --documentation <DOCUMENTATION>  Documentation URL
+      --homepage <HOMEPAGE>            Homepage URL
+      --logo-url <LOGO_URL>            Logo URL
+  -y, --non-interactive                Skip interactive prompts
+  -h, --help                           Print help
+```
+
+Combines `tari config init` (project config) and `tari template init` (build.rs and metadata) into a single command.
+
 ### `tari create` (alias `new`) Options
 
 <!-- SOURCE: crates/cli/src/cli/commands/create.rs:23-38 -->

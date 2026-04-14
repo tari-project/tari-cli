@@ -1,8 +1,8 @@
 ---
 title: CLI Commands Reference
 description: Complete reference for all Tari CLI commands, arguments, and options
-last_updated: 2026-04-07
-version: "0.11"
+last_updated: 2026-04-14
+version: "0.14"
 verified_against: crates/cli/src/cli/command.rs, command implementations
 audience: users
 ---
@@ -29,6 +29,7 @@ tari [GLOBAL_OPTIONS] <COMMAND> [COMMAND_OPTIONS]
 
 | Command | Alias | Purpose |
 |---------|-------|---------|
+| [`init`](#init) | | Initialise project config and template build.rs |
 | [`create`](#create) | `new` | Create a new template crate from a starter template |
 | [`build`](#build) | | Build the template WASM binary |
 | [`publish`](#publish) | `deploy` | Publish a template to the network |
@@ -36,6 +37,37 @@ tari [GLOBAL_OPTIONS] <COMMAND> [COMMAND_OPTIONS]
 | [`metadata`](#metadata) | | Metadata server operations (inspect, publish) |
 | [`config`](#config) | | Manage project configuration |
 | *(no command)* | | [Interactive setup wizard](#wizard) |
+
+---
+
+## `init`
+
+Initialises the project config (`tari.config.toml`) and template `build.rs` in a single step. Combines `tari config init` and `tari template init`.
+
+```bash
+tari init [OPTIONS] [PATH]
+```
+
+| Argument / Option | Type | Default | Description |
+|-------------------|------|---------|-------------|
+| `[PATH]` | Path | `.` | Path to the template crate directory (containing Cargo.toml) |
+| `--description` | String | *prompted if missing* | Template description (written to `[package].description`) |
+| `--tags` | String (comma-separated) | *prompted* | Tags (e.g. "token,fungible,defi") |
+| `--category` | String | *prompted* | Template category |
+| `--documentation` | String | *prompted* | Documentation URL |
+| `--homepage` | String | *prompted* | Homepage URL |
+| `--logo-url` | String | *prompted* | Logo URL |
+| `-y, --non-interactive` | Flag | `false` | Skip interactive prompts |
+
+### Example
+
+```bash
+# Interactive — prompts for metadata fields
+tari init
+
+# Non-interactive with metadata
+tari init -y --tags token,defi --category token
+```
 
 ---
 

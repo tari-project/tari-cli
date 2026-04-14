@@ -1,8 +1,8 @@
 ---
 title: Configuration Schema Reference
 description: Complete reference for all Tari CLI configuration options and file formats
-last_updated: 2026-04-07
-version: "0.11"
+last_updated: 2026-04-14
+version: "0.14"
 verified_against: crates/cli/src/cli/config.rs, crates/cli/src/project/config.rs
 audience: users
 ---
@@ -88,7 +88,7 @@ tari -e "wallet_daemon_url=http://localhost:12008/json_rpc" publish
 
 ### File Location
 
-`tari.config.toml` in the project root or git repository root. Created with `tari config init` or automatically by the wizard.
+`tari.config.toml` in the project root or git repository root. Created with `tari init`, `tari config init`, or automatically by the wizard.
 
 ### Schema
 
@@ -192,11 +192,14 @@ Arbitrary key-value pairs (string values only).
 ### Setting Up Metadata
 
 ```bash
-# Interactive setup (adds build.rs and Cargo.toml section)
+# One-step: initialise project config AND template metadata
+tari init
+
+# Or just template metadata
 tari template init
 
 # Non-interactive
-tari template init -y --tags token,defi --category token --logo-url https://example.com/logo.png
+tari init -y --tags token,defi --category token --logo-url https://example.com/logo.png
 ```
 
 ### Inspecting Metadata
