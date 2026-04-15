@@ -9,7 +9,7 @@ use dialoguer::Input;
 use tokio::fs;
 
 const BUILD_DEP_KEY: &str = "tari_ootle_template_build";
-const BUILD_DEP_VERSION: &str = "0.4";
+const BUILD_DEP_VERSION: &str = "0.5";
 const BUILD_RS_CONTENT: &str = r#"fn main() {
     tari_ootle_template_build::TemplateMetadataBuilder::new()
         .build()
@@ -50,6 +50,10 @@ pub struct InitMetadataArgs {
     #[arg(long)]
     pub logo_url: Option<String>,
 
+    /// Template address of a previous version that this template supersedes (64-char hex).
+    #[arg(long)]
+    pub supersedes: Option<String>,
+
     /// Skip interactive prompts (use only provided CLI args).
     #[arg(long, short = 'y')]
     pub non_interactive: bool,
@@ -89,6 +93,7 @@ struct TemplateMetadataInput {
     documentation: Option<String>,
     homepage: Option<String>,
     logo_url: Option<String>,
+    supersedes: Option<String>,
 }
 
 fn resolve_metadata(args: &InitMetadataArgs) -> anyhow::Result<TemplateMetadataInput> {
@@ -113,6 +118,7 @@ fn resolve_metadata(args: &InitMetadataArgs) -> anyhow::Result<TemplateMetadataI
             documentation: args.documentation.clone(),
             homepage: args.homepage.clone(),
             logo_url: args.logo_url.clone(),
+            supersedes: args.supersedes.clone(),
         });
     }
 
@@ -173,6 +179,13 @@ fn resolve_metadata(args: &InitMetadataArgs) -> anyhow::Result<TemplateMetadataI
         .interact_text()?;
     let logo_url = if logo_url.is_empty() { None } else { Some(logo_url) };
 
+    let supersedes: String = Input::new()
+        .with_prompt("Supersedes template address (64-char hex, leave empty to skip)")
+        .default(args.supersedes.clone().unwrap_or_default())
+        .allow_empty(true)
+        .interact_text()?;
+    let supersedes = if supersedes.is_empty() { None } else { Some(supersedes) };
+
     Ok(TemplateMetadataInput {
         description,
         tags,
@@ -180,6 +193,7 @@ fn resolve_metadata(args: &InitMetadataArgs) -> anyhow::Result<TemplateMetadataI
         documentation,
         homepage,
         logo_url,
+        supersedes,
     })
 }
 
@@ -257,6 +271,10 @@ fn add_template_metadata(cargo_toml_content: &str, metadata: &TemplateMetadataIn
         tari_template.insert("logo_url", toml_edit::value(logo_url.as_str()));
     }
 
+    if let Some(ref supersedes) = metadata.supersedes {
+        tari_template.insert("supersedes", toml_edit::value(supersedes.as_str()));
+    }
+
     Ok(doc.to_string())
 }
 
@@ -282,6 +300,7 @@ pub async fn auto_init(crate_dir: &Path) -> anyhow::Result<()> {
         documentation: None,
         homepage: None,
         logo_url: None,
+        supersedes: None,
     };
 
     let updated = add_build_dependency(&content)?;
@@ -368,6 +387,7 @@ version = "0.1.0"
             documentation: None,
             homepage: Some("https://example.com".to_string()),
             logo_url: None,
+            supersedes: None,
         };
         let result = add_template_metadata(input, &metadata).unwrap();
         assert!(result.contains("[package.metadata.tari-template]"));
@@ -394,6 +414,7 @@ category = "old-category"
             documentation: None,
             homepage: None,
             logo_url: None,
+            supersedes: None,
         };
         let result = add_template_metadata(input, &metadata).unwrap();
         assert!(result.contains("new-category"));
@@ -413,6 +434,7 @@ version = "0.1.0"
             documentation: None,
             homepage: None,
             logo_url: None,
+            supersedes: None,
         };
         let result = add_template_metadata(input, &metadata).unwrap();
         // Should still create the section even if empty

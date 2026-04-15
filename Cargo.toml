@@ -22,4 +22,19 @@ tari_engine = "0.28"
 tari_engine_types = "0.28"
 tari_ootle_common_types = "0.28"
 tari_template_lib_types = "0.24"
-tari_ootle_template_metadata = "0.4"
+tari_ootle_template_metadata = "0.5"
+
+# Temporary path overrides until the next coordinated Ootle release.
+# All these crates transitively depend on tari_ootle_template_metadata;
+# pointing them at the local repo ensures a single version (0.5).
+[patch.crates-io]
+tari_ootle_template_metadata = { path = "../dan/crates/template_metadata" }
+tari_ootle_template_build = { path = "../dan/crates/template_build" }
+tari_engine = { path = "../dan/crates/engine" }
+tari_engine_types = { path = "../dan/crates/engine_types" }
+tari_ootle_common_types = { path = "../dan/crates/common_types" }
+tari_ootle_transaction = { path = "../dan/crates/transaction" }
+tari_template_lib_types = { path = "../dan/crates/template_lib_types" }
+tari_ootle_walletd_client = { path = "../dan/clients/wallet_daemon_client" }
+tari_ootle_wallet_sdk = { path = "../dan/crates/wallet/sdk" }
+tari_bor = { path = "../dan/crates/tari_bor" }

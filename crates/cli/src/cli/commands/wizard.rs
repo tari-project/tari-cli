@@ -195,6 +195,7 @@ async fn step_metadata(crate_dir: &Path) -> anyhow::Result<()> {
         documentation: None,
         homepage: None,
         logo_url: None,
+        supersedes: None,
         non_interactive: false,
     };
     init_metadata::handle(args).await?;
