@@ -9,6 +9,7 @@ use url::Url;
 
 /// Project configuration.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct ProjectConfig {
     network: NetworkConfig,
     default_account: Option<String>,
