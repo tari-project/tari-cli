@@ -16,6 +16,7 @@ use crate::cli::commands::metadata::publish::publish_metadata_to_server;
 use crate::cli::commands::publish::{build_template, find_metadata_cbor, load_project_config};
 use crate::cli::config::Config;
 use crate::cli::util;
+use crate::cli::util::get_default_metadata_server_url;
 use crate::loading;
 
 const MAX_WASM_SIZE: usize = 5 * 1000 * 1000; // 5 MB
@@ -209,13 +210,21 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
         let cbor_path = find_metadata_cbor(crate_dir).await?;
         let cbor_bytes = std::fs::read(&cbor_path).context("reading metadata CBOR for server publish")?;
 
-        let default_url: url::Url = "http://localhost:3000".parse().unwrap();
+        let resolved_default = get_default_metadata_server_url(&info.network)
+            .map(|s| s.parse::<url::Url>().expect("parse default metadata server url"));
         let metadata_server_url = args
             .metadata_server_url
             .as_ref()
             .or(project_config.metadata_server_url())
             .or(config.metadata_server_url.as_ref())
-            .unwrap_or(&default_url);
+            .or(resolved_default.as_ref())
+            .ok_or_else(|| {
+                anyhow!(
+                    "No metadata server URL configured and no default known for network '{}'. \
+                     Pass --metadata-server-url or set it in tari.config.toml.",
+                    info.network
+                )
+            })?;
 
         println!("📡 Publishing metadata to {metadata_server_url}...");
         match publish_metadata_to_server(metadata_server_url, &published_addr, &cbor_bytes, 6).await {

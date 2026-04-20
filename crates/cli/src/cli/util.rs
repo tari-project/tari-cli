@@ -35,3 +35,11 @@ pub fn cli_select<'a, T: std::fmt::Display>(prompt: &str, items: &'a [T]) -> any
 pub fn human_bytes(n: usize) -> String {
     human_bytes::human_bytes(n as f64)
 }
+
+pub fn get_default_metadata_server_url(network: &str) -> Option<&'static str> {
+    match network {
+        "localnet" => Some("http://localhost:3000"),
+        "esmeralda" => Some("https://ootle-templates-esme.tari.com/"),
+        _ => None,
+    }
+}
