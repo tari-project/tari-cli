@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use crate::cli::commands::publish::{find_metadata_cbor, load_project_config};
 use crate::cli::config::Config;
+use crate::cli::util::get_default_metadata_server_url;
 use anyhow::{Context, anyhow};
 use clap::Parser;
 use dialoguer::Confirm;
@@ -54,14 +55,6 @@ pub struct PublishMetadataArgs {
     /// Required with --signed.
     #[arg(long)]
     pub wallet_daemon_url: Option<url::Url>,
-}
-
-fn get_default_metadata_server_url(network: &str) -> Option<&'static str> {
-    match network {
-        "localnet" => Some("http://localhost:3000"),
-        "esmeralda" => Some("https://ootle-templates-esme.tari.com/"),
-        _ => None,
-    }
 }
 
 pub async fn handle(config: Config, args: PublishMetadataArgs) -> anyhow::Result<()> {
