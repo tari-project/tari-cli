@@ -114,6 +114,12 @@ pub async fn handle(config: Config, mut args: TemplatePublishArgs) -> anyhow::Re
             if let Some(ref license) = metadata.license {
                 println!("   License:     {license}");
             }
+            if let Some(ref commit_hash) = metadata.commit_hash {
+                println!("   Commit hash: {commit_hash}");
+            }
+            if let Some(ref supersedes) = metadata.supersedes {
+                println!("   Supersedes:  {supersedes}");
+            }
             Some(hash)
         },
         Err(e) => {

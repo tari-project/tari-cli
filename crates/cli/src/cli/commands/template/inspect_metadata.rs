@@ -99,6 +99,9 @@ fn print_metadata_table(metadata: &TemplateMetadata, hash: &tari_ootle_template_
     if let Some(ref repo) = metadata.repository {
         println!("  Repository:     {repo}");
     }
+    if let Some(ref commit_hash) = metadata.commit_hash {
+        println!("  Commit hash:    {commit_hash}");
+    }
     if let Some(ref docs) = metadata.documentation {
         println!("  Documentation:  {docs}");
     }
@@ -107,6 +110,9 @@ fn print_metadata_table(metadata: &TemplateMetadata, hash: &tari_ootle_template_
     }
     if let Some(ref logo_url) = metadata.logo_url {
         println!("  Logo URL:       {logo_url}");
+    }
+    if let Some(ref supersedes) = metadata.supersedes {
+        println!("  Supersedes:     {supersedes}");
     }
     if !metadata.extra.is_empty() {
         println!("  Extra:");
