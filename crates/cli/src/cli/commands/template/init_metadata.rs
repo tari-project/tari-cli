@@ -118,7 +118,7 @@ fn resolve_metadata(args: &InitMetadataArgs) -> anyhow::Result<TemplateMetadataI
             documentation: args.documentation.clone(),
             homepage: args.homepage.clone(),
             logo_url: args.logo_url.clone(),
-            supersedes: args.supersedes.clone(),
+            supersedes: normalize_supersedes(args.supersedes.as_deref()),
         });
     }
 
@@ -186,8 +186,12 @@ fn resolve_metadata(args: &InitMetadataArgs) -> anyhow::Result<TemplateMetadataI
         documentation,
         homepage,
         logo_url,
-        supersedes: None,
+        supersedes: normalize_supersedes(args.supersedes.as_deref()),
     })
+}
+
+fn normalize_supersedes(s: Option<&str>) -> Option<String> {
+    s.map(str::trim).filter(|s| !s.is_empty()).map(str::to_string)
 }
 
 fn add_build_dependency(cargo_toml_content: &str) -> anyhow::Result<String> {
