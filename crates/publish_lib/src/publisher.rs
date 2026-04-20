@@ -275,7 +275,7 @@ impl TemplatePublisher {
     }
 
     /// Returns a new wallet daemon client.
-    async fn wallet_daemon_client(&self) -> Result<WalletDaemonClient> {
+    pub async fn wallet_daemon_client(&self) -> Result<WalletDaemonClient> {
         let mut client = WalletDaemonClient::connect(self.network.wallet_daemon_jrpc_address().clone(), None)?;
 
         let AuthGetMethodResponse { method } = client.get_auth_method().await?;

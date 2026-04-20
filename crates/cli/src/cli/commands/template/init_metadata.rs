@@ -179,13 +179,6 @@ fn resolve_metadata(args: &InitMetadataArgs) -> anyhow::Result<TemplateMetadataI
         .interact_text()?;
     let logo_url = if logo_url.is_empty() { None } else { Some(logo_url) };
 
-    let supersedes: String = Input::new()
-        .with_prompt("Supersedes template address (64-char hex, leave empty to skip)")
-        .default(args.supersedes.clone().unwrap_or_default())
-        .allow_empty(true)
-        .interact_text()?;
-    let supersedes = if supersedes.is_empty() { None } else { Some(supersedes) };
-
     Ok(TemplateMetadataInput {
         description,
         tags,
@@ -193,7 +186,7 @@ fn resolve_metadata(args: &InitMetadataArgs) -> anyhow::Result<TemplateMetadataI
         documentation,
         homepage,
         logo_url,
-        supersedes,
+        supersedes: None,
     })
 }
 
