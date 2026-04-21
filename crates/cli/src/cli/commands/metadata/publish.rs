@@ -4,13 +4,17 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
-use crate::cli::commands::publish::{find_metadata_cbor, load_project_config};
+use crate::cli::commands::publish::{
+    find_metadata_cbor, load_project_config, resolve_active_network, resolve_wallet_daemon_url,
+};
 use crate::cli::config::Config;
 use crate::cli::util::get_default_metadata_server_url;
 use anyhow::{Context, anyhow};
 use clap::Parser;
 use dialoguer::Confirm;
 use tari_engine_types::published_template::PublishedTemplateAddress;
+use tari_ootle_common_types::Network;
+use tari_ootle_publish_lib::NetworkConfig;
 use tari_ootle_publish_lib::publisher::{SignedMetadataPayload, TemplatePublisher};
 use tari_ootle_template_metadata::TemplateMetadata;
 use url::Url;
@@ -57,36 +61,36 @@ pub struct PublishMetadataArgs {
     pub wallet_daemon_url: Option<url::Url>,
 }
 
-pub async fn handle(config: Config, args: PublishMetadataArgs) -> anyhow::Result<()> {
+pub async fn handle(
+    config: Config,
+    network_override: Option<Network>,
+    args: PublishMetadataArgs,
+) -> anyhow::Result<()> {
     let cbor_path = find_metadata_cbor(&args.path).await?;
     let mut cbor_bytes = std::fs::read(&cbor_path).context("reading metadata CBOR file")?;
 
-    let url_override = args.wallet_daemon_url.as_ref().or(config.wallet_daemon_url.as_ref());
-    let project_config = load_project_config(&args.path, url_override).await?;
+    let project_config = load_project_config(&args.path).await?;
+    let network = resolve_active_network(network_override, &project_config, &config);
+    let wallet_daemon_url =
+        resolve_wallet_daemon_url(args.wallet_daemon_url.as_ref(), &project_config, &config, network);
+    println!("🌐 Network: {network}");
 
-    let publisher = TemplatePublisher::new(project_config.network().clone());
+    let publisher = TemplatePublisher::new(NetworkConfig::new(wallet_daemon_url));
 
-    // Resolve metadata server URL: CLI flag > project config > global config > default
+    // Resolve metadata server URL: CLI flag > project config > global config > default for network
     let metadata_server_url = args
         .metadata_server_url
         .as_ref()
-        .or(project_config.metadata_server_url())
-        .or(config.metadata_server_url.as_ref())
+        .or(project_config.metadata_server_url(network))
+        .or(config.metadata_server_url(network))
         .cloned();
 
     let metadata_server_url = match metadata_server_url {
         Some(url) => url,
         None => {
-            let resp = publisher
-                .wallet_daemon_client()
-                .await?
-                .get_settings()
-                .await
-                .context("fetching network settings from wallet daemon")?;
-            let default_url = get_default_metadata_server_url(&resp.network.name)
-                .ok_or_else(|| anyhow!("no default metadata server for {}", resp.network.name))?;
-            let default_url: Url = default_url.parse().expect("parse default url");
-            default_url
+            let default_url = get_default_metadata_server_url(network)
+                .ok_or_else(|| anyhow!("no default metadata server for {network}"))?;
+            default_url.parse::<Url>().expect("parse default url")
         },
     };
 
@@ -118,13 +122,14 @@ pub async fn handle(config: Config, args: PublishMetadataArgs) -> anyhow::Result
         }
     }
 
-    // Resolve template address: CLI flag > project config
+    // Resolve template address: CLI flag > project config for selected network
     let addr = args
         .template_address
-        .or_else(|| project_config.template_address().cloned())
+        .or_else(|| project_config.template_address(network).cloned())
         .ok_or_else(|| {
             anyhow!(
-                "No template address provided. Use --template-address or publish the template first \
+                "No template address provided for network '{network}'. \
+                 Use --template-address or publish the template first \
                  (`tari publish`) to save the address in tari.config.toml."
             )
         })?;

@@ -1,40 +1,50 @@
 // Copyright 2024 The Tari Project
 // SPDX-License-Identifier: BSD-3-Clause
 
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 use tari_engine_types::published_template::PublishedTemplateAddress;
-use tari_ootle_publish_lib::NetworkConfig;
+use tari_ootle_common_types::Network;
 use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use url::Url;
+
+pub const DEFAULT_WALLET_DAEMON_URL: &str = "http://127.0.0.1:5100/json_rpc";
 
 /// Project configuration.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ProjectConfig {
-    network: NetworkConfig,
+    default_network: Option<Network>,
     default_account: Option<String>,
-    /// Metadata server URL for publishing template metadata.
-    metadata_server_url: Option<url::Url>,
-    /// Template address from the most recent publish.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    template_address: Option<PublishedTemplateAddress>,
+    #[serde(default)]
+    networks: HashMap<Network, ProjectNetworkSettings>,
+}
+
+/// Per-network project settings.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ProjectNetworkSettings {
+    pub wallet_daemon_url: Option<Url>,
+    pub metadata_server_url: Option<Url>,
+    pub template_address: Option<PublishedTemplateAddress>,
 }
 
 impl ProjectConfig {
-    pub fn network(&self) -> &NetworkConfig {
-        &self.network
+    pub fn default_network(&self) -> Option<Network> {
+        self.default_network
     }
 
-    pub fn set_wallet_daemon_url(&mut self, url: Url) {
-        self.network = NetworkConfig::new(url);
+    pub fn wallet_daemon_url(&self, network: Network) -> Option<&Url> {
+        self.networks.get(&network).and_then(|n| n.wallet_daemon_url.as_ref())
     }
 
-    pub fn metadata_server_url(&self) -> Option<&url::Url> {
-        self.metadata_server_url.as_ref()
+    pub fn metadata_server_url(&self, network: Network) -> Option<&Url> {
+        self.networks.get(&network).and_then(|n| n.metadata_server_url.as_ref())
     }
 
-    pub fn template_address(&self) -> Option<&PublishedTemplateAddress> {
-        self.template_address.as_ref()
+    pub fn template_address(&self, network: Network) -> Option<&PublishedTemplateAddress> {
+        self.networks.get(&network).and_then(|n| n.template_address.as_ref())
     }
 
     pub fn parsed_default_account(&self) -> anyhow::Result<Option<ComponentAddressOrName>> {
@@ -45,11 +55,62 @@ impl ProjectConfig {
 
 impl Default for ProjectConfig {
     fn default() -> Self {
+        let mut networks = HashMap::new();
+        networks.insert(
+            Network::Esmeralda,
+            ProjectNetworkSettings {
+                wallet_daemon_url: Some(Url::parse(DEFAULT_WALLET_DAEMON_URL).expect("default URL is valid")),
+                metadata_server_url: None,
+                template_address: None,
+            },
+        );
         Self {
-            network: NetworkConfig::new(Url::parse("http://127.0.0.1:5100/json_rpc").unwrap()),
+            default_network: Some(Network::Esmeralda),
             default_account: None,
-            metadata_server_url: None,
-            template_address: None,
+            networks,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_project_config_roundtrips() {
+        let cfg = ProjectConfig::default();
+        let ser = toml::to_string(&cfg).expect("serialize default");
+        let de: ProjectConfig = toml::from_str(&ser).expect("deserialize default");
+        assert_eq!(de.default_network(), Some(Network::Esmeralda));
+        assert_eq!(
+            de.wallet_daemon_url(Network::Esmeralda).map(|u| u.as_str()),
+            Some(DEFAULT_WALLET_DAEMON_URL)
+        );
+    }
+
+    #[test]
+    fn per_network_sections_parse() {
+        let toml_str = r#"
+default-network = "esmeralda"
+
+[networks.esmeralda]
+wallet-daemon-url = "http://localhost:5100/json_rpc"
+template-address = "template_0000000000000000000000000000000000000000000000000000000000000000"
+
+[networks.localnet]
+wallet-daemon-url = "http://localhost:9999/json_rpc"
+"#;
+        let cfg: ProjectConfig = toml::from_str(toml_str).expect("parse");
+        assert_eq!(cfg.default_network(), Some(Network::Esmeralda));
+        assert_eq!(
+            cfg.wallet_daemon_url(Network::Esmeralda).map(|u| u.as_str()),
+            Some("http://localhost:5100/json_rpc")
+        );
+        assert_eq!(
+            cfg.wallet_daemon_url(Network::LocalNet).map(|u| u.as_str()),
+            Some("http://localhost:9999/json_rpc")
+        );
+        assert!(cfg.template_address(Network::Esmeralda).is_some());
+        assert!(cfg.template_address(Network::LocalNet).is_none());
     }
 }

@@ -1,20 +1,23 @@
 // Copyright 2024 The Tari Project
 // SPDX-License-Identifier: BSD-3-Clause
 
+use std::collections::HashMap;
 use std::{path::PathBuf, string::ToString};
 
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
+use tari_ootle_common_types::Network;
 use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use tokio::{fs, io::AsyncWriteExt};
+
+use crate::project::DEFAULT_WALLET_DAEMON_URL;
 
 pub const VALID_OVERRIDE_KEYS: &[&str] = &[
     "template_repository.url",
     "template_repository.branch",
     "template_repository.folder",
     "default_account",
-    "wallet_daemon_url",
-    "metadata_server_url",
+    "default_network",
 ];
 
 /// CLI configuration.
@@ -23,10 +26,19 @@ pub const VALID_OVERRIDE_KEYS: &[&str] = &[
 pub struct Config {
     pub template_repository: TemplateRepository,
     pub default_account: Option<ComponentAddressOrName>,
-    /// Global default wallet daemon JSON-RPC URL.
-    /// Used when no tari.config.toml is found in the project tree.
+    /// Default network used when no project config or CLI flag selects one.
+    pub default_network: Option<Network>,
+    /// Per-network defaults (wallet daemon URL, metadata server URL).
+    #[serde(default)]
+    pub networks: HashMap<Network, CliNetworkSettings>,
+}
+
+/// Per-network CLI defaults used when the project config is absent or does not
+/// specify a value for the selected network.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct CliNetworkSettings {
     pub wallet_daemon_url: Option<url::Url>,
-    /// Default metadata server URL for publishing template metadata.
     pub metadata_server_url: Option<url::Url>,
 }
 
@@ -41,6 +53,14 @@ pub struct TemplateRepository {
 
 impl Default for Config {
     fn default() -> Self {
+        let mut networks = HashMap::new();
+        networks.insert(
+            Network::Esmeralda,
+            CliNetworkSettings {
+                wallet_daemon_url: Some(url::Url::parse(DEFAULT_WALLET_DAEMON_URL).expect("default URL is valid")),
+                metadata_server_url: None,
+            },
+        );
         Self {
             template_repository: TemplateRepository {
                 url: "https://github.com/tari-project/wasm-template".to_string(),
@@ -48,8 +68,8 @@ impl Default for Config {
                 folder: "wasm_templates".to_string(),
             },
             default_account: None,
-            wallet_daemon_url: None,
-            metadata_server_url: None,
+            default_network: Some(Network::Esmeralda),
+            networks,
         }
     }
 }
@@ -77,6 +97,14 @@ impl Config {
         VALID_OVERRIDE_KEYS.contains(&key)
     }
 
+    pub fn wallet_daemon_url(&self, network: Network) -> Option<&url::Url> {
+        self.networks.get(&network).and_then(|n| n.wallet_daemon_url.as_ref())
+    }
+
+    pub fn metadata_server_url(&self, network: Network) -> Option<&url::Url> {
+        self.networks.get(&network).and_then(|n| n.metadata_server_url.as_ref())
+    }
+
     pub fn override_data(&mut self, key: &str, value: &str) -> anyhow::Result<&mut Self> {
         if !Self::is_override_key_valid(key) {
             return Err(anyhow!("Invalid key: {}", key));
@@ -95,11 +123,8 @@ impl Config {
             "default_account" => {
                 self.default_account = Some(value.parse()?);
             },
-            "wallet_daemon_url" => {
-                self.wallet_daemon_url = Some(value.parse().map_err(|e| anyhow!("Invalid URL: {e}"))?);
-            },
-            "metadata_server_url" => {
-                self.metadata_server_url = Some(value.parse().map_err(|e| anyhow!("Invalid URL: {e}"))?);
+            "default_network" => {
+                self.default_network = Some(value.parse().map_err(|e| anyhow!("Invalid network: {e}"))?);
             },
             _ => {},
         }

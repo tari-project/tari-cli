@@ -118,15 +118,16 @@ async fn step_project_config(_crate_dir: &PathBuf) -> anyhow::Result<()> {
         .context("writing config file")?;
     println!("✅ Created {}", config_path.display());
 
-    // Ask for wallet daemon URL
+    // Ask for wallet daemon URL (applied to the default network: esmeralda)
+    let default_url = crate::project::DEFAULT_WALLET_DAEMON_URL.to_string();
     let url: String = Input::new()
-        .with_prompt("Wallet daemon JSON-RPC URL")
-        .default("http://127.0.0.1:5100/json_rpc".to_string())
+        .with_prompt("Wallet daemon JSON-RPC URL (for esmeralda)")
+        .default(default_url.clone())
         .interact_text()?;
 
-    if url != "http://127.0.0.1:5100/json_rpc" {
+    if url != default_url {
         crate::cli::commands::config::handle(ConfigCommand::Set {
-            key: "network.wallet-daemon-jrpc-address".to_string(),
+            key: "networks.esmeralda.wallet-daemon-url".to_string(),
             value: url,
         })
         .await?;

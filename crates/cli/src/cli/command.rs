@@ -25,6 +25,7 @@ use clap::{
 };
 use convert_case::{Case, Casing};
 use std::{env, path::PathBuf};
+use tari_ootle_common_types::Network;
 
 const DEFAULT_DATA_FOLDER_NAME: &str = "tari_cli";
 const TEMPLATE_REPOS_FOLDER_NAME: &str = "template_repositories";
@@ -83,6 +84,10 @@ pub fn project_name_parser(project_name: &str) -> Result<String, String> {
     Ok(project_name.to_case(Case::Snake))
 }
 
+fn parse_network(s: &str) -> Result<Network, String> {
+    s.parse().map_err(|e: tari_ootle_common_types::NetworkParseError| e.to_string())
+}
+
 #[derive(Clone, Debug)]
 pub struct ConfigOverride {
     pub key: String,
@@ -102,6 +107,11 @@ pub struct CommonArguments {
     /// Config file overrides
     #[arg(short = 'e', long, value_name = "KEY=VALUE", value_parser = config_override_parser)]
     config_overrides: Vec<ConfigOverride>,
+
+    /// Network to use. Overrides the default set in project and global config.
+    /// (e.g. `esmeralda`, `igor`, `localnet`, `mainnet`)
+    #[arg(short = 'n', long, value_name = "NETWORK", value_parser = parse_network, global = true)]
+    network: Option<Network>,
 }
 
 #[derive(Clone, Parser)]
@@ -269,15 +279,20 @@ impl Cli {
         // Commands that don't need template repository refresh
         match &command {
             Command::Template { .. } | Command::Publish { .. } | Command::Metadata { .. } => {
+                let network_override = self.args.network;
                 return match command {
                     Command::Template { command } => match command {
                         TemplateCommand::Init { args } => template::init_metadata::handle(args).await,
                         TemplateCommand::Inspect { args } => template::inspect_metadata::handle(args).await,
-                        TemplateCommand::Publish { args } => template::publish::handle(config, args).await,
+                        TemplateCommand::Publish { args } => {
+                            template::publish::handle(config, network_override, args).await
+                        },
                     },
-                    Command::Publish { args } => publish::handle(config, args).await,
+                    Command::Publish { args } => publish::handle(config, network_override, args).await,
                     Command::Metadata { command } => match command {
-                        MetadataCommand::Publish { args } => metadata::publish::handle(config, args).await,
+                        MetadataCommand::Publish { args } => {
+                            metadata::publish::handle(config, network_override, args).await
+                        },
                         MetadataCommand::Inspect { .. } => unreachable!(),
                     },
                     _ => unreachable!(),

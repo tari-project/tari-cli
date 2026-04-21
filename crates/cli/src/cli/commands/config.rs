@@ -136,30 +136,46 @@ pub fn find_repo_root() -> Option<PathBuf> {
 
 fn set_dotted_key(doc: &mut toml_edit::DocumentMut, key: &str, value: &str) -> anyhow::Result<()> {
     let parts: Vec<&str> = key.split('.').collect();
-    match parts.len() {
-        1 => {
-            doc.insert(parts[0], toml_edit::value(value));
-        },
-        2 => {
-            let table = doc
-                .entry(parts[0])
-                .or_insert_with(|| toml_edit::Item::Table(toml_edit::Table::new()))
-                .as_table_mut()
-                .ok_or_else(|| anyhow!("'{key}' is not a table"))?;
-            table.insert(parts[1], toml_edit::value(value));
-        },
-        _ => return Err(anyhow!("Unsupported key depth: {key}")),
+    if parts.is_empty() {
+        return Err(anyhow!("Empty key"));
     }
+
+    if parts.len() == 1 {
+        doc.insert(parts[0], toml_edit::value(value));
+        return Ok(());
+    }
+
+    // Walk/create intermediate tables, then insert the leaf.
+    let (leaf, head) = parts.split_last().expect("non-empty parts");
+    let root = doc
+        .entry(head[0])
+        .or_insert_with(|| toml_edit::Item::Table(toml_edit::Table::new()))
+        .as_table_mut()
+        .ok_or_else(|| anyhow!("'{}' is not a table", head[0]))?;
+
+    let mut table = root;
+    for part in &head[1..] {
+        let entry = table
+            .entry(part)
+            .or_insert_with(|| toml_edit::Item::Table(toml_edit::Table::new()));
+        table = entry
+            .as_table_mut()
+            .ok_or_else(|| anyhow!("'{part}' is not a table"))?;
+    }
+    table.insert(leaf, toml_edit::value(value));
     Ok(())
 }
 
 fn get_dotted_key(doc: &toml_edit::DocumentMut, key: &str) -> anyhow::Result<String> {
     let parts: Vec<&str> = key.split('.').collect();
-    let item = match parts.len() {
-        1 => doc.get(parts[0]),
-        2 => doc.get(parts[0]).and_then(|t| t.get(parts[1])),
-        _ => return Err(anyhow!("Unsupported key depth: {key}")),
-    };
+    if parts.is_empty() {
+        return Err(anyhow!("Empty key"));
+    }
+
+    let mut item: Option<&toml_edit::Item> = doc.get(parts[0]);
+    for part in &parts[1..] {
+        item = item.and_then(|i| i.get(part));
+    }
 
     match item {
         Some(toml_edit::Item::Value(v)) => {
@@ -167,7 +183,7 @@ fn get_dotted_key(doc: &toml_edit::DocumentMut, key: &str) -> anyhow::Result<Str
             Ok(s.trim().trim_matches('"').to_string())
         },
         Some(toml_edit::Item::Table(t)) => Ok(t.to_string()),
-        Some(_) => Ok(item.unwrap().to_string()),
+        Some(other) => Ok(other.to_string()),
         None => Err(anyhow!("Key '{key}' not found")),
     }
 }
