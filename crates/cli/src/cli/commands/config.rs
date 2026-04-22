@@ -158,9 +158,7 @@ fn set_dotted_key(doc: &mut toml_edit::DocumentMut, key: &str, value: &str) -> a
         let entry = table
             .entry(part)
             .or_insert_with(|| toml_edit::Item::Table(toml_edit::Table::new()));
-        table = entry
-            .as_table_mut()
-            .ok_or_else(|| anyhow!("'{part}' is not a table"))?;
+        table = entry.as_table_mut().ok_or_else(|| anyhow!("'{part}' is not a table"))?;
     }
     table.insert(leaf, toml_edit::value(value));
     Ok(())

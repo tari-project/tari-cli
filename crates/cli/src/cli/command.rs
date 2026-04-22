@@ -85,7 +85,8 @@ pub fn project_name_parser(project_name: &str) -> Result<String, String> {
 }
 
 fn parse_network(s: &str) -> Result<Network, String> {
-    s.parse().map_err(|e: tari_ootle_common_types::NetworkParseError| e.to_string())
+    s.parse()
+        .map_err(|e: tari_ootle_common_types::NetworkParseError| e.to_string())
 }
 
 #[derive(Clone, Debug)]
