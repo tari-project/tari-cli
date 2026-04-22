@@ -10,6 +10,8 @@ use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use url::Url;
 
 pub const DEFAULT_WALLET_DAEMON_URL: &str = "http://127.0.0.1:5100/json_rpc";
+pub const DEFAULT_METADATA_SERVER_URL_ESMERALDA: &str = "https://ootle-templates-esme.tari.com/";
+pub const DEFAULT_METADATA_SERVER_URL_LOCALNET: &str = "http://localhost:3000";
 
 /// Project configuration.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -55,22 +57,23 @@ impl ProjectConfig {
 
 impl Default for ProjectConfig {
     fn default() -> Self {
-        let default_url =
+        let wallet_url =
             || Some(Url::parse(DEFAULT_WALLET_DAEMON_URL).expect("default wallet daemon URL is valid"));
+        let metadata_url = |s: &str| Some(Url::parse(s).expect("default metadata server URL is valid"));
         let mut networks = HashMap::new();
         networks.insert(
             Network::Esmeralda,
             ProjectNetworkSettings {
-                wallet_daemon_url: default_url(),
-                metadata_server_url: None,
+                wallet_daemon_url: wallet_url(),
+                metadata_server_url: metadata_url(DEFAULT_METADATA_SERVER_URL_ESMERALDA),
                 template_address: None,
             },
         );
         networks.insert(
             Network::LocalNet,
             ProjectNetworkSettings {
-                wallet_daemon_url: default_url(),
-                metadata_server_url: None,
+                wallet_daemon_url: wallet_url(),
+                metadata_server_url: metadata_url(DEFAULT_METADATA_SERVER_URL_LOCALNET),
                 template_address: None,
             },
         );

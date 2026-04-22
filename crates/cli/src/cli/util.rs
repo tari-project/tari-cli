@@ -39,8 +39,8 @@ pub fn human_bytes(n: usize) -> String {
 
 pub fn get_default_metadata_server_url(network: Network) -> Option<&'static str> {
     match network {
-        Network::LocalNet => Some("http://localhost:3000"),
-        Network::Esmeralda => Some("https://ootle-templates-esme.tari.com/"),
+        Network::LocalNet => Some(crate::project::DEFAULT_METADATA_SERVER_URL_LOCALNET),
+        Network::Esmeralda => Some(crate::project::DEFAULT_METADATA_SERVER_URL_ESMERALDA),
         _ => None,
     }
 }

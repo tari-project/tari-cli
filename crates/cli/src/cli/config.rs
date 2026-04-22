@@ -10,7 +10,9 @@ use tari_ootle_common_types::Network;
 use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use tokio::{fs, io::AsyncWriteExt};
 
-use crate::project::DEFAULT_WALLET_DAEMON_URL;
+use crate::project::{
+    DEFAULT_METADATA_SERVER_URL_ESMERALDA, DEFAULT_METADATA_SERVER_URL_LOCALNET, DEFAULT_WALLET_DAEMON_URL,
+};
 
 pub const VALID_OVERRIDE_KEYS: &[&str] = &[
     "template_repository.url",
@@ -53,21 +55,22 @@ pub struct TemplateRepository {
 
 impl Default for Config {
     fn default() -> Self {
-        let default_url =
+        let wallet_url =
             || Some(url::Url::parse(DEFAULT_WALLET_DAEMON_URL).expect("default wallet daemon URL is valid"));
+        let metadata_url = |s: &str| Some(url::Url::parse(s).expect("default metadata server URL is valid"));
         let mut networks = HashMap::new();
         networks.insert(
             Network::Esmeralda,
             CliNetworkSettings {
-                wallet_daemon_url: default_url(),
-                metadata_server_url: None,
+                wallet_daemon_url: wallet_url(),
+                metadata_server_url: metadata_url(DEFAULT_METADATA_SERVER_URL_ESMERALDA),
             },
         );
         networks.insert(
             Network::LocalNet,
             CliNetworkSettings {
-                wallet_daemon_url: default_url(),
-                metadata_server_url: None,
+                wallet_daemon_url: wallet_url(),
+                metadata_server_url: metadata_url(DEFAULT_METADATA_SERVER_URL_LOCALNET),
             },
         );
         Self {
