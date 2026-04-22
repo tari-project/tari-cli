@@ -1,8 +1,8 @@
 ---
 title: Configuration Schema Reference
 description: Complete reference for all Tari CLI configuration options and file formats
-last_updated: 2026-04-14
-version: "0.14"
+last_updated: 2026-04-22
+version: "0.15"
 verified_against: crates/cli/src/cli/config.rs, crates/cli/src/project/config.rs
 audience: users
 ---
@@ -13,12 +13,21 @@ audience: users
 
 ## Configuration Hierarchy
 
-Settings are resolved in this order (highest priority first):
+Both the global CLI config and the project config are organised by **network** (`esmeralda`, `localnet`, `igor`, `nextnet`, `stagenet`, `mainnet`). Each command resolves an **active network** and then reads `wallet-daemon-url`, `metadata-server-url`, and `template-address` from the matching `[networks.<name>]` section.
+
+### Active network resolution (highest priority first)
+
+1. `--network <name>` (`-n`) on the command line
+2. `default-network` in the project `tari.config.toml`
+3. `default-network` in the global CLI config
+4. `esmeralda` (built-in default)
+
+### Per-setting resolution (highest priority first)
 
 1. **Command-line flags** (`--wallet-daemon-url`, `--metadata-server-url`, etc.)
 2. **CLI overrides** (`-e KEY=VALUE`)
-3. **Project configuration** (`tari.config.toml` in project or git root)
-4. **Global CLI configuration** (`~/.config/tari_cli/tari.config.toml`)
+3. **Project configuration** — `[networks.<active>]` in `tari.config.toml`
+4. **Global CLI configuration** — `[networks.<active>]` in `~/.config/tari_cli/tari.config.toml`
 5. **Built-in defaults**
 
 ---
@@ -36,18 +45,31 @@ Settings are resolved in this order (highest priority first):
 ```toml
 # ~/.config/tari_cli/tari.config.toml
 
+default-network = "esmeralda"
+# default-account = "myaccount"
+
 [template-repository]
 url = "https://github.com/tari-project/wasm-template"
 branch = "main"
 folder = "wasm_templates"
 
-# Optional
-# wallet-daemon-url = "http://127.0.0.1:9000/json_rpc"
-# metadata-server-url = "http://localhost:3000"
-# default-account = "myaccount"
+[networks.esmeralda]
+wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
+metadata-server-url = "https://ootle-templates-esme.tari.com/"
+
+[networks.localnet]
+wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
+metadata-server-url = "http://localhost:3000/"
 ```
 
 ### Fields
+
+#### Top-level
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `default-network` | Network | `esmeralda` | Used when no `--network` flag and no project default-network |
+| `default-account` | String | None | Default wallet account for publishing |
 
 #### `[template-repository]`
 
@@ -57,13 +79,12 @@ folder = "wasm_templates"
 | `branch` | String | `main` | Git branch |
 | `folder` | String | `wasm_templates` | Subdirectory containing templates |
 
-#### Top-level optional fields
+#### `[networks.<name>]`
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `wallet-daemon-url` | URL | None | Global wallet daemon JSON-RPC URL |
-| `metadata-server-url` | URL | None | Global metadata server URL |
-| `default-account` | String | None | Default wallet account for publishing |
+| `wallet-daemon-url` | URL | `http://127.0.0.1:5100/json_rpc` | Wallet daemon JSON-RPC endpoint |
+| `metadata-server-url` | URL | esmeralda → `https://ootle-templates-esme.tari.com/`, localnet → `http://localhost:3000/`, others → none | Metadata server URL |
 
 ### CLI Overrides (`-e`)
 
@@ -75,11 +96,12 @@ Valid override keys:
 | `template_repository.branch` | `development` |
 | `template_repository.folder` | `my_templates` |
 | `default_account` | `myaccount` |
-| `wallet_daemon_url` | `http://localhost:12008/json_rpc` |
-| `metadata_server_url` | `http://community.example.com` |
+| `default_network` | `localnet` |
+| `networks.<name>.wallet-daemon-url` | `http://localhost:12008/json_rpc` |
+| `networks.<name>.metadata-server-url` | `http://community.example.com` |
 
 ```bash
-tari -e "wallet_daemon_url=http://localhost:12008/json_rpc" publish
+tari -e "networks.esmeralda.wallet-daemon-url=http://localhost:12008/json_rpc" publish
 ```
 
 ---
@@ -95,42 +117,52 @@ tari -e "wallet_daemon_url=http://localhost:12008/json_rpc" publish
 ```toml
 # tari.config.toml
 
-[network]
-wallet-daemon-jrpc-address = "http://127.0.0.1:5100/json_rpc"
-
-# Optional
+default-network = "esmeralda"
 # default-account = "myaccount"
-# metadata-server-url = "http://localhost:3000"
-# template-address = "template_abc123..."
+
+[networks.esmeralda]
+wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
+metadata-server-url = "https://ootle-templates-esme.tari.com/"
+# template-address = "template_abc123..."  # written automatically by `tari publish`
+
+[networks.localnet]
+wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
+metadata-server-url = "http://localhost:3000/"
 ```
 
 ### Fields
 
-#### `[network]`
+#### Top-level
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `wallet-daemon-jrpc-address` | URL | `http://127.0.0.1:5100/json_rpc` | Wallet daemon JSON-RPC endpoint |
-
-#### Top-level optional fields
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
+| `default-network` | Network | `esmeralda` | Active network when no `--network` flag is set |
 | `default-account` | String | None | Default wallet account |
-| `metadata-server-url` | URL | None | Metadata server URL |
-| `template-address` | Address | None | Template address (saved automatically by `tari publish`) |
+
+#### `[networks.<name>]`
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `wallet-daemon-url` | URL | `http://127.0.0.1:5100/json_rpc` | Wallet daemon JSON-RPC endpoint |
+| `metadata-server-url` | URL | None | Metadata server URL for this network |
+| `template-address` | Address | None | Most recently published template address (written automatically by `tari publish`) |
+
+`<name>` is a value of the `Network` enum: `mainnet`, `stagenet`, `nextnet`, `localnet`, `igor`, `esmeralda`.
 
 ### Managing Project Configuration
 
 ```bash
-# Create default config
+# Create default config (esmeralda + localnet sections)
 tari config init
 
-# Set wallet daemon URL
-tari config set network.wallet-daemon-jrpc-address http://localhost:12008/json_rpc
+# Set wallet daemon URL for a specific network
+tari config set networks.localnet.wallet-daemon-url http://localhost:12008/json_rpc
 
-# Set metadata server
-tari config set metadata_server_url http://community.example.com
+# Change the default network
+tari config set default-network localnet
+
+# Set metadata server for esmeralda
+tari config set networks.esmeralda.metadata-server-url http://community.example.com
 
 # View current config
 tari config show

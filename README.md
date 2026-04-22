@@ -88,15 +88,22 @@ Run `tari --help` or `tari <command> --help` for full details.
 
 ## Configuration
 
-Project config lives in `tari.config.toml` (created by `tari config init` or the wizard):
+Project config lives in `tari.config.toml` (created by `tari config init` or the wizard) and is organised by network:
 
 ```toml
-[network]
-wallet-daemon-jrpc-address = "http://127.0.0.1:9000/json_rpc"
+default-network = "esmeralda"
+# default-account = "myaccount"
 
-# metadata-server-url = "http://localhost:3000"
-# default_account = "myaccount"
+[networks.esmeralda]
+wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
+metadata-server-url = "https://ootle-templates-esme.tari.com/"
+
+[networks.localnet]
+wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
+metadata-server-url = "http://localhost:3000/"
 ```
+
+Pass `-n/--network <name>` to override the active network on any command (e.g. `tari --network localnet publish`).
 
 Settings are resolved: **CLI flag > project config > global config > default**.
 

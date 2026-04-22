@@ -4,6 +4,7 @@
 use std::{fs::Metadata, io, path::PathBuf};
 
 use dialoguer::FuzzySelect;
+use tari_ootle_common_types::Network;
 use tokio::fs;
 
 pub async fn create_dir(dir: &PathBuf) -> io::Result<()> {
@@ -36,10 +37,10 @@ pub fn human_bytes(n: usize) -> String {
     human_bytes::human_bytes(n as f64)
 }
 
-pub fn get_default_metadata_server_url(network: &str) -> Option<&'static str> {
+pub fn get_default_metadata_server_url(network: Network) -> Option<&'static str> {
     match network {
-        "localnet" => Some("http://localhost:3000"),
-        "esmeralda" => Some("https://ootle-templates-esme.tari.com/"),
+        Network::LocalNet => Some(crate::project::DEFAULT_METADATA_SERVER_URL_LOCALNET),
+        Network::Esmeralda => Some(crate::project::DEFAULT_METADATA_SERVER_URL_ESMERALDA),
         _ => None,
     }
 }

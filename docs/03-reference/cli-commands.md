@@ -1,8 +1,8 @@
 ---
 title: CLI Commands Reference
 description: Complete reference for all Tari CLI commands, arguments, and options
-last_updated: 2026-04-14
-version: "0.14"
+last_updated: 2026-04-22
+version: "0.15"
 verified_against: crates/cli/src/cli/command.rs, command implementations
 audience: users
 ---
@@ -23,7 +23,8 @@ tari [GLOBAL_OPTIONS] <COMMAND> [COMMAND_OPTIONS]
 |--------|-------|-------------|---------|
 | `--base-dir <PATH>` | `-b` | Base directory for CLI data | `~/.local/share/tari_cli` |
 | `--config-file-path <PATH>` | `-c` | Config file location | `~/.config/tari_cli/tari.config.toml` |
-| `--config-overrides <KEY=VALUE>` | `-e` | Config file overrides | None |
+| `--config-overrides <KEY=VALUE>` | `-e` | Config file overrides (e.g. `networks.esmeralda.wallet-daemon-url=...`) | None |
+| `--network <NETWORK>` | `-n` | Active network (`esmeralda`, `localnet`, `igor`, `nextnet`, `stagenet`, `mainnet`). Overrides project and global `default-network` | Project / global default |
 
 ## Commands Overview
 
@@ -134,27 +135,33 @@ tari publish [OPTIONS] [PATH]
 |-------------------|------|---------|-------------|
 | `[PATH]` | Path | `.` | Path to the template crate directory |
 | `-a, --account` | String | Config or wallet default | Account for publishing fees |
+| `-n, --network` | Network | Project/global default | Active network (overrides config) |
 | `-c, --custom-network` | String | Config default | Custom network name |
 | `-y, --yes` | Flag | `false` | Skip confirmation prompt |
 | `-f, --max-fee` | u64 | Auto-estimated | Maximum fee in microtari |
 | `--binary, --bin` | Path | *builds if not set* | Path to pre-compiled WASM binary |
-| `--wallet-daemon-url` | URL | Config default | Wallet daemon JSON-RPC URL |
+| `--wallet-daemon-url` | URL | `[networks.<active>].wallet-daemon-url` | Wallet daemon JSON-RPC URL |
 | `--publish-metadata` | Flag | `false` | Auto-submit metadata to server after publishing |
-| `--metadata-server-url` | URL | Config or `localhost:3000` | Metadata server URL (with `--publish-metadata`) |
+| `--metadata-server-url` | URL | `[networks.<active>].metadata-server-url` | Metadata server URL (with `--publish-metadata`) |
+
+Before publishing, the CLI verifies the wallet daemon is on the same network as the active CLI network and aborts with an error if they differ.
 
 After publishing:
-- The template address is saved to `tari.config.toml` (so `tari metadata publish` can omit `--template-address`)
+- The template address is saved under `[networks.<active>].template-address` in `tari.config.toml` (so `tari metadata publish` can omit `--template-address`)
 - If metadata is detected and `--publish-metadata` is not set, you will be prompted to publish it
-- If a template address already exists in config (republishing), a warning is shown
+- If a template address already exists for the active network (republishing), a warning is shown
 
 ### Example
 
 ```bash
-# Build and publish
+# Build and publish (uses default-network from config)
 tari publish -a myaccount -y
 
 # Publish and auto-submit metadata
 tari publish -a myaccount --publish-metadata
+
+# Override the active network
+tari --network localnet publish -a myaccount
 ```
 
 ---
@@ -225,12 +232,13 @@ tari metadata publish [OPTIONS] [-t <TEMPLATE_ADDRESS>]
 | Argument / Option | Type | Default | Description |
 |-------------------|------|---------|-------------|
 | `[PATH]` | Path | `.` | Path to template crate directory |
-| `-t, --template-address` | Address | From config | Template address. If omitted, uses the address saved by `tari publish` |
-| `--metadata-server-url` | URL | Config or `localhost:3000` | Metadata server URL |
+| `-n, --network` | Network | Project/global default | Active network (overrides config) |
+| `-t, --template-address` | Address | `[networks.<active>].template-address` | Template address. If omitted, uses the address saved by `tari publish` |
+| `--metadata-server-url` | URL | `[networks.<active>].metadata-server-url` | Metadata server URL |
 | `--max-retries` | u32 | `6` | Max retry attempts for 404 (template not yet synced) |
 | `--signed` | Flag | `false` | Use author-signed submission via wallet daemon |
 | `--key-index` | u64 | `0` | Derived account key index (with `--signed`) |
-| `--wallet-daemon-url` | URL | Config default | Wallet daemon URL (with `--signed`) |
+| `--wallet-daemon-url` | URL | `[networks.<active>].wallet-daemon-url` | Wallet daemon URL (with `--signed`) |
 
 #### Hash-verified (default)
 
@@ -274,9 +282,10 @@ tari config set <KEY> <VALUE>
 
 Examples:
 ```bash
-tari config set network.wallet-daemon-jrpc-address http://localhost:12008/json_rpc
-tari config set metadata_server_url http://community.example.com
-tari config set default_account myaccount
+tari config set networks.localnet.wallet-daemon-url http://localhost:12008/json_rpc
+tari config set networks.esmeralda.metadata-server-url http://community.example.com
+tari config set default-network localnet
+tari config set default-account myaccount
 ```
 
 ### `config get`
@@ -307,13 +316,18 @@ Running `tari` with no command launches an interactive setup wizard that walks y
 
 ## Configuration Resolution
 
-Settings are resolved in priority order (highest first):
+The active network is resolved first, then per-setting values are read from that network's section.
+
+**Active network** (highest priority first): `--network` → project `default-network` → global `default-network` → `esmeralda`.
+
+**Per-setting** (highest priority first):
 
 | Setting | CLI flag | Project config | Global config | Default |
 |---------|----------|---------------|---------------|---------|
-| Wallet daemon URL | `--wallet-daemon-url` | `network.wallet-daemon-jrpc-address` | `wallet_daemon_url` | `http://127.0.0.1:9000/json_rpc` |
-| Metadata server URL | `--metadata-server-url` | `metadata-server-url` | `metadata_server_url` | `http://localhost:3000` |
-| Account | `--account` | `default_account` | `default_account` | Wallet daemon default |
+| Wallet daemon URL | `--wallet-daemon-url` | `networks.<active>.wallet-daemon-url` | `networks.<active>.wallet-daemon-url` | `http://127.0.0.1:5100/json_rpc` |
+| Metadata server URL | `--metadata-server-url` | `networks.<active>.metadata-server-url` | `networks.<active>.metadata-server-url` | esmeralda → `https://ootle-templates-esme.tari.com/`, localnet → `http://localhost:3000/`, others → none |
+| Template address | `--template-address` | `networks.<active>.template-address` | — | — |
+| Account | `--account` | `default-account` | `default-account` | Wallet daemon default |
 
 ---
 

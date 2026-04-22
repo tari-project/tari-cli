@@ -194,17 +194,19 @@ curl -X POST http://127.0.0.1:9000/ \
    ```
 
 2. **Verify Network Configuration**:
-   <!-- SOURCE: Verified against crates/cli/src/project/config.rs:30 -->
+   <!-- SOURCE: Verified against crates/cli/src/project/config.rs -->
    ```toml
    # In tari.config.toml
-   [network]
-   wallet-daemon-jrpc-address = "http://127.0.0.1:9000/"
+   default-network = "esmeralda"
+
+   [networks.esmeralda]
+   wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
    ```
 
 3. **Test Different Port**:
    ```bash
    # Check if port is available
-   netstat -an | grep 9000
+   netstat -an | grep 5100
    
    # Use alternative port if needed
    tari_wallet_daemon --json-rpc-address "127.0.0.1:9001"
@@ -390,8 +392,10 @@ Connection refused to network endpoint
 1. **Verify Network Configuration**:
    ```toml
    # Check tari.config.toml
-   [network]
-   wallet-daemon-jrpc-address = "http://127.0.0.1:9000/"
+   default-network = "esmeralda"
+
+   [networks.esmeralda]
+   wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
    ```
 
 2. **Test Network Connection**:

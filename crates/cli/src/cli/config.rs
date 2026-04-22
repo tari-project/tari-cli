@@ -1,21 +1,28 @@
 // Copyright 2024 The Tari Project
 // SPDX-License-Identifier: BSD-3-Clause
 
+use std::collections::HashMap;
 use std::{path::PathBuf, string::ToString};
 
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
+use tari_ootle_common_types::Network;
 use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use tokio::{fs, io::AsyncWriteExt};
+
+use crate::project::{
+    DEFAULT_METADATA_SERVER_URL_ESMERALDA, DEFAULT_METADATA_SERVER_URL_LOCALNET, DEFAULT_WALLET_DAEMON_URL,
+};
 
 pub const VALID_OVERRIDE_KEYS: &[&str] = &[
     "template_repository.url",
     "template_repository.branch",
     "template_repository.folder",
     "default_account",
-    "wallet_daemon_url",
-    "metadata_server_url",
+    "default_network",
 ];
+
+const VALID_NETWORK_OVERRIDE_FIELDS: &[&str] = &["wallet-daemon-url", "metadata-server-url"];
 
 /// CLI configuration.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -23,10 +30,19 @@ pub const VALID_OVERRIDE_KEYS: &[&str] = &[
 pub struct Config {
     pub template_repository: TemplateRepository,
     pub default_account: Option<ComponentAddressOrName>,
-    /// Global default wallet daemon JSON-RPC URL.
-    /// Used when no tari.config.toml is found in the project tree.
+    /// Default network used when no project config or CLI flag selects one.
+    pub default_network: Option<Network>,
+    /// Per-network defaults (wallet daemon URL, metadata server URL).
+    #[serde(default)]
+    pub networks: HashMap<Network, CliNetworkSettings>,
+}
+
+/// Per-network CLI defaults used when the project config is absent or does not
+/// specify a value for the selected network.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct CliNetworkSettings {
     pub wallet_daemon_url: Option<url::Url>,
-    /// Default metadata server URL for publishing template metadata.
     pub metadata_server_url: Option<url::Url>,
 }
 
@@ -41,6 +57,24 @@ pub struct TemplateRepository {
 
 impl Default for Config {
     fn default() -> Self {
+        let wallet_url =
+            || Some(url::Url::parse(DEFAULT_WALLET_DAEMON_URL).expect("default wallet daemon URL is valid"));
+        let metadata_url = |s: &str| Some(url::Url::parse(s).expect("default metadata server URL is valid"));
+        let mut networks = HashMap::new();
+        networks.insert(
+            Network::Esmeralda,
+            CliNetworkSettings {
+                wallet_daemon_url: wallet_url(),
+                metadata_server_url: metadata_url(DEFAULT_METADATA_SERVER_URL_ESMERALDA),
+            },
+        );
+        networks.insert(
+            Network::LocalNet,
+            CliNetworkSettings {
+                wallet_daemon_url: wallet_url(),
+                metadata_server_url: metadata_url(DEFAULT_METADATA_SERVER_URL_LOCALNET),
+            },
+        );
         Self {
             template_repository: TemplateRepository {
                 url: "https://github.com/tari-project/wasm-template".to_string(),
@@ -48,8 +82,8 @@ impl Default for Config {
                 folder: "wasm_templates".to_string(),
             },
             default_account: None,
-            wallet_daemon_url: None,
-            metadata_server_url: None,
+            default_network: Some(Network::Esmeralda),
+            networks,
         }
     }
 }
@@ -74,7 +108,23 @@ impl Config {
     }
 
     pub fn is_override_key_valid(key: &str) -> bool {
-        VALID_OVERRIDE_KEYS.contains(&key)
+        if VALID_OVERRIDE_KEYS.contains(&key) {
+            return true;
+        }
+        // networks.<net>.<wallet-daemon-url|metadata-server-url>
+        let parts: Vec<&str> = key.split('.').collect();
+        if parts.len() == 3 && parts[0] == "networks" {
+            return parts[1].parse::<Network>().is_ok() && VALID_NETWORK_OVERRIDE_FIELDS.contains(&parts[2]);
+        }
+        false
+    }
+
+    pub fn wallet_daemon_url(&self, network: Network) -> Option<&url::Url> {
+        self.networks.get(&network).and_then(|n| n.wallet_daemon_url.as_ref())
+    }
+
+    pub fn metadata_server_url(&self, network: Network) -> Option<&url::Url> {
+        self.networks.get(&network).and_then(|n| n.metadata_server_url.as_ref())
     }
 
     pub fn override_data(&mut self, key: &str, value: &str) -> anyhow::Result<&mut Self> {
@@ -95,15 +145,26 @@ impl Config {
             "default_account" => {
                 self.default_account = Some(value.parse()?);
             },
-            "wallet_daemon_url" => {
-                self.wallet_daemon_url = Some(value.parse().map_err(|e| anyhow!("Invalid URL: {e}"))?);
+            "default_network" => {
+                self.default_network = Some(value.parse().map_err(|e| anyhow!("Invalid network: {e}"))?);
             },
-            "metadata_server_url" => {
-                self.metadata_server_url = Some(value.parse().map_err(|e| anyhow!("Invalid URL: {e}"))?);
-            },
-            _ => {},
+            _ => self.apply_network_override(key, value)?,
         }
 
         Ok(self)
+    }
+
+    fn apply_network_override(&mut self, key: &str, value: &str) -> anyhow::Result<()> {
+        let parts: Vec<&str> = key.split('.').collect();
+        // is_override_key_valid already enforced shape and Network parse.
+        let network: Network = parts[1].parse().map_err(|e| anyhow!("Invalid network: {e}"))?;
+        let entry = self.networks.entry(network).or_default();
+        let url: url::Url = value.parse().map_err(|e| anyhow!("Invalid URL: {e}"))?;
+        match parts[2] {
+            "wallet-daemon-url" => entry.wallet_daemon_url = Some(url),
+            "metadata-server-url" => entry.metadata_server_url = Some(url),
+            other => return Err(anyhow!("Unknown network field: {other}")),
+        }
+        Ok(())
     }
 }

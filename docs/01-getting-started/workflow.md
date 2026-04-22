@@ -135,8 +135,10 @@ cd templates/staking_pool/src
 ```bash
 # Configure for development network
 cat > tari.config.toml << EOF
-[network]
-wallet-daemon-jrpc-address = "http://127.0.0.1:9000/"
+default-network = "localnet"
+
+[networks.localnet]
+wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
 EOF
 
 # Set up testing environment
@@ -214,8 +216,10 @@ tari new ProductionToken --template audited-token-v2
 
 # Security configuration
 cat > tari.config.toml << EOF
-[network]
-wallet-daemon-jrpc-address = "https://secure-mainnet-wallet:9000/"
+default-network = "mainnet"
+
+[networks.mainnet]
+wallet-daemon-url = "https://secure-mainnet-wallet:9000/json_rpc"
 EOF
 ```
 
@@ -240,8 +244,10 @@ find . -name "*.rs" -exec grep -l "TODO\|FIXME\|XXX" {} \;
 ```bash
 # Deploy to testnet first
 cat > tari.config.testnet.toml << EOF
-[network]
-wallet-daemon-jrpc-address = "https://testnet-wallet:9000/"
+default-network = "esmeralda"
+
+[networks.esmeralda]
+wallet-daemon-url = "https://testnet-wallet:9000/json_rpc"
 EOF
 
 # Testnet deployment
@@ -414,8 +420,9 @@ jobs:
       - name: Test Template Deployment (Dry Run)
         run: |
           # Configure for CI environment
-          echo '[network]' > tari.config.toml
-          echo 'wallet-daemon-jrpc-address = "http://ci-wallet:9000/"' >> tari.config.toml
+          echo 'default-network = "localnet"' > tari.config.toml
+          echo '[networks.localnet]' >> tari.config.toml
+          echo 'wallet-daemon-url = "http://ci-wallet:5100/json_rpc"' >> tari.config.toml
           
           # Test deployment process (without actual deployment)
           # tari deploy --account ci-test --dry-run template-name

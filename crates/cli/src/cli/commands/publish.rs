@@ -10,6 +10,7 @@ use cargo_toml::Manifest;
 use clap::Parser;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+use tari_ootle_common_types::Network;
 use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use tokio::fs;
 use tokio::process::Command;
@@ -84,7 +85,7 @@ pub async fn build_template(crate_dir: &Path) -> anyhow::Result<PathBuf> {
 }
 
 /// `tari publish` delegates to `tari template publish` — they behave identically.
-pub async fn handle(config: Config, args: PublishArgs) -> anyhow::Result<()> {
+pub async fn handle(config: Config, network_override: Option<Network>, args: PublishArgs) -> anyhow::Result<()> {
     let template_args = TemplatePublishArgs {
         path: args.path,
         account: args.account,
@@ -96,7 +97,7 @@ pub async fn handle(config: Config, args: PublishArgs) -> anyhow::Result<()> {
         publish_metadata: args.publish_metadata,
         metadata_server_url: args.metadata_server_url,
     };
-    crate::cli::commands::template::publish::handle(config, template_args).await
+    crate::cli::commands::template::publish::handle(config, network_override, template_args).await
 }
 
 async fn build_project(dir: &Path, name: &str) -> anyhow::Result<PathBuf> {
@@ -199,44 +200,53 @@ pub async fn find_metadata_cbor(project_dir: &Path) -> anyhow::Result<PathBuf> {
     })
 }
 
-pub async fn load_project_config(
-    project_folder: &Path,
-    wallet_daemon_url_override: Option<&url::Url>,
-) -> anyhow::Result<project::ProjectConfig> {
+pub async fn load_project_config(project_folder: &Path) -> anyhow::Result<project::ProjectConfig> {
     // Search current dir and parents for tari.config.toml
-    let mut config = None;
     let mut search_dir = project_folder.to_path_buf();
     loop {
         let config_file = search_dir.join(project::CONFIG_FILE_NAME);
         if config_file.exists() {
-            config = Some(
-                toml::from_str::<project::ProjectConfig>(
-                    fs::read_to_string(&config_file)
-                        .await
-                        .map_err(|error| {
-                            anyhow!(
-                                "Failed to load project config file (at {}): {}",
-                                config_file.display(),
-                                error
-                            )
-                        })?
-                        .as_str(),
+            let content = fs::read_to_string(&config_file).await.map_err(|error| {
+                anyhow!(
+                    "Failed to load project config file (at {}): {}",
+                    config_file.display(),
+                    error
                 )
-                .context("parsing config toml")?,
-            );
-            break;
+            })?;
+            return toml::from_str::<project::ProjectConfig>(content.as_str()).context("parsing config toml");
         }
         if !search_dir.pop() {
             break;
         }
     }
 
-    let mut config = config.unwrap_or_default();
+    Ok(project::ProjectConfig::default())
+}
 
-    // CLI flag overrides everything
-    if let Some(url) = wallet_daemon_url_override {
-        config.set_wallet_daemon_url(url.clone());
-    }
+/// Resolve the active network: CLI flag > project default > global default > Esmeralda.
+pub fn resolve_active_network(
+    cli_override: Option<Network>,
+    project: &project::ProjectConfig,
+    global: &Config,
+) -> Network {
+    cli_override
+        .or_else(|| project.default_network())
+        .or(global.default_network)
+        .unwrap_or_default()
+}
 
-    Ok(config)
+/// Resolve wallet-daemon URL for the active network. Precedence: CLI flag > project > global > default.
+pub fn resolve_wallet_daemon_url(
+    cli_override: Option<&url::Url>,
+    project: &project::ProjectConfig,
+    global: &Config,
+    network: Network,
+) -> url::Url {
+    cli_override
+        .cloned()
+        .or_else(|| project.wallet_daemon_url(network).cloned())
+        .or_else(|| global.wallet_daemon_url(network).cloned())
+        .unwrap_or_else(|| {
+            url::Url::parse(project::DEFAULT_WALLET_DAEMON_URL).expect("default wallet daemon URL is valid")
+        })
 }
