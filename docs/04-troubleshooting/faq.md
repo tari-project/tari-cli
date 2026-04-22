@@ -199,17 +199,22 @@ serde = { version = "1.0", features = ["derive"] }
 
 ### Q: How do I deploy to different networks?
 
-**A**: Configure the network in your project's `tari.config.toml`:
+**A**: Define a section per network in your project's `tari.config.toml` and select one with `default-network` (or override per-command with `--network`):
 
 ```toml
-[network]
-wallet-daemon-jrpc-address = "http://127.0.0.1:9000/"  # Local
-# wallet-daemon-jrpc-address = "https://testnet:9000/"  # Testnet
+default-network = "esmeralda"
+
+[networks.localnet]
+wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
+
+[networks.esmeralda]
+wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
 ```
 
 Then deploy:
 ```bash
-tari deploy --account myaccount my-contract
+tari deploy --account myaccount                          # uses default-network
+tari --network localnet deploy --account myaccount       # override
 ```
 
 ### Q: What happens after successful deployment?
@@ -373,18 +378,27 @@ done
 
 ### Q: How do I switch between networks?
 
-**A**: Update your project's `tari.config.toml`:
+**A**: Either change `default-network` in `tari.config.toml`, or pass `--network <name>` per command. Each network keeps its own wallet daemon URL, metadata server URL, and published template address:
 
 ```toml
-[network]
-# Development
-wallet-daemon-jrpc-address = "http://127.0.0.1:9000/"
+default-network = "esmeralda"
 
-# Testnet  
-# wallet-daemon-jrpc-address = "https://testnet-wallet:9000/"
+[networks.esmeralda]
+wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
 
-# Custom
-# wallet-daemon-jrpc-address = "https://my-network:9000/"
+[networks.localnet]
+wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
+
+[networks.mainnet]
+wallet-daemon-url = "https://my-mainnet-wallet:5100/json_rpc"
+```
+
+```bash
+# Use default-network
+tari publish
+
+# Override for one command
+tari --network localnet publish
 ```
 
 ### Q: Can I deploy the same contract to multiple networks?

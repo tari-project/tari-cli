@@ -57,8 +57,7 @@ impl ProjectConfig {
 
 impl Default for ProjectConfig {
     fn default() -> Self {
-        let wallet_url =
-            || Some(Url::parse(DEFAULT_WALLET_DAEMON_URL).expect("default wallet daemon URL is valid"));
+        let wallet_url = || Some(Url::parse(DEFAULT_WALLET_DAEMON_URL).expect("default wallet daemon URL is valid"));
         let metadata_url = |s: &str| Some(Url::parse(s).expect("default metadata server URL is valid"));
         let mut networks = HashMap::new();
         networks.insert(

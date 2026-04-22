@@ -22,6 +22,8 @@ pub const VALID_OVERRIDE_KEYS: &[&str] = &[
     "default_network",
 ];
 
+const VALID_NETWORK_OVERRIDE_FIELDS: &[&str] = &["wallet-daemon-url", "metadata-server-url"];
+
 /// CLI configuration.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
@@ -106,7 +108,15 @@ impl Config {
     }
 
     pub fn is_override_key_valid(key: &str) -> bool {
-        VALID_OVERRIDE_KEYS.contains(&key)
+        if VALID_OVERRIDE_KEYS.contains(&key) {
+            return true;
+        }
+        // networks.<net>.<wallet-daemon-url|metadata-server-url>
+        let parts: Vec<&str> = key.split('.').collect();
+        if parts.len() == 3 && parts[0] == "networks" {
+            return parts[1].parse::<Network>().is_ok() && VALID_NETWORK_OVERRIDE_FIELDS.contains(&parts[2]);
+        }
+        false
     }
 
     pub fn wallet_daemon_url(&self, network: Network) -> Option<&url::Url> {
@@ -138,9 +148,23 @@ impl Config {
             "default_network" => {
                 self.default_network = Some(value.parse().map_err(|e| anyhow!("Invalid network: {e}"))?);
             },
-            _ => {},
+            _ => self.apply_network_override(key, value)?,
         }
 
         Ok(self)
+    }
+
+    fn apply_network_override(&mut self, key: &str, value: &str) -> anyhow::Result<()> {
+        let parts: Vec<&str> = key.split('.').collect();
+        // is_override_key_valid already enforced shape and Network parse.
+        let network: Network = parts[1].parse().map_err(|e| anyhow!("Invalid network: {e}"))?;
+        let entry = self.networks.entry(network).or_default();
+        let url: url::Url = value.parse().map_err(|e| anyhow!("Invalid URL: {e}"))?;
+        match parts[2] {
+            "wallet-daemon-url" => entry.wallet_daemon_url = Some(url),
+            "metadata-server-url" => entry.metadata_server_url = Some(url),
+            other => return Err(anyhow!("Unknown network field: {other}")),
+        }
+        Ok(())
     }
 }

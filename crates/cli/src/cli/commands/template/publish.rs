@@ -151,6 +151,14 @@ pub async fn handle(
         info.version, info.network
     );
 
+    if info.network_byte != network.as_byte() {
+        return Err(anyhow!(
+            "Wallet daemon is on network '{}' but the CLI is configured for '{network}'. \
+             Use --network <name> to switch, or point --wallet-daemon-url at a daemon for the right network.",
+            info.network
+        ));
+    }
+
     let account = resolve_account(&args, &config, &publisher, &project_config).await?;
     let template = Template::Path { path: template_bin };
 
@@ -192,7 +200,11 @@ pub async fn handle(
             .await
             .context("reading config")?;
         let mut doc = content.parse::<toml_edit::DocumentMut>().context("parsing config")?;
-        save_template_address(&mut doc, network, &published_addr.to_string());
+        crate::cli::commands::config::set_dotted_key(
+            &mut doc,
+            &format!("networks.{}.template-address", network.as_key_str()),
+            &published_addr.to_string(),
+        )?;
         tokio::fs::write(&config_path, doc.to_string())
             .await
             .context("writing config")?;
@@ -247,30 +259,6 @@ pub async fn handle(
     }
 
     Ok(())
-}
-
-fn save_template_address(doc: &mut toml_edit::DocumentMut, network: Network, address: &str) {
-    let networks = doc
-        .entry("networks")
-        .or_insert_with(|| toml_edit::Item::Table(toml_edit::Table::new()));
-    let Some(networks_table) = networks.as_table_mut() else {
-        // Not a table — overwrite.
-        *networks = toml_edit::Item::Table(toml_edit::Table::new());
-        return save_template_address(doc, network, address);
-    };
-    networks_table.set_implicit(true);
-
-    let net_entry = networks_table
-        .entry(network.as_key_str())
-        .or_insert_with(|| toml_edit::Item::Table(toml_edit::Table::new()));
-    let net_table = match net_entry.as_table_mut() {
-        Some(t) => t,
-        None => {
-            *net_entry = toml_edit::Item::Table(toml_edit::Table::new());
-            net_entry.as_table_mut().unwrap()
-        },
-    };
-    net_table.insert("template-address", toml_edit::value(address.to_string()));
 }
 
 async fn resolve_account(

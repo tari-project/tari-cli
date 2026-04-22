@@ -134,10 +134,14 @@ pub fn find_repo_root() -> Option<PathBuf> {
     }
 }
 
-fn set_dotted_key(doc: &mut toml_edit::DocumentMut, key: &str, value: &str) -> anyhow::Result<()> {
+/// Set an arbitrary dotted-path key in a TOML document.
+///
+/// Intermediate tables (anything except the leaf-holding table) are marked implicit so nested
+/// structures render as `[a.b]` instead of `[a]\n[a.b]`.
+pub fn set_dotted_key(doc: &mut toml_edit::DocumentMut, key: &str, value: &str) -> anyhow::Result<()> {
     let parts: Vec<&str> = key.split('.').collect();
-    if parts.is_empty() {
-        return Err(anyhow!("Empty key"));
+    if parts.is_empty() || parts.iter().any(|p| p.is_empty()) {
+        return Err(anyhow!("Empty or malformed key: '{key}'"));
     }
 
     if parts.len() == 1 {
@@ -153,12 +157,22 @@ fn set_dotted_key(doc: &mut toml_edit::DocumentMut, key: &str, value: &str) -> a
         .as_table_mut()
         .ok_or_else(|| anyhow!("'{}' is not a table", head[0]))?;
 
+    // Any table we traverse *through* (i.e. not the table holding the leaf) only contains
+    // sub-tables, so render it implicit.
+    if head.len() > 1 {
+        root.set_implicit(true);
+    }
+
+    let last_idx = head.len().saturating_sub(2); // index in head[1..] of the leaf-holding table
     let mut table = root;
-    for part in &head[1..] {
+    for (i, part) in head[1..].iter().enumerate() {
         let entry = table
             .entry(part)
             .or_insert_with(|| toml_edit::Item::Table(toml_edit::Table::new()));
         table = entry.as_table_mut().ok_or_else(|| anyhow!("'{part}' is not a table"))?;
+        if i < last_idx {
+            table.set_implicit(true);
+        }
     }
     table.insert(leaf, toml_edit::value(value));
     Ok(())

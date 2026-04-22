@@ -59,8 +59,10 @@ wasm_templates = "true"
 Include a default `tari.config.toml`:
 
 ```toml
-[network]
-wallet-daemon-jrpc-address = "http://127.0.0.1:9000/"
+default-network = "esmeralda"
+
+[networks.esmeralda]
+wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
 ```
 
 ### Cargo Workspace Configuration
