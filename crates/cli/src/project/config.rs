@@ -55,11 +55,21 @@ impl ProjectConfig {
 
 impl Default for ProjectConfig {
     fn default() -> Self {
+        let default_url =
+            || Some(Url::parse(DEFAULT_WALLET_DAEMON_URL).expect("default wallet daemon URL is valid"));
         let mut networks = HashMap::new();
         networks.insert(
             Network::Esmeralda,
             ProjectNetworkSettings {
-                wallet_daemon_url: Some(Url::parse(DEFAULT_WALLET_DAEMON_URL).expect("default URL is valid")),
+                wallet_daemon_url: default_url(),
+                metadata_server_url: None,
+                template_address: None,
+            },
+        );
+        networks.insert(
+            Network::LocalNet,
+            ProjectNetworkSettings {
+                wallet_daemon_url: default_url(),
                 metadata_server_url: None,
                 template_address: None,
             },

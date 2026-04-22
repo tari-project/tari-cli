@@ -53,11 +53,20 @@ pub struct TemplateRepository {
 
 impl Default for Config {
     fn default() -> Self {
+        let default_url =
+            || Some(url::Url::parse(DEFAULT_WALLET_DAEMON_URL).expect("default wallet daemon URL is valid"));
         let mut networks = HashMap::new();
         networks.insert(
             Network::Esmeralda,
             CliNetworkSettings {
-                wallet_daemon_url: Some(url::Url::parse(DEFAULT_WALLET_DAEMON_URL).expect("default URL is valid")),
+                wallet_daemon_url: default_url(),
+                metadata_server_url: None,
+            },
+        );
+        networks.insert(
+            Network::LocalNet,
+            CliNetworkSettings {
+                wallet_daemon_url: default_url(),
                 metadata_server_url: None,
             },
         );
