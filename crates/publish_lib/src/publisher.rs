@@ -265,7 +265,7 @@ impl TemplatePublisher {
         }
         #[cfg(not(feature = "wasm-opt"))]
         {
-            Ok(Cow::Borrowed(wasm_code))
+            Ok(wasm_code)
         }
     }
 
