@@ -39,3 +39,7 @@ url = { workspace = true }
 
 [dev-dependencies]
 tempfile = "3"
+
+[features]
+default = ["wasm-opt"]
+wasm-opt = ["tari_ootle_publish_lib/wasm-opt"]

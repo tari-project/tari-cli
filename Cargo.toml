@@ -12,11 +12,6 @@ license = "BSD-3-Clause"
 [workspace.dependencies]
 tari_ootle_publish_lib = { path = "crates/publish_lib", version = "0.16" }
 
-tokio = { version = "1.41.1", features = ["full"] }
-serde = { version = "1.0.215", features = ["derive"] }
-thiserror = "2.0.12"
-url = { version = "2.5.3", features = ["default", "serde"] }
-
 tari_ootle_walletd_client = "0.29"
 tari_engine = "0.29"
 tari_engine_types = "0.29"
@@ -25,3 +20,10 @@ tari_template_lib_types = "0.25"
 tari_ootle_template_metadata = "0.5"
 tari_ootle_wallet_sdk = "0.29"
 ootle_serde = "0.2"
+
+tokio = { version = "1.41.1", features = ["full"] }
+serde = { version = "1.0.215", features = ["derive"] }
+thiserror = "2.0.12"
+url = { version = "2.5.3", features = ["default", "serde"] }
+wasm-opt = "0.116"
+

@@ -23,7 +23,7 @@ use crate::cli::util;
 use crate::cli::util::get_default_metadata_server_url;
 use crate::loading;
 
-const MAX_WASM_SIZE: usize = 5 * 1000 * 1000; // 5 MB
+const MAX_WASM_SIZE: usize = 2 * 1000 * 1000; // 2 MB
 
 #[derive(Clone, Parser, Debug)]
 pub struct TemplatePublishArgs {

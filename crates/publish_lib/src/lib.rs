@@ -6,6 +6,8 @@
 mod config;
 mod error;
 pub mod publisher;
+#[cfg(feature = "wasm-opt")]
+pub(crate) mod wasm_opt;
 
 pub use config::*;
 pub use error::Error as PublisherError;

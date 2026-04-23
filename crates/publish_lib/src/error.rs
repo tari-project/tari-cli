@@ -31,6 +31,9 @@ pub enum Error {
     MissingTransactionResult(String),
     #[error("Missing published template in substates!")]
     MissingPublishedTemplate,
+    #[cfg(feature = "wasm-opt")]
+    #[error("Wasm optimisation error: {0}")]
+    WasmOptimizationError(#[from] crate::wasm_opt::Error),
     #[error("Invalid response: {0}")]
     InvalidResponse(String),
     #[error("Unsupported operation: {0}")]

@@ -21,9 +21,14 @@ tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros"] }
 serde = { workspace = true }
 thiserror = { workspace = true }
 url = { workspace = true }
+wasm-opt = { workspace = true, optional = true }
 
 hickory-proto = "=0.26.0-beta.3"
 tonic = { version = "0.12.3", features = ["tls"] }
+tempfile = "3.27.0"
 
 [package.metadata.cargo-machete]
 ignored = ["hickory-proto"]
+
+[features]
+wasm-opt = ["dep:wasm-opt", "tokio/fs"]

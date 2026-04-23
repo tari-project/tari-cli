@@ -242,17 +242,31 @@ impl TemplatePublisher {
     async fn validate_and_load_wasm_template<'a>(
         &self,
         params: &'a Template,
-    ) -> Result<(Cow<'a, Vec<u8>>, LoadedTemplate, Hash32)> {
-        let wasm_code = match params {
+    ) -> Result<(Cow<'a, [u8]>, LoadedTemplate, Hash32)> {
+        let mut wasm_code: Cow<'_, [u8]> = match params {
             Template::Path { path } => {
                 let bin = fs::read(path).await?;
                 Cow::Owned(bin)
             },
             Template::Binary { bin } => Cow::Borrowed(bin),
         };
-        let template = WasmModule::load_template_from_code(wasm_code.as_slice())?;
+        wasm_code = Self::optimize_wasm_template(wasm_code).await?;
+
+        let template = WasmModule::load_template_from_code(wasm_code.as_ref())?;
         let wasm_hash: Hash32 = template_hasher32().chain(&wasm_code).result();
         Ok((wasm_code, template, wasm_hash))
+    }
+
+    async fn optimize_wasm_template<'a>(wasm_code: Cow<'a, [u8]>) -> Result<Cow<'a, [u8]>> {
+        #[cfg(feature = "wasm-opt")]
+        {
+            let optimized = crate::wasm_opt::optimize_wasm_template(wasm_code.as_ref()).await?;
+            Ok(Cow::Owned(optimized))
+        }
+        #[cfg(not(feature = "wasm-opt"))]
+        {
+            Ok(Cow::Borrowed(wasm_code))
+        }
     }
 
     /// Get available wallet TARI_TOKEN balance.
