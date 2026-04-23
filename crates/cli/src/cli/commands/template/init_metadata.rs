@@ -70,7 +70,7 @@ pub async fn handle(args: InitMetadataArgs) -> anyhow::Result<()> {
         .await
         .context("reading Cargo.toml")?;
 
-    let metadata = resolve_metadata(&args)?;
+    let metadata = resolve_metadata(&args, &cargo_toml_content)?;
     let updated = add_build_dependency(&cargo_toml_content)?;
     let updated = add_template_metadata(&updated, &metadata)?;
 
@@ -82,7 +82,7 @@ pub async fn handle(args: InitMetadataArgs) -> anyhow::Result<()> {
     let build_rs_path = crate_dir.join("build.rs");
     update_build_rs(&build_rs_path).await?;
 
-    println!("🎉 Metadata generation configured. Run `cargo build` to generate metadata.");
+    println!("🎉 Metadata generation configured. Run `tari build` to build the template binary and metadata.");
     Ok(())
 }
 
@@ -96,46 +96,97 @@ struct TemplateMetadataInput {
     supersedes: Option<String>,
 }
 
-fn resolve_metadata(args: &InitMetadataArgs) -> anyhow::Result<TemplateMetadataInput> {
-    // Check if [package].description already exists
-    let cargo_toml_path = args.path.join("Cargo.toml");
-    let has_description = if cargo_toml_path.exists() {
-        let content = std::fs::read_to_string(&cargo_toml_path)?;
-        let doc = content.parse::<toml_edit::DocumentMut>()?;
-        doc.get("package")
-            .and_then(|p| p.get("description"))
-            .and_then(|d| d.as_str())
-            .is_some_and(|s| !s.is_empty())
-    } else {
-        false
+#[derive(Default)]
+struct ExistingMetadata {
+    description: Option<String>,
+    tags: Vec<String>,
+    category: Option<String>,
+    documentation: Option<String>,
+    homepage: Option<String>,
+    logo_url: Option<String>,
+    supersedes: Option<String>,
+}
+
+fn read_existing_metadata(cargo_toml_content: &str) -> anyhow::Result<ExistingMetadata> {
+    let doc = cargo_toml_content.parse::<toml_edit::DocumentMut>()?;
+
+    let non_empty = |s: &str| -> Option<String> {
+        let s = s.trim();
+        if s.is_empty() { None } else { Some(s.to_string()) }
     };
 
+    let description = doc
+        .get("package")
+        .and_then(|p| p.get("description"))
+        .and_then(|d| d.as_str())
+        .and_then(non_empty);
+
+    let tari_template = doc
+        .get("package")
+        .and_then(|p| p.get("metadata"))
+        .and_then(|m| m.get(TARI_TEMPLATE_METADATA_KEY));
+
+    let str_field = |key: &str| -> Option<String> {
+        tari_template
+            .and_then(|t| t.get(key))
+            .and_then(|v| v.as_str())
+            .and_then(non_empty)
+    };
+
+    let tags = tari_template
+        .and_then(|t| t.get("tags"))
+        .and_then(|t| t.as_array())
+        .map(|arr| arr.iter().filter_map(|v| v.as_str()).map(str::to_string).collect())
+        .unwrap_or_default();
+
+    Ok(ExistingMetadata {
+        description,
+        tags,
+        category: str_field("category"),
+        documentation: str_field("documentation"),
+        homepage: str_field("homepage"),
+        logo_url: str_field("logo_url"),
+        supersedes: str_field("supersedes"),
+    })
+}
+
+fn resolve_metadata(args: &InitMetadataArgs, cargo_toml_content: &str) -> anyhow::Result<TemplateMetadataInput> {
+    let existing = read_existing_metadata(cargo_toml_content)?;
+
     if args.non_interactive {
+        let tags = if args.tags.is_empty() {
+            existing.tags
+        } else {
+            args.tags.clone()
+        };
         return Ok(TemplateMetadataInput {
-            description: args.description.clone(),
-            tags: args.tags.clone(),
-            category: args.category.clone(),
-            documentation: args.documentation.clone(),
-            homepage: args.homepage.clone(),
-            logo_url: args.logo_url.clone(),
-            supersedes: normalize_supersedes(args.supersedes.as_deref()),
+            description: args.description.clone().or(existing.description),
+            tags,
+            category: args.category.clone().or(existing.category),
+            documentation: args.documentation.clone().or(existing.documentation),
+            homepage: args.homepage.clone().or(existing.homepage),
+            logo_url: args.logo_url.clone().or(existing.logo_url),
+            supersedes: normalize_supersedes(args.supersedes.as_deref()).or(existing.supersedes),
         });
     }
 
-    // Prompt for description if not already in [package]
-    let description = if has_description {
-        None
-    } else {
-        let desc: String = Input::new()
-            .with_prompt("Description")
-            .default(args.description.clone().unwrap_or_default())
+    let prompt_opt = |label: &str, arg: Option<&str>, existing: Option<String>| -> anyhow::Result<Option<String>> {
+        let default = arg.map(str::to_string).or(existing).unwrap_or_default();
+        let value: String = Input::new()
+            .with_prompt(label)
+            .default(default)
             .allow_empty(true)
             .interact_text()?;
-        if desc.is_empty() { None } else { Some(desc) }
+        Ok(if value.is_empty() { None } else { Some(value) })
     };
 
-    // Interactive prompts, using CLI args as defaults
-    let tags_default = args.tags.join(", ");
+    let description = prompt_opt("Description", args.description.as_deref(), existing.description)?;
+
+    let tags_default = if args.tags.is_empty() {
+        existing.tags.join(", ")
+    } else {
+        args.tags.join(", ")
+    };
     let tags_input: String = Input::new()
         .with_prompt("Tags (comma-separated, e.g. token,fungible,defi)")
         .default(tags_default)
@@ -147,37 +198,18 @@ fn resolve_metadata(args: &InitMetadataArgs) -> anyhow::Result<TemplateMetadataI
         .filter(|s| !s.is_empty())
         .collect();
 
-    let category: String = Input::new()
-        .with_prompt("Category (e.g. token, nft, defi)")
-        .default(args.category.clone().unwrap_or_default())
-        .allow_empty(true)
-        .interact_text()?;
-    let category = if category.is_empty() { None } else { Some(category) };
-
-    let documentation: String = Input::new()
-        .with_prompt("Documentation URL")
-        .default(args.documentation.clone().unwrap_or_default())
-        .allow_empty(true)
-        .interact_text()?;
-    let documentation = if documentation.is_empty() {
-        None
-    } else {
-        Some(documentation)
-    };
-
-    let homepage: String = Input::new()
-        .with_prompt("Homepage URL")
-        .default(args.homepage.clone().unwrap_or_default())
-        .allow_empty(true)
-        .interact_text()?;
-    let homepage = if homepage.is_empty() { None } else { Some(homepage) };
-
-    let logo_url: String = Input::new()
-        .with_prompt("Logo URL")
-        .default(args.logo_url.clone().unwrap_or_default())
-        .allow_empty(true)
-        .interact_text()?;
-    let logo_url = if logo_url.is_empty() { None } else { Some(logo_url) };
+    let category = prompt_opt(
+        "Category (e.g. token, nft, defi)",
+        args.category.as_deref(),
+        existing.category,
+    )?;
+    let documentation = prompt_opt(
+        "Documentation URL",
+        args.documentation.as_deref(),
+        existing.documentation,
+    )?;
+    let homepage = prompt_opt("Homepage URL", args.homepage.as_deref(), existing.homepage)?;
+    let logo_url = prompt_opt("Logo URL", args.logo_url.as_deref(), existing.logo_url)?;
 
     Ok(TemplateMetadataInput {
         description,
@@ -186,7 +218,7 @@ fn resolve_metadata(args: &InitMetadataArgs) -> anyhow::Result<TemplateMetadataI
         documentation,
         homepage,
         logo_url,
-        supersedes: normalize_supersedes(args.supersedes.as_deref()),
+        supersedes: normalize_supersedes(args.supersedes.as_deref()).or(existing.supersedes),
     })
 }
 
@@ -416,6 +448,55 @@ category = "old-category"
         let result = add_template_metadata(input, &metadata).unwrap();
         assert!(result.contains("new-category"));
         assert!(!result.contains("old-category"));
+    }
+
+    #[test]
+    fn reads_existing_metadata_from_cargo_toml() {
+        let input = r#"[package]
+name = "my-template"
+version = "0.1.0"
+description = "hello world"
+
+[package.metadata.tari-template]
+tags = ["token", "defi"]
+category = "token"
+homepage = "https://example.com"
+"#;
+        let existing = read_existing_metadata(input).unwrap();
+        assert_eq!(existing.description.as_deref(), Some("hello world"));
+        assert_eq!(existing.tags, vec!["token", "defi"]);
+        assert_eq!(existing.category.as_deref(), Some("token"));
+        assert_eq!(existing.homepage.as_deref(), Some("https://example.com"));
+        assert_eq!(existing.documentation, None);
+        assert_eq!(existing.logo_url, None);
+    }
+
+    #[test]
+    fn non_interactive_falls_back_to_existing_values() {
+        let input = r#"[package]
+name = "my-template"
+version = "0.1.0"
+description = "existing desc"
+
+[package.metadata.tari-template]
+tags = ["existing"]
+category = "existing-cat"
+"#;
+        let args = InitMetadataArgs {
+            path: PathBuf::from("."),
+            description: None,
+            tags: vec![],
+            category: Some("override-cat".to_string()),
+            documentation: None,
+            homepage: None,
+            logo_url: None,
+            supersedes: None,
+            non_interactive: true,
+        };
+        let resolved = resolve_metadata(&args, input).unwrap();
+        assert_eq!(resolved.description.as_deref(), Some("existing desc"));
+        assert_eq!(resolved.tags, vec!["existing"]);
+        assert_eq!(resolved.category.as_deref(), Some("override-cat"));
     }
 
     #[test]

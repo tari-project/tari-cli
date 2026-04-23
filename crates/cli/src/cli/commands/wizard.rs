@@ -31,13 +31,13 @@ pub async fn handle() -> anyhow::Result<()> {
     println!("🎉 You're all set! Here are some next steps:");
     println!();
     println!("   Build your template:");
-    println!("     cargo build --target wasm32-unknown-unknown --release");
+    println!("     tari build (runs `cargo build --target wasm32-unknown-unknown --release`)");
     println!();
     println!("   Inspect generated metadata:");
     println!("     tari template inspect");
     println!();
     println!("   Publish to the network:");
-    println!("     tari template publish");
+    println!("     tari publish");
     println!();
 
     Ok(())
