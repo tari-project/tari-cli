@@ -154,10 +154,16 @@ fn resolve_metadata(args: &InitMetadataArgs, cargo_toml_content: &str) -> anyhow
     let existing = read_existing_metadata(cargo_toml_content)?;
 
     if args.non_interactive {
-        let tags = if args.tags.is_empty() {
+        let normalized_args_tags: Vec<String> = args
+            .tags
+            .iter()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        let tags = if normalized_args_tags.is_empty() {
             existing.tags
         } else {
-            args.tags.clone()
+            normalized_args_tags
         };
         return Ok(TemplateMetadataInput {
             description: args.description.clone().or(existing.description),
