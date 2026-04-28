@@ -10,7 +10,7 @@ use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use url::Url;
 
 pub const DEFAULT_WALLET_DAEMON_URL: &str = "http://127.0.0.1:5100/json_rpc";
-pub const DEFAULT_METADATA_SERVER_URL_ESMERALDA: &str = "https://ootle-templates-esme.tari.com/";
+pub const DEFAULT_METADATA_SERVER_URL_ESMERALDA: &str = "https://ootle.tari.com/community-templates";
 pub const DEFAULT_METADATA_SERVER_URL_LOCALNET: &str = "http://localhost:3000";
 
 /// Project configuration.
