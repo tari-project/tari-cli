@@ -23,7 +23,7 @@ thiserror = { workspace = true }
 url = { workspace = true }
 wasm-opt = { workspace = true, optional = true }
 
-hickory-proto = "=0.26.0-beta.3"
+hickory-proto = "=0.26.0"
 tonic = { version = "0.12.3", features = ["tls"] }
 tempfile = "3.27.0"
 
