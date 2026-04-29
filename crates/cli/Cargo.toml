@@ -15,6 +15,7 @@ path = "src/main.rs"
 tari_ootle_publish_lib = { workspace = true }
 tari_ootle_template_metadata = { workspace = true, features = ["json"] }
 tari_ootle_common_types = { workspace = true }
+ootle-network = { workspace = true }
 tari_engine_types = { workspace = true }
 
 anyhow = "1.0.102"

@@ -4,7 +4,7 @@
 use std::{fs::Metadata, io, path::PathBuf};
 
 use dialoguer::FuzzySelect;
-use tari_ootle_common_types::Network;
+use ootle_network::Network;
 use tokio::fs;
 
 pub async fn create_dir(dir: &PathBuf) -> io::Result<()> {

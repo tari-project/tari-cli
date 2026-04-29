@@ -3,9 +3,9 @@
 
 use std::collections::HashMap;
 
+use ootle_network::Network;
 use serde::{Deserialize, Serialize};
 use tari_engine_types::published_template::PublishedTemplateAddress;
-use tari_ootle_common_types::Network;
 use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use url::Url;
 

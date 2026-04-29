@@ -24,8 +24,8 @@ use clap::{
     builder::{Styles, styling::AnsiColor},
 };
 use convert_case::{Case, Casing};
+use ootle_network::Network;
 use std::{env, path::PathBuf};
-use tari_ootle_common_types::Network;
 
 const DEFAULT_DATA_FOLDER_NAME: &str = "tari_cli";
 const TEMPLATE_REPOS_FOLDER_NAME: &str = "template_repositories";
@@ -112,8 +112,7 @@ pub fn project_name_parser(project_name: &str) -> Result<String, String> {
 }
 
 fn parse_network(s: &str) -> Result<Network, String> {
-    s.parse()
-        .map_err(|e: tari_ootle_common_types::NetworkParseError| e.to_string())
+    s.parse().map_err(|e: ootle_network::NetworkParseError| e.to_string())
 }
 
 #[derive(Clone, Debug)]

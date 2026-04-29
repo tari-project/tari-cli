@@ -5,8 +5,8 @@ use std::collections::HashMap;
 use std::{path::PathBuf, string::ToString};
 
 use anyhow::anyhow;
+use ootle_network::Network;
 use serde::{Deserialize, Serialize};
-use tari_ootle_common_types::Network;
 use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use tokio::{fs, io::AsyncWriteExt};
 
