@@ -153,6 +153,23 @@ pub async fn handle(
     }
 }
 
+/// Build `<server_url>/api/templates/<addr>/metadata[/signed]`, preserving any
+/// path prefix on `server_url` (e.g. `/community-templates/`) regardless of
+/// whether it has a trailing slash.
+fn build_metadata_url(server_url: &Url, addr: &str, signed: bool) -> anyhow::Result<Url> {
+    let mut url = server_url.clone();
+    {
+        let mut segs = url
+            .path_segments_mut()
+            .map_err(|_| anyhow!("metadata server URL cannot be a base: {server_url}"))?;
+        segs.pop_if_empty().extend(["api", "templates", addr, "metadata"]);
+        if signed {
+            segs.push("signed");
+        }
+    }
+    Ok(url)
+}
+
 /// Flow 1: Hash-verified metadata publish (POST raw CBOR).
 pub async fn publish_metadata_to_server(
     server_url: &Url,
@@ -161,9 +178,7 @@ pub async fn publish_metadata_to_server(
     max_retries: u32,
 ) -> anyhow::Result<()> {
     let addr = template_address.as_template_address();
-    let url = server_url
-        .join(&format!("/api/templates/{addr}/metadata"))
-        .context("building metadata endpoint URL")?;
+    let url = build_metadata_url(server_url, &addr.to_string(), false).context("building metadata endpoint URL")?;
 
     let client = reqwest::Client::new();
     let mut backoff = Duration::from_secs(DEFAULT_INITIAL_BACKOFF_SECS);
@@ -211,9 +226,8 @@ pub async fn publish_metadata_signed(
     max_retries: u32,
 ) -> anyhow::Result<()> {
     let addr = template_address.as_template_address();
-    let url = server_url
-        .join(&format!("/api/templates/{addr}/metadata/signed"))
-        .context("building signed metadata endpoint URL")?;
+    let url =
+        build_metadata_url(server_url, &addr.to_string(), true).context("building signed metadata endpoint URL")?;
 
     let client = reqwest::Client::new();
     let mut backoff = Duration::from_secs(DEFAULT_INITIAL_BACKOFF_SECS);
