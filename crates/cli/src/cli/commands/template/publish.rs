@@ -1,7 +1,6 @@
 // Copyright 2024 The Tari Project
 // SPDX-License-Identifier: BSD-3-Clause
 
-use std::io::BufReader;
 use std::path::PathBuf;
 
 use anyhow::{Context, anyhow};
@@ -107,9 +106,8 @@ pub async fn handle(
     let metadata_hash = match find_metadata_cbor(crate_dir).await {
         Ok(cbor_path) => {
             println!("📄 Found metadata at {}", cbor_path.display());
-            let file = std::fs::File::open(&cbor_path).context("opening metadata CBOR file")?;
-            let reader = BufReader::new(file);
-            let metadata = TemplateMetadata::read_cbor_from(reader).context("decoding metadata CBOR")?;
+            let bytes = std::fs::read(&cbor_path).context("opening metadata CBOR file")?;
+            let metadata = TemplateMetadata::from_cbor(&bytes).context("decoding metadata CBOR")?;
             let hash = metadata.hash().context("computing metadata hash")?;
             println!("🔑 Metadata hash: {hash}");
             println!("   Name:        {}", metadata.name);
