@@ -1,7 +1,6 @@
 // Copyright 2024 The Tari Project
 // SPDX-License-Identifier: BSD-3-Clause
 
-use std::io::BufReader;
 use std::path::PathBuf;
 
 use anyhow::{Context, anyhow};
@@ -12,11 +11,11 @@ use tari_engine_types::published_template::PublishedTemplateAddress;
 use tari_ootle_publish_lib::NetworkConfig;
 use tari_ootle_publish_lib::publisher::{CheckBalanceResult, Template, TemplatePublisher};
 use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
-use tari_ootle_template_metadata::TemplateMetadata;
 
 use crate::cli::commands::metadata::publish::publish_metadata_to_server;
 use crate::cli::commands::publish::{
-    build_template, find_metadata_cbor, load_project_config, resolve_active_network, resolve_wallet_daemon_url,
+    build_template, decode_metadata_cbor, find_metadata_cbor, load_project_config, resolve_active_network,
+    resolve_wallet_daemon_url,
 };
 use crate::cli::config::Config;
 use crate::cli::util;
@@ -107,9 +106,8 @@ pub async fn handle(
     let metadata_hash = match find_metadata_cbor(crate_dir).await {
         Ok(cbor_path) => {
             println!("📄 Found metadata at {}", cbor_path.display());
-            let file = std::fs::File::open(&cbor_path).context("opening metadata CBOR file")?;
-            let reader = BufReader::new(file);
-            let metadata = TemplateMetadata::read_cbor_from(reader).context("decoding metadata CBOR")?;
+            let bytes = std::fs::read(&cbor_path).context("opening metadata CBOR file")?;
+            let metadata = decode_metadata_cbor(&bytes)?;
             let hash = metadata.hash().context("computing metadata hash")?;
             println!("🔑 Metadata hash: {hash}");
             println!("   Name:        {}", metadata.name);
