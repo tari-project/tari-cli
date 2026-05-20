@@ -12,6 +12,7 @@ use ootle_network::Network;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
+use tari_ootle_template_metadata::TemplateMetadata;
 use tokio::fs;
 use tokio::process::Command;
 
@@ -196,6 +197,20 @@ pub async fn find_metadata_cbor(project_dir: &Path) -> anyhow::Result<PathBuf> {
             "No {METADATA_CBOR_FILENAME} found in build output. \
              Make sure the template uses tari_ootle_template_build in build.rs \
              and has been built with `tari build`."
+        )
+    })
+}
+
+/// Decode template metadata CBOR with a friendly hint when the on-disk format predates the
+/// current schema (which happens when the template still depends on a pre-0.7
+/// `tari_ootle_template_build`, whose CBOR was map-encoded rather than array-encoded).
+pub fn decode_metadata_cbor(bytes: &[u8]) -> anyhow::Result<TemplateMetadata> {
+    TemplateMetadata::from_cbor(bytes).map_err(|e| {
+        anyhow!(
+            "decoding metadata CBOR: {e}\n\
+             \n\
+             The metadata file appears to be in an older format. Bump `tari_ootle_template_build` \
+             in your template's [build-dependencies] to ^0.7 and run `tari build` again."
         )
     })
 }

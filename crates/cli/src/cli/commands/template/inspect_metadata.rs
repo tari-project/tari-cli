@@ -8,7 +8,7 @@ use clap::Parser;
 use dialoguer::Confirm;
 use tari_ootle_template_metadata::{FunctionDoc, TemplateMetadata};
 
-use crate::cli::commands::publish::{build_template, find_metadata_cbor};
+use crate::cli::commands::publish::{build_template, decode_metadata_cbor, find_metadata_cbor};
 
 #[derive(Clone, Parser, Debug)]
 pub struct InspectMetadataArgs {
@@ -43,7 +43,7 @@ pub async fn handle(args: InspectMetadataArgs) -> anyhow::Result<()> {
     eprintln!("📄 Reading metadata from {}", cbor_path.display());
 
     let mut cbor_bytes = std::fs::read(&cbor_path).context("reading metadata CBOR file")?;
-    let mut metadata = TemplateMetadata::from_cbor(&cbor_bytes).context("decoding metadata CBOR")?;
+    let mut metadata = decode_metadata_cbor(&cbor_bytes)?;
 
     // Check if built metadata matches Cargo.toml. `functions` is extracted from rustdoc at
     // build time and is never present in `from_cargo_toml` output, so exclude it from the
@@ -67,7 +67,7 @@ pub async fn handle(args: InspectMetadataArgs) -> anyhow::Result<()> {
                     build_template(&args.project_dir).await?;
                     let new_cbor_path = find_metadata_cbor(&args.project_dir).await?;
                     cbor_bytes = std::fs::read(&new_cbor_path).context("reading rebuilt metadata CBOR")?;
-                    metadata = TemplateMetadata::from_cbor(&cbor_bytes).context("rebuilt metadata CBOR is invalid")?;
+                    metadata = decode_metadata_cbor(&cbor_bytes)?;
                     eprintln!("✅ Metadata rebuilt");
                 }
             },
