@@ -15,7 +15,7 @@ use tari_engine_types::substate::SubstateId;
 use tari_ootle_common_types::optional::Optional;
 use tari_ootle_template_metadata::MetadataHash;
 use tari_ootle_template_metadata::TemplateMetadata;
-use tari_ootle_walletd_client::permissions::JrpcPermission;
+use tari_ootle_walletd_client::permissions::Permission;
 use tari_ootle_walletd_client::types::{
     AccountsGetBalancesRequest, AuthCredentials, AuthGetMethodResponse, AuthLoginRequest, AuthLoginResponse,
     AuthMethod, PublishTemplateMetadata, PublishTemplateRequest, SignTemplateMetadataRequest,
@@ -304,7 +304,7 @@ impl TemplatePublisher {
         // authentication
         let AuthLoginResponse { token } = client
             .auth_request(AuthLoginRequest {
-                permissions: vec![JrpcPermission::Admin],
+                permissions: vec![Permission::Admin],
                 credentials,
             })
             .await?;
