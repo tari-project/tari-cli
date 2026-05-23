@@ -9,6 +9,8 @@ jobs:
   publish:
     name: Publish crates
     runs-on: ubuntu-latest
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -26,11 +28,7 @@ jobs:
       # `cargo publish` waits for the new version to be queryable on the
       # registry before exiting, so the dependent publish below will resolve it.
       - name: Publish tari_ootle_publish_lib
-        run: cargo publish -p tari_ootle_publish_lib
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --locked -p tari_ootle_publish_lib
 
       - name: Publish tari-ootle-cli
-        run: cargo publish -p tari-ootle-cli
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --locked -p tari-ootle-cli
