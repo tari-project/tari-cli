@@ -27,8 +27,13 @@ jobs:
       # Order matters: tari-ootle-cli depends on tari_ootle_publish_lib.
       # `cargo publish` waits for the new version to be queryable on the
       # registry before exiting, so the dependent publish below will resolve it.
+      #
+      # Each step checks crates.io first and skips if the workspace version is
+      # already published, so a re-run after a partial failure is safe.
       - name: Publish tari_ootle_publish_lib
-        run: cargo publish --locked -p tari_ootle_publish_lib
+        shell: bash
+        run: .github/scripts/publish-if-new.sh tari_ootle_publish_lib
 
       - name: Publish tari-ootle-cli
-        run: cargo publish --locked -p tari-ootle-cli
+        shell: bash
+        run: .github/scripts/publish-if-new.sh tari-ootle-cli
