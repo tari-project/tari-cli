@@ -36,6 +36,4 @@ pub enum Error {
     WasmOptimizationError(#[from] crate::wasm_opt::Error),
     #[error("Invalid response: {0}")]
     InvalidResponse(String),
-    #[error("Unsupported operation: {0}")]
-    NotSupportedError(String),
 }

@@ -30,6 +30,11 @@ This command publishes **without** a metadata hash. Use [`tari template publish`
 | `-y, --yes` | Auto-confirm publishing |
 | `-f, --max-fee <AMOUNT>` | Maximum fee in microtari |
 | `--binary <PATH>` | Path to pre-compiled WASM binary |
+| `--api-key <API_KEY>` | Wallet daemon API key (bearer token). Also read from `TARI_WALLET_DAEMON_API_KEY` |
+
+## Authentication
+
+Publishing authenticates with the wallet daemon using an **API key** sent as a bearer token. Provide it with `--api-key` or the `TARI_WALLET_DAEMON_API_KEY` environment variable. The key must be minted with at least the `template:read`, `template:write` and `account:read` permissions. The key is never read from or written to a config file.
 
 ## Examples
 
@@ -45,4 +50,8 @@ tari publish --binary target/wasm32-unknown-unknown/release/my_token.wasm
 
 # Auto-confirm with custom account
 tari publish -y -a my-account
+
+# Provide the wallet daemon API key via environment variable
+export TARI_WALLET_DAEMON_API_KEY="<your-api-key>"
+tari publish -a my-account
 ```

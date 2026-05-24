@@ -139,6 +139,20 @@ pub struct CommonArguments {
     /// (e.g. `esmeralda`, `igor`, `localnet`, `mainnet`)
     #[arg(short = 'n', long, value_name = "NETWORK", value_parser = parse_network, global = true)]
     network: Option<Network>,
+
+    /// API key used to authenticate with the wallet daemon.
+    /// Sent as a bearer token on every JSON-RPC request. The key must be minted
+    /// with at least `template:read`, `template:write` and `account:read`
+    /// permissions. Can also be set via the `TARI_WALLET_DAEMON_API_KEY`
+    /// environment variable.
+    #[arg(
+        long,
+        value_name = "API_KEY",
+        env = "TARI_WALLET_DAEMON_API_KEY",
+        hide_env_values = true,
+        global = true
+    )]
+    api_key: Option<String>,
 }
 
 #[derive(Clone, Parser)]
@@ -307,18 +321,19 @@ impl Cli {
         match &command {
             Command::Template { .. } | Command::Publish { .. } | Command::Metadata { .. } => {
                 let network_override = self.args.network;
+                let api_key = self.args.api_key.clone();
                 return match command {
                     Command::Template { command } => match command {
                         TemplateCommand::Init { args } => template::init_metadata::handle(args).await,
                         TemplateCommand::Inspect { args } => template::inspect_metadata::handle(args).await,
                         TemplateCommand::Publish { args } => {
-                            template::publish::handle(config, network_override, args).await
+                            template::publish::handle(config, network_override, api_key, args).await
                         },
                     },
-                    Command::Publish { args } => publish::handle(config, network_override, args).await,
+                    Command::Publish { args } => publish::handle(config, network_override, api_key, args).await,
                     Command::Metadata { command } => match command {
                         MetadataCommand::Publish { args } => {
-                            metadata::publish::handle(config, network_override, args).await
+                            metadata::publish::handle(config, network_override, api_key, args).await
                         },
                         MetadataCommand::Inspect { .. } => unreachable!(),
                     },

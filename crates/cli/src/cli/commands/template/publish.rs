@@ -69,6 +69,7 @@ pub struct TemplatePublishArgs {
 pub async fn handle(
     config: Config,
     network_override: Option<Network>,
+    api_key: Option<String>,
     mut args: TemplatePublishArgs,
 ) -> anyhow::Result<()> {
     let crate_dir = &args.path;
@@ -139,7 +140,7 @@ pub async fn handle(
     };
 
     // Connect to wallet daemon
-    let publisher = TemplatePublisher::new(NetworkConfig::new(wallet_daemon_url.clone()));
+    let publisher = TemplatePublisher::new(NetworkConfig::new(wallet_daemon_url.clone()).with_api_key(api_key));
     let info = publisher
         .get_wallet_info()
         .await

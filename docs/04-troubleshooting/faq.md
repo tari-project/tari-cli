@@ -80,6 +80,17 @@ cargo build --release --bin tari_wallet_daemon
 ./target/release/tari_wallet_daemon --network localnet
 ```
 
+### Q: How does the CLI authenticate with the wallet daemon?
+
+**A**: With an **API key** issued by the wallet daemon, sent as a bearer token on every request (there is no interactive login). Provide it via the `--api-key` flag or the `TARI_WALLET_DAEMON_API_KEY` environment variable:
+
+```bash
+export TARI_WALLET_DAEMON_API_KEY="<your-api-key>"
+tari publish -a myaccount
+```
+
+The key must be minted with at least the `template:read`, `template:write` and `account:read` permissions. It is never read from or written to a config file.
+
 ## 📁 Projects & Templates
 
 ### Q: What's the difference between project templates and WASM templates?

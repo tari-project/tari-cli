@@ -229,18 +229,28 @@ curl -X POST http://127.0.0.1:9000/ \
 **Error Messages**:
 ```
 Authentication failed
-Insufficient permissions for admin operations
+Insufficient permissions
 ```
+
+The CLI authenticates with the wallet daemon using an **API key** sent as a bearer token. There is no interactive login.
 
 **Solutions**:
 
-1. **Verify Admin Access**:
+1. **Provide an API key**:
    ```bash
-   # Ensure wallet daemon is configured for admin operations
-   # Check wallet daemon startup logs for authentication setup
+   # Via environment variable
+   export TARI_WALLET_DAEMON_API_KEY="<your-api-key>"
+
+   # ...or per command
+   tari publish --api-key "<your-api-key>" -a myaccount
    ```
 
-2. **Check Account Configuration**:
+2. **Check the key's permissions**:
+
+   Mint the key with at least `template:read`, `template:write` and `account:read`.
+   Missing any of these causes an "insufficient permissions" error.
+
+3. **Check Account Configuration**:
    ```bash
    # Verify account exists in wallet daemon
    # Account names are case-sensitive

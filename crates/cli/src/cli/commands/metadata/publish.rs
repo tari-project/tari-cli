@@ -64,6 +64,7 @@ pub struct PublishMetadataArgs {
 pub async fn handle(
     config: Config,
     network_override: Option<Network>,
+    api_key: Option<String>,
     args: PublishMetadataArgs,
 ) -> anyhow::Result<()> {
     let cbor_path = find_metadata_cbor(&args.path).await?;
@@ -75,7 +76,7 @@ pub async fn handle(
         resolve_wallet_daemon_url(args.wallet_daemon_url.as_ref(), &project_config, &config, network);
     println!("🌐 Network: {network}");
 
-    let publisher = TemplatePublisher::new(NetworkConfig::new(wallet_daemon_url));
+    let publisher = TemplatePublisher::new(NetworkConfig::new(wallet_daemon_url).with_api_key(api_key));
 
     // Resolve metadata server URL: CLI flag > project config > global config > default for network
     let metadata_server_url = args
