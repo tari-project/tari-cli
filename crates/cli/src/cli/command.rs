@@ -142,7 +142,7 @@ pub struct CommonArguments {
 
     /// API key used to authenticate with the wallet daemon.
     /// Sent as a bearer token on every JSON-RPC request. The key must be minted
-    /// with at least `template:read`, `template:write` and `account:read`
+    /// with at least `templates:read`, `templates:create` and `accounts:read`
     /// permissions. Can also be set via the `TARI_WALLET_DAEMON_API_KEY`
     /// environment variable.
     #[arg(

@@ -176,7 +176,7 @@ Options:
 1. **Tari Wallet Daemon**: Must be running and accessible
     - Download from: https://github.com/tari-project/tari-dan
     - Default address: `http://127.0.0.1:5100/json_rpc`
-    - Requires an API key (`--api-key` or `TARI_WALLET_DAEMON_API_KEY`) with `template:read`, `template:write` and `account:read` permissions
+    - Requires an API key (`--api-key` or `TARI_WALLET_DAEMON_API_KEY`) with `templates:read`, `templates:create` and `accounts:read` permissions
 
 2. **Rust Toolchain**: Required for template compilation
     - Install: `rustup target add wasm32-unknown-unknown`

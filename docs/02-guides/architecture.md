@@ -390,12 +390,12 @@ graph LR
     Wallet --> Deploy[Deployment Access]
 ```
 
-The API key is supplied via the `--api-key` flag or the `TARI_WALLET_DAEMON_API_KEY` environment variable, and must carry the `template:read`, `template:write` and `account:read` permissions.
+The API key is supplied via the `--api-key` flag or the `TARI_WALLET_DAEMON_API_KEY` environment variable, and must carry the `templates:read`, `templates:create` and `accounts:read` permissions.
 
 ### Security Considerations
 
 1. **API Key Authentication**: Bearer token sent to the wallet daemon
-2. **Scoped Permissions**: Key minted with only `template:read`, `template:write`, `account:read`
+2. **Scoped Permissions**: Key minted with only `templates:read`, `templates:create`, `accounts:read`
 3. **HTTPS Support**: Secure network communication
 4. **Input Validation**: Parameter and configuration validation
 5. **Secret Management**: API key is never stored in CLI configuration (flag or env var only)

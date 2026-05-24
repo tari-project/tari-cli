@@ -47,9 +47,9 @@ The key must be minted with at least these permissions for the CLI to work:
 
 | Permission | Used for |
 |------------|----------|
-| `template:read` | Reading template state |
-| `template:write` | Publishing templates and signing metadata |
-| `account:read` | Resolving the fee account and checking its balance |
+| `templates:read` | Reading template state |
+| `templates:create` | Publishing templates and signing metadata |
+| `accounts:read` | Resolving the fee account and checking its balance |
 
 If the wallet daemon has authentication disabled, the API key may be omitted.
 

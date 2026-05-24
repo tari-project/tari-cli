@@ -247,7 +247,7 @@ The CLI authenticates with the wallet daemon using an **API key** sent as a bear
 
 2. **Check the key's permissions**:
 
-   Mint the key with at least `template:read`, `template:write` and `account:read`.
+   Mint the key with at least `templates:read`, `templates:create` and `accounts:read`.
    Missing any of these causes an "insufficient permissions" error.
 
 3. **Check Account Configuration**:
