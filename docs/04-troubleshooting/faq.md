@@ -89,7 +89,7 @@ export TARI_WALLET_DAEMON_API_KEY="<your-api-key>"
 tari publish -a myaccount
 ```
 
-The key must be minted with at least the `templates:read`, `templates:create` and `accounts:read` permissions. It is never read from or written to a config file.
+The key must be minted with at least the `templates:read`, `templates:create`, `accounts:read` and `transactions:read` permissions. It is never read from or written to a config file.
 
 ## 📁 Projects & Templates
 

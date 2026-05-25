@@ -117,7 +117,9 @@ mod tests {
         let inner = PublisherError::WalletDaemonClient(WalletDaemonClientError::Unauthorized {
             message: "token rejected".to_string(),
         });
-        Err::<(), _>(inner).context("Failed to connect to the wallet").unwrap_err()
+        Err::<(), _>(inner)
+            .context("Failed to connect to the wallet")
+            .unwrap_err()
     }
 
     #[test]
@@ -176,7 +178,7 @@ fn wallet_daemon_auth_help(had_api_key: bool) -> String {
          export TARI_WALLET_DAEMON_API_KEY=\"<your-api-key>\"\n    \
          tari publish -a <account>\n\n\
          The key must be minted by the wallet daemon with at least the `templates:read`, \
-         `templates:create` and `accounts:read` permissions.\n\
+         `templates:create`, `accounts:read` and `transactions:read` permissions.\n\
          See: https://tari-project.github.io/tari-cli/"
     )
 }
@@ -185,9 +187,11 @@ fn wallet_daemon_auth_help(had_api_key: bool) -> String {
 /// guidance so the user knows how to provide a valid API key. Any other error
 /// is returned unchanged.
 fn explain_wallet_daemon_auth_error(err: anyhow::Error, had_api_key: bool) -> anyhow::Error {
-    let unauthorized = err
-        .chain()
-        .any(|cause| cause.downcast_ref::<PublisherError>().is_some_and(PublisherError::is_unauthorized));
+    let unauthorized = err.chain().any(|cause| {
+        cause
+            .downcast_ref::<PublisherError>()
+            .is_some_and(PublisherError::is_unauthorized)
+    });
 
     if unauthorized {
         anyhow!("{err:#}\n\n{}", wallet_daemon_auth_help(had_api_key))
@@ -223,9 +227,9 @@ pub struct CommonArguments {
 
     /// API key used to authenticate with the wallet daemon.
     /// Sent as a bearer token on every JSON-RPC request. The key must be minted
-    /// with at least `templates:read`, `templates:create` and `accounts:read`
-    /// permissions. Can also be set via the `TARI_WALLET_DAEMON_API_KEY`
-    /// environment variable.
+    /// with at least `templates:read`, `templates:create`, `accounts:read` and
+    /// `transactions:read` permissions. Can also be set via the
+    /// `TARI_WALLET_DAEMON_API_KEY` environment variable.
     #[arg(
         long,
         value_name = "API_KEY",

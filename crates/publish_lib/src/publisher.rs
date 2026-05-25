@@ -290,8 +290,9 @@ impl TemplatePublisher {
     ///
     /// When an API key is configured it is sent as the `Authorization: Bearer`
     /// token on every request — no `auth.request` round-trip is performed. The
-    /// key must be minted with at least the `templates:read`, `templates:create`
-    /// and `accounts:read` permissions for publishing to succeed.
+    /// key must be minted with at least the `templates:read`, `templates:create`,
+    /// `accounts:read` and `transactions:read` permissions for publishing to
+    /// succeed (publishing waits on the transaction result to confirm).
     pub async fn wallet_daemon_client(&self) -> Result<WalletDaemonClient> {
         let token = self
             .network

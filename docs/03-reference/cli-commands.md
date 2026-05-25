@@ -50,6 +50,7 @@ The key must be minted with at least these permissions for the CLI to work:
 | `templates:read` | Reading template state |
 | `templates:create` | Publishing templates and signing metadata |
 | `accounts:read` | Resolving the fee account and checking its balance |
+| `transactions:read` | Waiting on the publish transaction result to confirm it |
 
 If the wallet daemon has authentication disabled, the API key may be omitted.
 

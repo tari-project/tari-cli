@@ -118,7 +118,7 @@ export TARI_WALLET_DAEMON_API_KEY="<your-api-key>"
 tari publish -a myaccount
 ```
 
-The key must be minted with at least the `templates:read`, `templates:create` and `accounts:read` permissions. For security, it is never read from or written to a config file.
+The key must be minted with at least the `templates:read`, `templates:create`, `accounts:read` and `transactions:read` permissions (publishing waits on the transaction result to confirm). For security, it is never read from or written to a config file.
 
 See the [Configuration Schema Reference](https://tari-project.github.io/tari-cli/03-reference/configuration-schema/) for all options.
 
@@ -133,7 +133,7 @@ Full documentation is available at **[tari-project.github.io/tari-cli](https://t
 ## Prerequisites
 
 - [Tari Wallet Daemon](https://github.com/tari-project/tari-dan) running and accessible
-- A wallet daemon API key with `templates:read`, `templates:create` and `accounts:read` permissions (for publishing) — see [Wallet daemon authentication](#wallet-daemon-authentication)
+- A wallet daemon API key with `templates:read`, `templates:create`, `accounts:read` and `transactions:read` permissions (for publishing) — see [Wallet daemon authentication](#wallet-daemon-authentication)
 - Rust toolchain with `wasm32-unknown-unknown` target
 
 ## License

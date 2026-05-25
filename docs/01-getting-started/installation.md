@@ -120,7 +120,7 @@ Expected response: `{"jsonrpc":"2.0","result":{"network":"igor","network_byte":3
 
 **API key**:
 
-When the wallet daemon has authentication enabled, the CLI authenticates with an API key issued by the daemon. Mint a key with at least the `templates:read`, `templates:create` and `accounts:read` permissions, then make it available to the CLI:
+When the wallet daemon has authentication enabled, the CLI authenticates with an API key issued by the daemon. Mint a key with at least the `templates:read`, `templates:create`, `accounts:read` and `transactions:read` permissions, then make it available to the CLI:
 
 ```bash
 export TARI_WALLET_DAEMON_API_KEY="<your-api-key>"
