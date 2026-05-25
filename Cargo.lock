@@ -272,7 +272,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aec364a6ee335b23a7e77703100f5103965810f91a9ef6319a004a7e7b8e2b66"
 dependencies = [
  "dirs",
- "git2 0.21.0",
+ "git2",
  "terminal-prompt",
 ]
 
@@ -656,7 +656,7 @@ dependencies = [
  "dialoguer",
  "env_logger",
  "fs-err",
- "git2 0.21.0",
+ "git2",
  "gix-config",
  "gix-hash 0.25.0",
  "heck 0.5.0",
@@ -2196,21 +2196,6 @@ dependencies = [
  "hashbrown 0.16.1",
  "indexmap 2.14.0",
  "stable_deref_trait",
-]
-
-[[package]]
-name = "git2"
-version = "0.20.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b88256088d75a56f8ecfa070513a775dd9107f6530ef14919dac831af9cfe2b"
-dependencies = [
- "bitflags 2.11.1",
- "libc",
- "libgit2-sys",
- "log",
- "openssl-probe 0.1.6",
- "openssl-sys",
- "url",
 ]
 
 [[package]]
@@ -5615,7 +5600,7 @@ dependencies = [
  "convert_case 0.11.0",
  "dialoguer",
  "dirs-next 2.0.0",
- "git2 0.20.4",
+ "git2",
  "human_bytes",
  "ootle-network",
  "reqwest 0.12.28",
