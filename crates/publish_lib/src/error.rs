@@ -37,3 +37,11 @@ pub enum Error {
     #[error("Invalid response: {0}")]
     InvalidResponse(String),
 }
+
+impl Error {
+    /// Returns `true` if this error was caused by a failed or missing wallet
+    /// daemon authentication (an HTTP 401 "Unauthorized" response).
+    pub fn is_unauthorized(&self) -> bool {
+        matches!(self, Self::WalletDaemonClient(e) if e.is_unauthorized())
+    }
+}

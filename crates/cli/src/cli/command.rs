@@ -26,6 +26,7 @@ use clap::{
 use convert_case::{Case, Casing};
 use ootle_network::Network;
 use std::{convert::Infallible, env, path::PathBuf};
+use tari_ootle_publish_lib::PublisherError;
 use tari_utilities::Hidden;
 
 const DEFAULT_DATA_FOLDER_NAME: &str = "tari_cli";
@@ -106,6 +107,42 @@ mod tests {
         let ov = config_override_parser("default_account=acc=ount").expect("split_once should keep tail intact");
         assert_eq!(ov.value, "acc=ount");
     }
+
+    use anyhow::Context;
+    use tari_ootle_publish_lib::walletd_client::error::WalletDaemonClientError;
+
+    fn unauthorized_error() -> anyhow::Error {
+        // Mirror the real flow: a wallet daemon 401 wrapped in PublisherError, then
+        // given anyhow context by a handler.
+        let inner = PublisherError::WalletDaemonClient(WalletDaemonClientError::Unauthorized {
+            message: "token rejected".to_string(),
+        });
+        Err::<(), _>(inner).context("Failed to connect to the wallet").unwrap_err()
+    }
+
+    #[test]
+    fn appends_setup_help_on_unauthorized_without_key() {
+        let augmented = explain_wallet_daemon_auth_error(unauthorized_error(), false);
+        let msg = format!("{augmented:#}");
+        assert!(msg.contains("no API key was provided"), "got: {msg}");
+        assert!(msg.contains("TARI_WALLET_DAEMON_API_KEY"), "got: {msg}");
+    }
+
+    #[test]
+    fn appends_rejected_help_on_unauthorized_with_key() {
+        let augmented = explain_wallet_daemon_auth_error(unauthorized_error(), true);
+        let msg = format!("{augmented:#}");
+        assert!(msg.contains("rejected the provided API key"), "got: {msg}");
+    }
+
+    #[test]
+    fn leaves_non_auth_errors_untouched() {
+        let original = anyhow!("some unrelated failure");
+        let augmented = explain_wallet_daemon_auth_error(original, false);
+        let msg = format!("{augmented:#}");
+        assert_eq!(msg, "some unrelated failure");
+        assert!(!msg.contains("API key"));
+    }
 }
 
 pub fn project_name_parser(project_name: &str) -> Result<String, String> {
@@ -120,6 +157,43 @@ fn parse_network(s: &str) -> Result<Network, String> {
 /// [`Hidden`] so it is zeroized on drop and kept out of `Debug` output.
 fn parse_api_key(value: &str) -> Result<Hidden<String>, Infallible> {
     Ok(Hidden::hide(value.to_string()))
+}
+
+/// Guidance shown when the wallet daemon rejects a request because of
+/// authentication. The opening line is tailored to whether the user supplied a
+/// key at all, so a missing key and a bad key get distinct, actionable advice.
+fn wallet_daemon_auth_help(had_api_key: bool) -> String {
+    let intro = if had_api_key {
+        "The wallet daemon rejected the provided API key. It may be invalid, expired, \
+         or missing the required permissions."
+    } else {
+        "The wallet daemon requires authentication, but no API key was provided."
+    };
+    format!(
+        "🔑 {intro}\n\n\
+         Provide a key with the `--api-key` flag or the `TARI_WALLET_DAEMON_API_KEY` \
+         environment variable, for example:\n\n    \
+         export TARI_WALLET_DAEMON_API_KEY=\"<your-api-key>\"\n    \
+         tari publish -a <account>\n\n\
+         The key must be minted by the wallet daemon with at least the `templates:read`, \
+         `templates:create` and `accounts:read` permissions.\n\
+         See: https://tari-project.github.io/tari-cli/"
+    )
+}
+
+/// If `err` was caused by a wallet daemon authentication failure, append setup
+/// guidance so the user knows how to provide a valid API key. Any other error
+/// is returned unchanged.
+fn explain_wallet_daemon_auth_error(err: anyhow::Error, had_api_key: bool) -> anyhow::Error {
+    let unauthorized = err
+        .chain()
+        .any(|cause| cause.downcast_ref::<PublisherError>().is_some_and(PublisherError::is_unauthorized));
+
+    if unauthorized {
+        anyhow!("{err:#}\n\n{}", wallet_daemon_auth_help(had_api_key))
+    } else {
+        err
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -331,7 +405,8 @@ impl Cli {
                 let network_override = self.args.network;
                 // Move the key out rather than clone, so no extra plaintext copy lingers.
                 let api_key = self.args.api_key.take();
-                return match command {
+                let had_api_key = api_key.is_some();
+                let result = match command {
                     Command::Template { command } => match command {
                         TemplateCommand::Init { args } => template::init_metadata::handle(args).await,
                         TemplateCommand::Inspect { args } => template::inspect_metadata::handle(args).await,
@@ -348,6 +423,8 @@ impl Cli {
                     },
                     _ => unreachable!(),
                 };
+                // Surface API key setup help when the daemon rejects us for auth.
+                return result.map_err(|e| explain_wallet_daemon_auth_error(e, had_api_key));
             },
             _ => {},
         }
