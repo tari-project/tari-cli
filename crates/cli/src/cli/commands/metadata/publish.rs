@@ -17,6 +17,7 @@ use tari_engine_types::published_template::PublishedTemplateAddress;
 use tari_ootle_publish_lib::NetworkConfig;
 use tari_ootle_publish_lib::publisher::{SignedMetadataPayload, TemplatePublisher};
 use tari_ootle_template_metadata::TemplateMetadata;
+use tari_utilities::Hidden;
 use url::Url;
 
 /// Default retry settings: 6 attempts, 10s initial backoff (10, 20, 40, 80, 160s ≈ ~5 min total).
@@ -64,7 +65,7 @@ pub struct PublishMetadataArgs {
 pub async fn handle(
     config: Config,
     network_override: Option<Network>,
-    api_key: Option<String>,
+    api_key: Option<Hidden<String>>,
     args: PublishMetadataArgs,
 ) -> anyhow::Result<()> {
     let cbor_path = find_metadata_cbor(&args.path).await?;

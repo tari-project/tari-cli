@@ -25,7 +25,8 @@ use clap::{
 };
 use convert_case::{Case, Casing};
 use ootle_network::Network;
-use std::{env, path::PathBuf};
+use std::{convert::Infallible, env, path::PathBuf};
+use tari_utilities::Hidden;
 
 const DEFAULT_DATA_FOLDER_NAME: &str = "tari_cli";
 const TEMPLATE_REPOS_FOLDER_NAME: &str = "template_repositories";
@@ -115,6 +116,12 @@ fn parse_network(s: &str) -> Result<Network, String> {
     s.parse().map_err(|e: ootle_network::NetworkParseError| e.to_string())
 }
 
+/// Wraps a raw API key (from `--api-key` or `TARI_WALLET_DAEMON_API_KEY`) in
+/// [`Hidden`] so it is zeroized on drop and kept out of `Debug` output.
+fn parse_api_key(value: &str) -> Result<Hidden<String>, Infallible> {
+    Ok(Hidden::hide(value.to_string()))
+}
+
 #[derive(Clone, Debug)]
 pub struct ConfigOverride {
     pub key: String,
@@ -150,9 +157,10 @@ pub struct CommonArguments {
         value_name = "API_KEY",
         env = "TARI_WALLET_DAEMON_API_KEY",
         hide_env_values = true,
+        value_parser = parse_api_key,
         global = true
     )]
-    api_key: Option<String>,
+    api_key: Option<Hidden<String>>,
 }
 
 #[derive(Clone, Parser)]
@@ -321,7 +329,8 @@ impl Cli {
         match &command {
             Command::Template { .. } | Command::Publish { .. } | Command::Metadata { .. } => {
                 let network_override = self.args.network;
-                let api_key = self.args.api_key.clone();
+                // Move the key out rather than clone, so no extra plaintext copy lingers.
+                let api_key = self.args.api_key.take();
                 return match command {
                     Command::Template { command } => match command {
                         TemplateCommand::Init { args } => template::init_metadata::handle(args).await,

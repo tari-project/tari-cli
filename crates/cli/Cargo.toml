@@ -17,6 +17,7 @@ tari_ootle_template_metadata = { workspace = true, features = ["json"] }
 tari_ootle_common_types = { workspace = true }
 ootle-network = { workspace = true }
 tari_engine_types = { workspace = true }
+tari_utilities = { workspace = true }
 
 anyhow = "1.0.102"
 cargo-generate = "^0.23.7"

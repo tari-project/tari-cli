@@ -13,6 +13,7 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use tari_ootle_template_metadata::TemplateMetadata;
+use tari_utilities::Hidden;
 use tokio::fs;
 use tokio::process::Command;
 
@@ -89,7 +90,7 @@ pub async fn build_template(crate_dir: &Path) -> anyhow::Result<PathBuf> {
 pub async fn handle(
     config: Config,
     network_override: Option<Network>,
-    api_key: Option<String>,
+    api_key: Option<Hidden<String>>,
     args: PublishArgs,
 ) -> anyhow::Result<()> {
     let template_args = TemplatePublishArgs {

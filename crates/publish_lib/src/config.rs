@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 use serde::{Deserialize, Serialize};
+use tari_utilities::Hidden;
 use url::Url;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -13,9 +14,12 @@ pub struct NetworkConfig {
     /// API key used to authenticate with the wallet daemon. Sent as a bearer
     /// token on every JSON-RPC request. `None` sends no `Authorization` header,
     /// which only works against a daemon with authentication disabled.
-    // Never persisted: a secret must not be written to a config file on disk.
+    //
+    // Wrapped in `Hidden` so it is zeroized from memory on drop and never
+    // exposed through `Debug`. Never persisted either: `#[serde(skip)]` keeps
+    // the secret out of any config file written to disk.
     #[serde(skip)]
-    api_key: Option<String>,
+    api_key: Option<Hidden<String>>,
 }
 
 impl NetworkConfig {
@@ -27,7 +31,7 @@ impl NetworkConfig {
     }
 
     /// Sets the wallet daemon API key used for authentication.
-    pub fn with_api_key(mut self, api_key: Option<String>) -> Self {
+    pub fn with_api_key(mut self, api_key: Option<Hidden<String>>) -> Self {
         self.api_key = api_key;
         self
     }
@@ -37,6 +41,6 @@ impl NetworkConfig {
     }
 
     pub fn api_key(&self) -> Option<&str> {
-        self.api_key.as_deref()
+        self.api_key.as_ref().map(|key| key.reveal().as_str())
     }
 }

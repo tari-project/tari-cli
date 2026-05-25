@@ -11,6 +11,7 @@ use tari_engine_types::published_template::PublishedTemplateAddress;
 use tari_ootle_publish_lib::NetworkConfig;
 use tari_ootle_publish_lib::publisher::{CheckBalanceResult, Template, TemplatePublisher};
 use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
+use tari_utilities::Hidden;
 
 use crate::cli::commands::metadata::publish::publish_metadata_to_server;
 use crate::cli::commands::publish::{
@@ -69,7 +70,7 @@ pub struct TemplatePublishArgs {
 pub async fn handle(
     config: Config,
     network_override: Option<Network>,
-    api_key: Option<String>,
+    api_key: Option<Hidden<String>>,
     mut args: TemplatePublishArgs,
 ) -> anyhow::Result<()> {
     let crate_dir = &args.path;

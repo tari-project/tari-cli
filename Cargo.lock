@@ -5606,7 +5606,7 @@ checksum = "adb6935a6f5c20170eeceb1a3835a49e12e19d792f6dd344ccc76a985ca5a6ca"
 
 [[package]]
 name = "tari-ootle-cli"
-version = "0.19.0"
+version = "0.20.0"
 dependencies = [
  "anyhow",
  "cargo-generate",
@@ -5626,6 +5626,7 @@ dependencies = [
  "tari_ootle_common_types",
  "tari_ootle_publish_lib",
  "tari_ootle_template_metadata",
+ "tari_utilities",
  "tempfile",
  "termimad",
  "thiserror 2.0.18",
@@ -5958,7 +5959,7 @@ dependencies = [
 
 [[package]]
 name = "tari_ootle_publish_lib"
-version = "0.19.0"
+version = "0.20.0"
 dependencies = [
  "hickory-proto",
  "ootle_serde",
@@ -5970,6 +5971,7 @@ dependencies = [
  "tari_ootle_wallet_sdk",
  "tari_ootle_walletd_client",
  "tari_template_lib_types",
+ "tari_utilities",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
