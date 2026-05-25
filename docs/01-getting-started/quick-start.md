@@ -18,6 +18,7 @@ blockchain deployment.
 
 - ✅ **Tari CLI installed** ([Installation Guide](installation.md))
 - ✅ **Tari Wallet Daemon running** on `http://127.0.0.1:9000/`
+- ✅ **Wallet daemon API key** exported as `TARI_WALLET_DAEMON_API_KEY` (with `templates:read`, `templates:create`, `accounts:read`, `transactions:read` permissions) — needed for publishing
 - ✅ **Rust with WASM target** (`rustup target add wasm32-unknown-unknown`)
 
 ## Step 1: Create Your Project

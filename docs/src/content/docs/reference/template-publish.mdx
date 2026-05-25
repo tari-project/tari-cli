@@ -24,6 +24,11 @@ tari template publish [PATH] [OPTIONS]
 | `-y, --yes` | Auto-confirm publishing |
 | `-f, --max-fee <AMOUNT>` | Maximum fee in microtari |
 | `--binary <PATH>` | Path to pre-compiled WASM binary |
+| `--api-key <API_KEY>` | Wallet daemon API key (bearer token). Also read from `TARI_WALLET_DAEMON_API_KEY` |
+
+## Authentication
+
+Publishing authenticates with the wallet daemon using an **API key** sent as a bearer token. Provide it with `--api-key` or the `TARI_WALLET_DAEMON_API_KEY` environment variable. The key must be minted with at least the `templates:read`, `templates:create`, `accounts:read` and `transactions:read` permissions. The key is never read from or written to a config file.
 
 ## Examples
 

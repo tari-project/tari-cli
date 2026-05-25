@@ -118,6 +118,16 @@ curl -X POST http://127.0.0.1:9000/ \
 
 Expected response: `{"jsonrpc":"2.0","result":{"network":"igor","network_byte":36,"version":"0.10.4"},"id":1}`
 
+**API key**:
+
+When the wallet daemon has authentication enabled, the CLI authenticates with an API key issued by the daemon. Mint a key with at least the `templates:read`, `templates:create`, `accounts:read` and `transactions:read` permissions, then make it available to the CLI:
+
+```bash
+export TARI_WALLET_DAEMON_API_KEY="<your-api-key>"
+```
+
+You can also pass it per command with `--api-key`. The key is sent as a bearer token and is never stored in a config file.
+
 ## Verification
 
 Verify your installation is working correctly:

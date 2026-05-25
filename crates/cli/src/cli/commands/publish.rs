@@ -13,6 +13,7 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
 use tari_ootle_template_metadata::TemplateMetadata;
+use tari_utilities::Hidden;
 use tokio::fs;
 use tokio::process::Command;
 
@@ -86,7 +87,12 @@ pub async fn build_template(crate_dir: &Path) -> anyhow::Result<PathBuf> {
 }
 
 /// `tari publish` delegates to `tari template publish` — they behave identically.
-pub async fn handle(config: Config, network_override: Option<Network>, args: PublishArgs) -> anyhow::Result<()> {
+pub async fn handle(
+    config: Config,
+    network_override: Option<Network>,
+    api_key: Option<Hidden<String>>,
+    args: PublishArgs,
+) -> anyhow::Result<()> {
     let template_args = TemplatePublishArgs {
         path: args.path,
         account: args.account,
@@ -98,7 +104,7 @@ pub async fn handle(config: Config, network_override: Option<Network>, args: Pub
         publish_metadata: args.publish_metadata,
         metadata_server_url: args.metadata_server_url,
     };
-    crate::cli::commands::template::publish::handle(config, network_override, template_args).await
+    crate::cli::commands::template::publish::handle(config, network_override, api_key, template_args).await
 }
 
 async fn build_project(dir: &Path, name: &str) -> anyhow::Result<PathBuf> {

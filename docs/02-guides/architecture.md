@@ -381,21 +381,24 @@ async fn main() -> anyhow::Result<()> {
 
 ### Authentication Flow
 
+The CLI authenticates with the wallet daemon using an API key, sent as an `Authorization: Bearer` token on every JSON-RPC request. There is no interactive login round-trip.
+
 ```mermaid
 graph LR
-    CLI[CLI] --> Wallet[Wallet Daemon]
-    Wallet --> Auth[Authentication]
-    Auth --> Admin[Admin Permissions]
-    Admin --> Deploy[Deployment Access]
+    CLI[CLI] --> ApiKey[API Key]
+    ApiKey --> |Authorization: Bearer| Wallet[Wallet Daemon]
+    Wallet --> Deploy[Deployment Access]
 ```
+
+The API key is supplied via the `--api-key` flag or the `TARI_WALLET_DAEMON_API_KEY` environment variable, and must carry the `templates:read`, `templates:create`, `accounts:read` and `transactions:read` permissions.
 
 ### Security Considerations
 
-1. **Wallet Authentication**: Secure connection to wallet daemon
-2. **Admin Permissions**: Required for template deployment
+1. **API Key Authentication**: Bearer token sent to the wallet daemon
+2. **Scoped Permissions**: Key minted with only `templates:read`, `templates:create`, `accounts:read`, `transactions:read`
 3. **HTTPS Support**: Secure network communication
 4. **Input Validation**: Parameter and configuration validation
-5. **Secret Management**: No secrets stored in CLI configuration
+5. **Secret Management**: API key is never stored in CLI configuration (flag or env var only)
 
 ## Extension Points
 

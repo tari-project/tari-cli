@@ -25,6 +25,34 @@ tari [GLOBAL_OPTIONS] <COMMAND> [COMMAND_OPTIONS]
 | `--config-file-path <PATH>` | `-c` | Config file location | `~/.config/tari_cli/tari.config.toml` |
 | `--config-overrides <KEY=VALUE>` | `-e` | Config file overrides (e.g. `networks.esmeralda.wallet-daemon-url=...`) | None |
 | `--network <NETWORK>` | `-n` | Active network (`esmeralda`, `localnet`, `igor`, `nextnet`, `stagenet`, `mainnet`). Overrides project and global `default-network` | Project / global default |
+| `--api-key <API_KEY>` | | Wallet daemon API key, sent as a bearer token. Also read from `TARI_WALLET_DAEMON_API_KEY` | `$TARI_WALLET_DAEMON_API_KEY` |
+
+### Wallet daemon authentication
+
+Commands that talk to the wallet daemon (`publish`, `template publish`, and `metadata publish --signed`) authenticate with an **API key** issued by the wallet daemon. The key is sent as an `Authorization: Bearer` token on every JSON-RPC request — there is no interactive login.
+
+Provide the key with the `--api-key` flag or the `TARI_WALLET_DAEMON_API_KEY` environment variable (the flag takes precedence):
+
+```bash
+export TARI_WALLET_DAEMON_API_KEY="<your-api-key>"
+tari publish -a myaccount
+
+# or per-invocation
+tari publish -a myaccount --api-key "<your-api-key>"
+```
+
+For security, the API key is **never** read from or written to a config file.
+
+The key must be minted with at least these permissions for the CLI to work:
+
+| Permission | Used for |
+|------------|----------|
+| `templates:read` | Reading template state |
+| `templates:create` | Publishing templates and signing metadata |
+| `accounts:read` | Resolving the fee account and checking its balance |
+| `transactions:read` | Waiting on the publish transaction result to confirm it |
+
+If the wallet daemon has authentication disabled, the API key may be omitted.
 
 ## Commands Overview
 
@@ -141,6 +169,7 @@ tari publish [OPTIONS] [PATH]
 | `-f, --max-fee` | u64 | Auto-estimated | Maximum fee in microtari |
 | `--binary, --bin` | Path | *builds if not set* | Path to pre-compiled WASM binary |
 | `--wallet-daemon-url` | URL | `[networks.<active>].wallet-daemon-url` | Wallet daemon JSON-RPC URL |
+| `--api-key` | String | `$TARI_WALLET_DAEMON_API_KEY` | Wallet daemon API key (bearer token) |
 | `--publish-metadata` | Flag | `false` | Auto-submit metadata to server after publishing |
 | `--metadata-server-url` | URL | `[networks.<active>].metadata-server-url` | Metadata server URL (with `--publish-metadata`) |
 
@@ -239,6 +268,7 @@ tari metadata publish [OPTIONS] [-t <TEMPLATE_ADDRESS>]
 | `--signed` | Flag | `false` | Use author-signed submission via wallet daemon |
 | `--key-index` | u64 | `0` | Derived account key index (with `--signed`) |
 | `--wallet-daemon-url` | URL | `[networks.<active>].wallet-daemon-url` | Wallet daemon URL (with `--signed`) |
+| `--api-key` | String | `$TARI_WALLET_DAEMON_API_KEY` | Wallet daemon API key (bearer token, with `--signed`) |
 
 #### Hash-verified (default)
 
@@ -328,6 +358,7 @@ The active network is resolved first, then per-setting values are read from that
 | Metadata server URL | `--metadata-server-url` | `networks.<active>.metadata-server-url` | `networks.<active>.metadata-server-url` | esmeralda → `https://ootle-templates-esme.tari.com/`, localnet → `http://localhost:3000/`, others → none |
 | Template address | `--template-address` | `networks.<active>.template-address` | — | — |
 | Account | `--account` | `default-account` | `default-account` | Wallet daemon default |
+| Wallet daemon API key | `--api-key` | — (never stored in config) | — (never stored in config) | `TARI_WALLET_DAEMON_API_KEY` env var |
 
 ---
 

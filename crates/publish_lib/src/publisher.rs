@@ -15,11 +15,9 @@ use tari_engine_types::substate::SubstateId;
 use tari_ootle_common_types::optional::Optional;
 use tari_ootle_template_metadata::MetadataHash;
 use tari_ootle_template_metadata::TemplateMetadata;
-use tari_ootle_walletd_client::permissions::Permission;
 use tari_ootle_walletd_client::types::{
-    AccountsGetBalancesRequest, AuthCredentials, AuthGetMethodResponse, AuthLoginRequest, AuthLoginResponse,
-    AuthMethod, PublishTemplateMetadata, PublishTemplateRequest, SignTemplateMetadataRequest,
-    SignTemplateMetadataResponse, TransactionWaitResultRequest, WalletGetInfoResponse,
+    AccountsGetBalancesRequest, EncodedJwtString, PublishTemplateMetadata, PublishTemplateRequest,
+    SignTemplateMetadataRequest, SignTemplateMetadataResponse, TransactionWaitResultRequest, WalletGetInfoResponse,
 };
 use tari_ootle_walletd_client::{ComponentAddressOrName, WalletDaemonClient};
 use tari_template_lib_types::Hash32;
@@ -289,28 +287,18 @@ impl TemplatePublisher {
     }
 
     /// Returns a new wallet daemon client.
+    ///
+    /// When an API key is configured it is sent as the `Authorization: Bearer`
+    /// token on every request — no `auth.request` round-trip is performed. The
+    /// key must be minted with at least the `templates:read`, `templates:create`,
+    /// `accounts:read` and `transactions:read` permissions for publishing to
+    /// succeed (publishing waits on the transaction result to confirm).
     pub async fn wallet_daemon_client(&self) -> Result<WalletDaemonClient> {
-        let mut client = WalletDaemonClient::connect(self.network.wallet_daemon_jrpc_address().clone(), None)?;
-
-        let AuthGetMethodResponse { method } = client.get_auth_method().await?;
-        let credentials = match method {
-            AuthMethod::None => AuthCredentials::None,
-            AuthMethod::Webauthn => {
-                return Err(Error::NotSupportedError(
-                    "Webauthn is not currently supported".to_string(),
-                ));
-            },
-        };
-        // authentication
-        let AuthLoginResponse { token } = client
-            .auth_request(AuthLoginRequest {
-                permissions: vec![Permission::Admin],
-                credentials,
-            })
-            .await?;
-
-        client.set_auth_token(token);
-
+        let token = self
+            .network
+            .api_key()
+            .map(|key| EncodedJwtString::from(key.to_string()));
+        let client = WalletDaemonClient::connect(self.network.wallet_daemon_jrpc_address().clone(), token)?;
         Ok(client)
     }
 }

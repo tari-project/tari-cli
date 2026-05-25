@@ -1,14 +1,16 @@
 name: Publish to crates.io
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
 
 jobs:
   publish:
     name: Publish crates
     runs-on: ubuntu-latest
+    environment: cargopublish
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
     steps:
