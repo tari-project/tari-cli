@@ -355,7 +355,7 @@ The active network is resolved first, then per-setting values are read from that
 | Setting | CLI flag | Project config | Global config | Default |
 |---------|----------|---------------|---------------|---------|
 | Wallet daemon URL | `--wallet-daemon-url` | `networks.<active>.wallet-daemon-url` | `networks.<active>.wallet-daemon-url` | `http://127.0.0.1:5100/json_rpc` |
-| Metadata server URL | `--metadata-server-url` | `networks.<active>.metadata-server-url` | `networks.<active>.metadata-server-url` | esmeralda → `https://ootle-templates-esme.tari.com/`, localnet → `http://localhost:3000/`, others → none |
+| Metadata server URL | `--metadata-server-url` | `networks.<active>.metadata-server-url` | `networks.<active>.metadata-server-url` | esmeralda → `https://ootle.tari.com/community-templates`, localnet → `http://localhost:3000/`, others → none |
 | Template address | `--template-address` | `networks.<active>.template-address` | — | — |
 | Account | `--account` | `default-account` | `default-account` | Wallet daemon default |
 | Wallet daemon API key | `--api-key` | — (never stored in config) | — (never stored in config) | `TARI_WALLET_DAEMON_API_KEY` env var |

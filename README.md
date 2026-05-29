@@ -96,7 +96,7 @@ default-network = "esmeralda"
 
 [networks.esmeralda]
 wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
-metadata-server-url = "https://ootle-templates-esme.tari.com/"
+metadata-server-url = "https://ootle.tari.com/community-templates"
 
 [networks.localnet]
 wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
