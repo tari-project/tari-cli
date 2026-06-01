@@ -55,7 +55,7 @@ folder = "wasm_templates"
 
 [networks.esmeralda]
 wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
-metadata-server-url = "https://ootle-templates-esme.tari.com/"
+metadata-server-url = "https://ootle.tari.com/community-templates"
 
 [networks.localnet]
 wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
@@ -84,7 +84,7 @@ metadata-server-url = "http://localhost:3000/"
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `wallet-daemon-url` | URL | `http://127.0.0.1:5100/json_rpc` | Wallet daemon JSON-RPC endpoint |
-| `metadata-server-url` | URL | esmeralda → `https://ootle-templates-esme.tari.com/`, localnet → `http://localhost:3000/`, others → none | Metadata server URL |
+| `metadata-server-url` | URL | esmeralda → `https://ootle.tari.com/community-templates`, localnet → `http://localhost:3000/`, others → none | Metadata server URL |
 
 ### CLI Overrides (`-e`)
 
@@ -122,7 +122,7 @@ default-network = "esmeralda"
 
 [networks.esmeralda]
 wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
-metadata-server-url = "https://ootle-templates-esme.tari.com/"
+metadata-server-url = "https://ootle.tari.com/community-templates"
 # template-address = "template_abc123..."  # written automatically by `tari publish`
 
 [networks.localnet]
