@@ -64,9 +64,26 @@ pub struct PublishArgs {
     /// Overrides the value in tari.config.toml and global CLI config.
     #[arg(long)]
     pub metadata_server_url: Option<url::Url>,
+
+    /// Skip the size-optimizing release profile overrides passed to `cargo build`.
+    /// By default the template is compiled with size optimizations (see `build_template`).
+    #[arg(long, default_value_t = false)]
+    pub no_cargo_opts: bool,
 }
 
-pub async fn build_template(crate_dir: &Path) -> anyhow::Result<PathBuf> {
+/// Size-optimizing `[profile.release]` overrides applied to the WASM build via `cargo build
+/// --config`. These are injected on the command line so a template's own `Cargo.toml` does not
+/// need to declare them, and (because `--config` takes precedence over the manifest) they are
+/// applied even when the template defines its own release profile.
+const CARGO_OPT_CONFIGS: &[&str] = &[
+    "profile.release.opt-level='s'",   // Optimize for size.
+    "profile.release.lto=true",        // Enable Link Time Optimization.
+    "profile.release.codegen-units=1", // Reduce number of codegen units to increase optimizations.
+    "profile.release.panic='abort'",   // Abort on panic.
+    "profile.release.strip=true",      // Strip symbols.
+];
+
+pub async fn build_template(crate_dir: &Path, optimize: bool) -> anyhow::Result<PathBuf> {
     let cargo_path = crate_dir.join("Cargo.toml");
     if !cargo_path.exists() {
         return Err(anyhow!("No Cargo.toml found at {}", cargo_path.display()));
@@ -80,7 +97,7 @@ pub async fn build_template(crate_dir: &Path) -> anyhow::Result<PathBuf> {
 
     let template_bin = loading!(
         format!("Building WASM template project **{}**", crate_name),
-        build_project(crate_dir, &crate_name).await
+        build_project(crate_dir, &crate_name, optimize).await
     )?;
 
     Ok(template_bin)
@@ -103,18 +120,22 @@ pub async fn handle(
         wallet_daemon_url: args.wallet_daemon_url,
         publish_metadata: args.publish_metadata,
         metadata_server_url: args.metadata_server_url,
+        no_cargo_opts: args.no_cargo_opts,
     };
     crate::cli::commands::template::publish::handle(config, network_override, api_key, template_args).await
 }
 
-async fn build_project(dir: &Path, name: &str) -> anyhow::Result<PathBuf> {
+async fn build_project(dir: &Path, name: &str, optimize: bool) -> anyhow::Result<PathBuf> {
     let mut cmd = Command::new("cargo");
-    cmd.arg("build")
-        .arg("--target=wasm32-unknown-unknown")
-        .arg("--release")
-        .current_dir(dir)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+    cmd.arg("build").arg("--target=wasm32-unknown-unknown").arg("--release");
+
+    if optimize {
+        for config in CARGO_OPT_CONFIGS {
+            cmd.arg("--config").arg(config);
+        }
+    }
+
+    cmd.current_dir(dir).stdout(Stdio::piped()).stderr(Stdio::piped());
 
     let process = cmd.spawn()?;
 

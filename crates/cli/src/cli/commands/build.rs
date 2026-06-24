@@ -14,10 +14,15 @@ pub struct BuildArgs {
     /// Defaults to the current directory.
     #[arg(default_value = ".")]
     pub path: PathBuf,
+
+    /// Skip the size-optimizing release profile overrides passed to `cargo build`.
+    /// By default the template is compiled with size optimizations.
+    #[arg(long, default_value_t = false)]
+    pub no_cargo_opts: bool,
 }
 
 pub async fn handle(args: BuildArgs) -> anyhow::Result<()> {
-    let wasm_path = build_template(&args.path).await?;
+    let wasm_path = build_template(&args.path, !args.no_cargo_opts).await?;
     let size = tokio::fs::metadata(&wasm_path).await?.len() as usize;
 
     println!("✅ WASM binary: {} ({})", wasm_path.display(), util::human_bytes(size));

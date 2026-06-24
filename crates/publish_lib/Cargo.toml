@@ -28,8 +28,13 @@ hickory-proto = "=0.26.1"
 tonic = { version = "0.12.3", features = ["tls"] }
 tempfile = "3.27.0"
 
+# Pin (transitive) curve25519-dalek: 5.0.0-rc.1 switched to the upstream `ff` 0.14 crate, which
+# breaks tari_bulletproofs_plus 0.5.0 (Scalar no longer exposes `pow_vartime`). Hold it at pre.6
+# until the crypto stack catches up. See https://github.com/tari-project/bulletproofs-plus/issues/148
+curve25519-dalek = "=5.0.0-pre.6"
+
 [package.metadata.cargo-machete]
-ignored = ["hickory-proto"]
+ignored = ["hickory-proto", "curve25519-dalek"]
 
 [features]
 wasm-opt = ["dep:wasm-opt", "tokio/fs"]
