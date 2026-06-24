@@ -65,6 +65,11 @@ pub struct TemplatePublishArgs {
     /// Overrides the value in tari.config.toml and global CLI config.
     #[arg(long)]
     pub metadata_server_url: Option<url::Url>,
+
+    /// Skip the size-optimizing release profile overrides passed to `cargo build`.
+    /// By default the template is compiled with size optimizations.
+    #[arg(long, default_value_t = false)]
+    pub no_cargo_opts: bool,
 }
 
 pub async fn handle(
@@ -101,7 +106,7 @@ pub async fn handle(
             println!("📦 Using provided WASM binary at {}", bin_path.display());
             bin_path
         },
-        None => build_template(crate_dir).await?,
+        None => build_template(crate_dir, !args.no_cargo_opts).await?,
     };
 
     // Find and read metadata CBOR from build output

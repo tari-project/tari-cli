@@ -64,7 +64,7 @@ pub async fn handle(args: InspectMetadataArgs) -> anyhow::Result<()> {
                         .default(true)
                         .interact()?;
                 if rebuild {
-                    build_template(&args.project_dir).await?;
+                    build_template(&args.project_dir, true).await?;
                     let new_cbor_path = find_metadata_cbor(&args.project_dir).await?;
                     cbor_bytes = std::fs::read(&new_cbor_path).context("reading rebuilt metadata CBOR")?;
                     metadata = decode_metadata_cbor(&cbor_bytes)?;
