@@ -1569,7 +1569,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ccc2776f0c61eca1ca32528f85548abd1a4be8fb53d1b21c013e4f18da1e7090"
 dependencies = [
  "data-encoding",
- "syn 2.0.117",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -6159,9 +6159,9 @@ dependencies = [
 
 [[package]]
 name = "tari_template_lib_types"
-version = "0.27.0"
+version = "0.27.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6df30557bfd468625a266e5fb4c37a4114c94cdce35d127cd01279c82f6f6d5d"
+checksum = "351ed3d15215e9878a0113746b6e391a41ab35976764f9a104aa25364b56115c"
 dependencies = [
  "bnum",
  "borsh",
