@@ -643,9 +643,9 @@ checksum = "6bd91ee7b2422bcb158d90ef4d14f75ef67f340943fc4149891dcce8f8b972a3"
 
 [[package]]
 name = "cargo-generate"
-version = "0.23.11"
+version = "0.23.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c177b589e867f2f653c07291d92b75b93f40407c54b16f48fd944f38998d1a64"
+checksum = "235b52703f238dadd90a745ab9e192982211cfb8203059b1814fd92bd4f8a9ea"
 dependencies = [
  "anstyle",
  "anyhow",
