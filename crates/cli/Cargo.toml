@@ -21,7 +21,7 @@ tari_utilities = { workspace = true }
 
 anyhow = "1.0.102"
 cargo-generate = "^0.23.11"
-cargo_toml = "0.22.3"
+cargo_toml = "1.0.0"
 clap = { version = "4.5.20", features = ["derive", "string", "env"] }
 convert_case = "0.11.0"
 dialoguer = { version = "0.12.0", features = ["default", "fuzzy-select"] }
