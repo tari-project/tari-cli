@@ -1,7 +1,7 @@
 ---
 title: CLI Commands Reference
 description: Complete reference for all Tari CLI commands, arguments, and options
-last_updated: 2026-04-22
+last_updated: 2026-08-20
 version: "0.15"
 verified_against: crates/cli/src/cli/command.rs, command implementations
 audience: users
@@ -61,6 +61,7 @@ If the wallet daemon has authentication disabled, the API key may be omitted.
 | [`init`](#init) | | Initialise project config and template build.rs |
 | [`create`](#create) | `new` | Create a new template crate from a starter template |
 | [`build`](#build) | | Build the template WASM binary |
+| [`lint`](#lint) | `lints`, `check` | Check the template crate for Rust lints, binary size and metadata issues |
 | [`publish`](#publish) | `deploy` | Publish a template to the network |
 | [`template`](#template) | | Template metadata tooling (init, inspect, publish) |
 | [`metadata`](#metadata) | | Metadata server operations (inspect, publish) |
@@ -147,6 +148,69 @@ tari build [PATH]
 tari build
 # ✅ WASM binary: target/wasm32.../release/my_token.wasm (42.3 KB)
 # 📄 Metadata:    target/wasm32.../release/build/.../out/template_metadata.cbor
+```
+
+---
+
+## `lint`
+
+Checks a template crate for issues that hurt the published WASM binary or the developer experience. Every check except the Rust lints prints the exact fix, and most can be applied automatically with `--fix`.
+
+```bash
+tari lint [PATH] [OPTIONS]
+# aliases: tari lints, tari check
+```
+
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| `[PATH]` | Path | `.` | Path to the template crate directory (or its `Cargo.toml`) |
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--fix` | | Apply the suggested fix for every issue that can be fixed automatically |
+| `--no-clippy` | | Skip the `cargo clippy` run and only check the manifests |
+| `--deny-warnings` | `-D` | Exit non-zero on warnings and suggestions, not just errors |
+
+### Checks
+
+| Code | Severity | Checks | `--fix` |
+|------|----------|--------|---------|
+| `rust::clippy` | error / warning | Runs `cargo clippy --target wasm32-unknown-unknown` and reports its diagnostics | Runs `cargo clippy --fix` |
+| `cargo::crate-type` | error / warning | `[lib] crate-type` is exactly `["cdylib"]` — extra types such as `rlib` are compiled and linked in, bloating the binary | ✅ |
+| `cargo::release-profile` | warning | `[profile.release]` declares the size optimizations (`opt-level`, `lto`, `codegen-units`, `panic`, `strip`) | ✅ |
+| `cargo::test-runtime-profile` | suggestion | Wasmer/Cranelift are optimized in dev builds, so template tests are not ~10x slower. Only checked when the crate has tests | ✅ |
+| `template::metadata` | warning / suggestion | `description` and `[package.metadata.tari-template]` fields are filled in | ❌ — only you know the values; run `tari template init` |
+| `template::metadata-build` | warning | `tari_ootle_template_build` is a build dependency and `build.rs` calls `TemplateMetadataBuilder` | ✅ (unless an unrelated `build.rs` already exists) |
+
+Cargo only honours `[profile.*]` in the workspace root manifest, so profile checks read — and `--fix` writes — the workspace root `Cargo.toml` when the template is a workspace member.
+
+`tari build` and `tari publish` already pass the release profile settings via `cargo --config`, so `cargo::release-profile` matters for anyone building the crate with plain `cargo build --release`.
+
+### Exit codes
+
+`0` when no errors were found, `1` when any error was found (or any warning with `--deny-warnings`) — suitable for CI.
+
+### Example
+
+```bash
+tari lint
+# ⚠️ warning[cargo::crate-type]: `crate-type` also contains `rlib` — every extra crate type is
+#    compiled and linked in, bloating the published binary
+#    --> Cargo.toml [lib]
+#    help:
+#        In Cargo.toml, keep only the dynamic library:
+#
+#        [lib]
+#        crate-type = ["cdylib"]
+#    (fixable with `tari lint --fix`)
+#
+# Summary: 0 error(s), 1 warning(s), 0 suggestion(s)
+
+# Apply everything that can be fixed automatically
+tari lint --fix
+
+# Fail CI on any finding, without needing a clippy install
+tari lint --deny-warnings --no-clippy
 ```
 
 ---
