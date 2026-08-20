@@ -5,13 +5,14 @@ use crate::cli::commands::build::BuildArgs;
 use crate::cli::commands::config::ConfigCommand;
 use crate::cli::commands::create::CreateArgs;
 use crate::cli::commands::init::InitArgs;
+use crate::cli::commands::lint::LintArgs;
 use crate::cli::commands::metadata::MetadataCommand;
 use crate::cli::commands::publish;
 use crate::cli::commands::publish::PublishArgs;
 use crate::cli::commands::template::TemplateCommand;
 use crate::{
     cli::{
-        commands::{build, config as config_cmd, create, init, metadata, template, wizard},
+        commands::{build, config as config_cmd, create, init, lint, metadata, template, wizard},
         config::{Config, TemplateRepository},
         util,
     },
@@ -274,6 +275,12 @@ pub enum Command {
         #[clap(flatten)]
         args: BuildArgs,
     },
+    /// Lint the template crate for Rust lints, binary size and metadata issues.
+    #[clap(aliases = ["lints", "check"])]
+    Lint {
+        #[clap(flatten)]
+        args: LintArgs,
+    },
     /// Publish a Tari template to a network.
     #[clap(alias = "deploy")]
     Publish {
@@ -388,6 +395,10 @@ impl Cli {
 
         if let Command::Build { args } = command {
             return build::handle(args).await;
+        }
+
+        if let Command::Lint { args } = command {
+            return lint::handle(args).await;
         }
 
         if let Command::Metadata {
