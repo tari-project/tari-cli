@@ -629,9 +629,11 @@ fn check_release_profile(doc: &DocumentMut, location: &str) -> Vec<Finding> {
         "codegen-units = 1",
         get("codegen-units").and_then(|v| v.as_integer()) == Some(1),
     );
+    // `immediate-abort` skips the unwinding machinery entirely, so it is at least as good as
+    // `abort` for binary size.
     check(
         "panic = 'abort'",
-        get("panic").and_then(|v| v.as_str()) == Some("abort"),
+        matches!(get("panic").and_then(|v| v.as_str()), Some("abort" | "immediate-abort")),
     );
     check(
         "strip = true",
@@ -996,6 +998,16 @@ strip = true
         assert!(message.contains("panic"), "{message}");
         assert!(message.contains("strip"), "{message}");
         assert!(!message.contains("lto"), "{message}");
+    }
+
+    #[test]
+    fn immediate_abort_panic_is_accepted() {
+        let findings = check_release_profile(
+            &doc("[profile.release]\nopt-level = 's'\nlto = true\ncodegen-units = 1\n\
+                 panic = 'immediate-abort'\nstrip = true\n"),
+            "Cargo.toml",
+        );
+        assert!(findings.is_empty(), "{findings:?}");
     }
 
     #[test]
