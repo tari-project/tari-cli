@@ -284,6 +284,8 @@ tari template init [OPTIONS] [PATH]
 
 Adds `tari_ootle_template_build` to `[build-dependencies]`, creates `build.rs`, and writes a `[package.metadata.tari-template]` section to `Cargo.toml`.
 
+The build dependency is pinned to the latest release found on the crates.io index. If crates.io cannot be reached the CLI says so and falls back to a known-good version, so `tari template init` still works offline. An existing `tari_ootle_template_build` declaration is never re-pinned.
+
 ### `template inspect`
 
 Inspects a template metadata CBOR file. Alias: `template inspect-metadata`.

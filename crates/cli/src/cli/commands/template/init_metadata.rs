@@ -8,8 +8,12 @@ use clap::Parser;
 use dialoguer::Input;
 use tokio::fs;
 
+use crate::cli::crates_io;
+
 const BUILD_DEP_KEY: &str = "tari_ootle_template_build";
-const BUILD_DEP_VERSION: &str = "0.7";
+/// Used when crates.io cannot be reached. It only needs to be new enough to work, not current —
+/// [`resolve_build_dep_version`] looks up the latest release when it can.
+const FALLBACK_BUILD_DEP_VERSION: &str = "0.7";
 const BUILD_RS_CONTENT: &str = r#"fn main() {
     tari_ootle_template_build::TemplateMetadataBuilder::new()
         .build()
@@ -71,7 +75,7 @@ pub async fn handle(args: InitMetadataArgs) -> anyhow::Result<()> {
         .context("reading Cargo.toml")?;
 
     let metadata = resolve_metadata(&args, &cargo_toml_content)?;
-    let updated = add_build_dependency(&cargo_toml_content)?;
+    let updated = add_latest_build_dependency(&cargo_toml_content).await?;
     let updated = add_template_metadata(&updated, &metadata)?;
 
     fs::write(&cargo_toml_path, &updated)
@@ -232,7 +236,46 @@ fn normalize_supersedes(s: Option<&str>) -> Option<String> {
     s.map(str::trim).filter(|s| !s.is_empty()).map(str::to_string)
 }
 
-fn add_build_dependency(cargo_toml_content: &str) -> anyhow::Result<String> {
+/// Add the metadata build dependency, pinned to the latest release on crates.io. An existing
+/// declaration is left exactly as the user wrote it.
+async fn add_latest_build_dependency(cargo_toml_content: &str) -> anyhow::Result<String> {
+    if declares_build_dependency(cargo_toml_content)? {
+        println!("ℹ️  {BUILD_DEP_KEY} already in [build-dependencies], skipping");
+        return Ok(cargo_toml_content.to_string());
+    }
+
+    let version = resolve_build_dep_version().await;
+    let updated = add_build_dependency(cargo_toml_content, &version)?;
+    println!("✅ Added {BUILD_DEP_KEY} = \"{version}\" to [build-dependencies]");
+    Ok(updated)
+}
+
+/// The version requirement to write for the build dependency. Falling back to a known-good version
+/// keeps `tari init` working offline or behind a firewall.
+async fn resolve_build_dep_version() -> String {
+    match crates_io::latest_version_req(BUILD_DEP_KEY).await {
+        Ok(version) => version,
+        Err(error) => {
+            println!(
+                "ℹ️  Could not check crates.io for the latest {BUILD_DEP_KEY} ({error:#}), \
+                 using {FALLBACK_BUILD_DEP_VERSION}"
+            );
+            FALLBACK_BUILD_DEP_VERSION.to_string()
+        },
+    }
+}
+
+fn declares_build_dependency(cargo_toml_content: &str) -> anyhow::Result<bool> {
+    let doc = cargo_toml_content
+        .parse::<toml_edit::DocumentMut>()
+        .context("parsing Cargo.toml")?;
+    Ok(doc
+        .get("build-dependencies")
+        .and_then(|deps| deps.get(BUILD_DEP_KEY))
+        .is_some())
+}
+
+fn add_build_dependency(cargo_toml_content: &str, version: &str) -> anyhow::Result<String> {
     let mut doc = cargo_toml_content
         .parse::<toml_edit::DocumentMut>()
         .context("parsing Cargo.toml")?;
@@ -244,11 +287,7 @@ fn add_build_dependency(cargo_toml_content: &str) -> anyhow::Result<String> {
         .as_table_mut()
         .ok_or_else(|| anyhow!("[build-dependencies] is not a table"))?;
 
-    if build_deps.contains_key(BUILD_DEP_KEY) {
-        println!("ℹ️  {BUILD_DEP_KEY} already in [build-dependencies], skipping");
-    } else {
-        build_deps.insert(BUILD_DEP_KEY, toml_edit::value(BUILD_DEP_VERSION));
-    }
+    build_deps.insert(BUILD_DEP_KEY, toml_edit::value(version));
 
     Ok(doc.to_string())
 }
@@ -338,7 +377,7 @@ pub async fn auto_init(crate_dir: &Path) -> anyhow::Result<()> {
         supersedes: None,
     };
 
-    let updated = add_build_dependency(&content)?;
+    let updated = add_latest_build_dependency(&content).await?;
     let updated = add_template_metadata(&updated, &empty_metadata)?;
     fs::write(&cargo_toml_path, &updated)
         .await
@@ -391,13 +430,15 @@ version = "0.1.0"
 [dependencies]
 foo = "1.0"
 "#;
-        let result = add_build_dependency(input).unwrap();
+        let result = add_build_dependency(input, "0.11").unwrap();
         assert!(result.contains("[build-dependencies]"));
-        assert!(result.contains("tari_ootle_template_build"));
+        assert!(result.contains("tari_ootle_template_build = \"0.11\""));
     }
 
-    #[test]
-    fn idempotent_build_dependency() {
+    #[tokio::test]
+    async fn existing_build_dependency_is_left_alone() {
+        // Never silently re-pin a version the user chose deliberately — and never hit the network
+        // to decide that.
         let input = r#"[package]
 name = "my-template"
 version = "0.1.0"
@@ -405,8 +446,23 @@ version = "0.1.0"
 [build-dependencies]
 tari_ootle_template_build = "0.3"
 "#;
-        let result = add_build_dependency(input).unwrap();
+        let result = add_latest_build_dependency(input).await.unwrap();
+        assert_eq!(result, input);
+    }
+
+    #[test]
+    fn detects_an_existing_build_dependency() {
+        assert!(declares_build_dependency("[build-dependencies]\ntari_ootle_template_build = \"0.3\"\n").unwrap());
+        assert!(!declares_build_dependency("[build-dependencies]\nfoo = \"1\"\n").unwrap());
+        assert!(!declares_build_dependency("[package]\nname = \"t\"\n").unwrap());
+    }
+
+    #[test]
+    fn build_dependency_version_is_overwritten_when_given() {
+        let input = "[build-dependencies]\ntari_ootle_template_build = \"0.3\"\n";
+        let result = add_build_dependency(input, "0.11").unwrap();
         assert_eq!(result.matches("tari_ootle_template_build").count(), 1);
+        assert!(result.contains("\"0.11\""));
     }
 
     #[test]
