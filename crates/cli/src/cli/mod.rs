@@ -4,5 +4,6 @@
 pub mod command;
 pub mod commands;
 pub mod config;
+pub mod crates_io;
 pub mod macros;
 pub mod util;
