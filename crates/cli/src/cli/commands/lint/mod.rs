@@ -3,7 +3,8 @@
 
 //! `tari lint` — checks a template crate for issues that hurt the published WASM binary or the
 //! developer experience: Rust lints (via `cargo clippy`), missing size-optimizing Cargo profile
-//! settings, slow test runtimes, missing package metadata and a bloated `crate-type`.
+//! settings, slow test runtimes, missing package metadata, a bloated `crate-type` and `Vec<u8>`
+//! fields/arguments that CBOR-encode as an array of integers.
 //!
 //! Every check other than the Rust lints carries a concrete, copy-pasteable fix, and most can be
 //! applied automatically with `--fix`.
@@ -17,7 +18,10 @@ use tokio::fs;
 use tokio::process::Command;
 use toml_edit::{Array, DocumentMut, Item, Table, Value, value};
 
+use crate::cli::commands::lint::byte_vec::check_byte_vecs;
 use crate::cli::commands::template::init_metadata;
+
+mod byte_vec;
 
 const WASM_TARGET: &str = "wasm32-unknown-unknown";
 const TARI_TEMPLATE_METADATA_KEY: &str = "tari-template";
@@ -221,6 +225,7 @@ pub async fn handle(args: LintArgs) -> anyhow::Result<()> {
     }
     findings.extend(check_package_metadata(&manifest, &crate_location));
     findings.extend(check_metadata_generation(&manifest, &crate_dir, &crate_location).await);
+    findings.extend(check_byte_vecs(&crate_dir).await);
 
     if args.fix {
         let fixer = Fixer {
