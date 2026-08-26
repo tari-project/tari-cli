@@ -3,14 +3,14 @@ members = ["crates/publish_lib", "crates/cli"]
 resolver = "2"
 
 [workspace.package]
-version = "0.24.0"
+version = "0.25.0"
 edition = "2024"
 authors = ["The Tari Development Community"]
 repository = "https://github.com/tari-project/tari-cli"
 license = "BSD-3-Clause"
 
 [workspace.dependencies]
-tari_ootle_publish_lib = { path = "crates/publish_lib", version = "0.24" }
+tari_ootle_publish_lib = { path = "crates/publish_lib", version = "0.25" }
 
 tari_ootle_walletd_client = "0.40"
 tari_engine = "0.39"

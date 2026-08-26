@@ -5591,7 +5591,7 @@ checksum = "adb6935a6f5c20170eeceb1a3835a49e12e19d792f6dd344ccc76a985ca5a6ca"
 
 [[package]]
 name = "tari-ootle-cli"
-version = "0.24.0"
+version = "0.25.0"
 dependencies = [
  "anyhow",
  "cargo-generate",
@@ -5603,10 +5603,13 @@ dependencies = [
  "git2",
  "human_bytes",
  "ootle-network",
+ "proc-macro2",
+ "quote",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
  "spinners",
+ "syn 2.0.119",
  "tari_engine_types",
  "tari_ootle_common_types",
  "tari_ootle_publish_lib",
@@ -5945,7 +5948,7 @@ dependencies = [
 
 [[package]]
 name = "tari_ootle_publish_lib"
-version = "0.24.0"
+version = "0.25.0"
 dependencies = [
  "hickory-proto",
  "ootle_serde",

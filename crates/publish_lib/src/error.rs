@@ -13,8 +13,10 @@ use thiserror::Error;
 pub enum Error {
     #[error("Wallet daemon client error: {0}")]
     WalletDaemonClient(#[from] WalletDaemonClientError),
+    // Boxed: `tonic::Status` is ~176 bytes, which would make every `Result<_, Error>` in the
+    // crate large enough to trip `clippy::result_large_err`.
     #[error("gRPC error: {0}")]
-    Grpc(#[from] tonic::Status),
+    Grpc(Box<tonic::Status>),
     #[error("Invalid template: {0}")]
     InvalidTemplate(#[from] TemplateLoaderError),
     #[error("Invalid template: {0}")]
@@ -36,6 +38,12 @@ pub enum Error {
     WasmOptimizationError(#[from] crate::wasm_opt::Error),
     #[error("Invalid response: {0}")]
     InvalidResponse(String),
+}
+
+impl From<tonic::Status> for Error {
+    fn from(status: tonic::Status) -> Self {
+        Self::Grpc(Box::new(status))
+    }
 }
 
 impl Error {

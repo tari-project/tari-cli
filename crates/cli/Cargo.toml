@@ -28,10 +28,14 @@ dialoguer = { version = "0.12.0", features = ["default", "fuzzy-select"] }
 dirs-next = "2.0.0"
 git2 = { version = "^0.21", features = ["default"] }
 human_bytes = "0.4.3"
+# `span-locations` gives `tari lint` source line numbers for the findings it parses out of template code.
+proc-macro2 = { version = "1.0.107", features = ["span-locations"] }
+quote = "1.0.47"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 serde = { workspace = true }
 serde_json = "1.0"
 spinners = "4.1.1"
+syn = { version = "2.0.119", features = ["full", "parsing", "printing"] }
 termimad = "0.35.1"
 thiserror = { workspace = true }
 tokio = { workspace = true }

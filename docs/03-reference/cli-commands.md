@@ -61,7 +61,7 @@ If the wallet daemon has authentication disabled, the API key may be omitted.
 | [`init`](#init) | | Initialise project config and template build.rs |
 | [`create`](#create) | `new` | Create a new template crate from a starter template |
 | [`build`](#build) | | Build the template WASM binary |
-| [`lint`](#lint) | `lints`, `check` | Check the template crate for Rust lints, binary size and metadata issues |
+| [`lint`](#lint) | `lints`, `check` | Check the template crate for Rust lints, binary size, encoding and metadata issues |
 | [`publish`](#publish) | `deploy` | Publish a template to the network |
 | [`template`](#template) | | Template metadata tooling (init, inspect, publish) |
 | [`metadata`](#metadata) | | Metadata server operations (inspect, publish) |
@@ -181,10 +181,40 @@ tari lint [PATH] [OPTIONS]
 | `cargo::test-runtime-profile` | suggestion | Wasmer/Cranelift are optimized in dev builds, so template tests are not ~10x slower. Only checked when the crate has tests | ✅ |
 | `template::metadata` | warning / suggestion | `description` and `[package.metadata.tari-template]` fields are filled in | ❌ — only you know the values; run `tari template init` |
 | `template::metadata-build` | warning | `tari_ootle_template_build` is a build dependency and `build.rs` calls `TemplateMetadataBuilder` | ✅ (unless an unrelated `build.rs` already exists) |
+| `template::byte-vec` | warning | `Vec<u8>` in CBOR-encoded template types — fields of the types a `#[template]` module encodes (and of any type deriving an encoding trait), plus the arguments and return types of template functions | ❌ — the fix rewrites your source |
 
 Cargo only honours `[profile.*]` in the workspace root manifest, so profile checks read — and `--fix` writes — the workspace root `Cargo.toml` when the template is a workspace member.
 
 `tari build` and `tari publish` already pass the release profile settings via `cargo --config`, so `cargo::release-profile` matters for anyone building the crate with plain `cargo build --release`.
+
+#### `template::byte-vec`
+
+`Vec<u8>` CBOR-encodes as an array of integers — `Array(Int(1), Int(2), ...)` — costing up to two bytes per byte plus per-element decoding, instead of the dedicated CBOR byte string. Component state is stored, and call arguments are sent, in that encoding, so it shows up in substate size and transaction size.
+
+Use `Bytes` from the template prelude, which encodes as a byte string:
+
+```rust
+use tari_template_lib::prelude::*;
+
+#[template]
+mod my_template {
+    use super::*;
+
+    pub struct MyTemplate {
+        payload: Bytes,
+    }
+
+    impl MyTemplate {
+        pub fn new(payload: Bytes) -> Self {
+            Self { payload }
+        }
+    }
+}
+```
+
+A field can also keep its `Vec<u8>` and pick the byte encoding with an attribute — `#[cbor(with = "minicbor::bytes")]` for the minicbor derives a `#[template]` module injects, or `#[serde(with = "tari_template_lib::types::bytes")]` for a serde-derived type. Function arguments and return types have no attribute to fall back on, so `Bytes` is the only fix there.
+
+The check skips fields that already choose a codec (`#[cbor(with = ..)]`, `#[serde(with = ..)]`, or a `skip`), non-`pub` items in a `#[template]` module (the macro does not derive a codec for those), and `#[template(skip_cbor_derives)]` modules, where the derives you write yourself are what it looks at instead.
 
 ### Exit codes
 
