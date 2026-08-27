@@ -7,6 +7,14 @@
 
 The **Tari CLI** is the development tool for building and publishing smart contract templates on the [Tari Ootle](https://www.tari.com/) Layer-2 network.
 
+## Documentation
+
+Full documentation is available at **[tari-project.github.io/tari-cli](https://tari-project.github.io/tari-cli/)**.
+
+- [CLI Commands Reference](https://tari-project.github.io/tari-cli/03-reference/cli-commands/)
+- [Configuration Schema](https://tari-project.github.io/tari-cli/03-reference/configuration-schema/)
+- [Getting Started](https://tari-project.github.io/tari-cli/01-getting-started/quick-start/)
+
 ## Quick Start
 
 ### Install
@@ -121,14 +129,6 @@ tari publish -a myaccount
 The key must be minted with at least the `templates:read`, `templates:create`, `accounts:read` and `transactions:read` permissions (publishing waits on the transaction result to confirm). For security, it is never read from or written to a config file.
 
 See the [Configuration Schema Reference](https://tari-project.github.io/tari-cli/03-reference/configuration-schema/) for all options.
-
-## Documentation
-
-Full documentation is available at **[tari-project.github.io/tari-cli](https://tari-project.github.io/tari-cli/)**.
-
-- [CLI Commands Reference](https://tari-project.github.io/tari-cli/03-reference/cli-commands/)
-- [Configuration Schema](https://tari-project.github.io/tari-cli/03-reference/configuration-schema/)
-- [Getting Started](https://tari-project.github.io/tari-cli/01-getting-started/quick-start/)
 
 ## Prerequisites
 
