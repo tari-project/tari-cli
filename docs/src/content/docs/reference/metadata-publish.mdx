@@ -1,0 +1,53 @@
+---
+title: tari metadata publish
+description: Publish template metadata to a metadata server.
+---
+
+Publishes a template's metadata to a community metadata server, so wallets and explorers can show the template's description, tags, category and links.
+
+The template itself must already be on-chain — publish it with [`tari publish`](/tari-cli/reference/publish/) first.
+
+```bash
+tari metadata publish [PATH] [OPTIONS]
+```
+
+`tari metadata inspect` is an alias for [`tari template inspect`](/tari-cli/reference/template-inspect/).
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `[PATH]` | Path to the template crate directory (default: `.`) |
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-t, --template-address <ADDRESS>` | Template address (e.g. `template_bce07f…` or raw hex). Defaults to the address saved in `tari.config.toml` by the last `tari publish` |
+| `--metadata-server-url <URL>` | Metadata server URL. Overrides `tari.config.toml` and the global CLI config |
+| `--max-retries <N>` | Maximum retry attempts while the server has not yet synced the template (default: `6`) |
+| `--signed` | Use author-signed submission via the wallet daemon |
+| `--key-index <N>` | Derived account key index to sign with, used with `--signed` (default: `0`) |
+| `--wallet-daemon-url <URL>` | Wallet daemon JSON-RPC URL, used with `--signed` |
+
+The global `-n, --network` and `--api-key` options apply here too.
+
+## Submission modes
+
+### Hash-verified (default)
+
+POSTs the raw CBOR metadata. The server verifies that its hash matches the `metadata_hash` recorded on-chain, so no signature is needed. This requires the template to have been published with a metadata hash.
+
+```bash
+tari metadata publish -t template_bce07f...
+```
+
+### Author-signed
+
+Signs the metadata via the wallet daemon (a Schnorr signature). This lets you update the metadata without republishing the template on-chain. No secret keys touch the CLI.
+
+```bash
+tari metadata publish -t template_bce07f... --signed --key-index 0
+```
+
+Both modes retry with exponential backoff while the server returns 404, which happens until it has synced the newly published template.

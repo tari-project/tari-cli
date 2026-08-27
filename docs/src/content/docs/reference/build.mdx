@@ -1,0 +1,38 @@
+---
+title: tari build
+description: Build the template WASM binary.
+---
+
+Builds the template WASM binary and reports the path to the generated metadata CBOR file, if there is one.
+
+By default the crate is compiled with size-optimizing release profile settings passed via `cargo --config`, so the published binary is as small as possible without you having to add a `[profile.release]` section.
+
+```bash
+tari build [PATH] [OPTIONS]
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `[PATH]` | Path to the template crate directory (default: `.`) |
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--no-cargo-opts` | Skip the size-optimizing release profile overrides passed to `cargo build` |
+
+## Example
+
+```bash
+tari build
+```
+
+Output:
+```
+✅ WASM binary: target/wasm32-unknown-unknown/release/my_token.wasm (42.3 KB)
+📄 Metadata:    target/wasm32-unknown-unknown/release/build/.../out/template_metadata.cbor
+```
+
+If the crate is not set up for metadata generation, the metadata line reports `none` with the reason — run [`tari template init`](/tari-cli/reference/template-init/) to set it up.

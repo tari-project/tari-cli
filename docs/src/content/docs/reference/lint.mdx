@@ -1,0 +1,112 @@
+---
+title: tari lint
+description: Check a template crate for issues that hurt the published WASM binary or the developer experience.
+---
+
+Checks a template crate for issues that hurt the published WASM binary or the developer experience. Every check except the Rust lints prints the exact fix, and most can be applied automatically with `--fix`.
+
+```bash
+tari lint [PATH] [OPTIONS]
+```
+
+Aliases: `tari lints`, `tari check`.
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `[PATH]` | Path to the template crate directory, or its `Cargo.toml` (default: `.`) |
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--fix` | Apply the suggested fix for every issue that can be fixed automatically |
+| `--no-clippy` | Skip the `cargo clippy` run and only check the manifests |
+| `-D, --deny-warnings` | Exit non-zero on warnings and suggestions, not just errors |
+
+## Checks
+
+| Code | Severity | Checks | `--fix` |
+|------|----------|--------|---------|
+| `rust::clippy` | error / warning | Runs `cargo clippy --target wasm32-unknown-unknown` and reports its diagnostics | Runs `cargo clippy --fix` |
+| `cargo::crate-type` | error / warning | `[lib] crate-type` is exactly `["cdylib"]` — extra types such as `rlib` are compiled and linked in, bloating the binary | ✅ |
+| `cargo::release-profile` | warning | `[profile.release]` declares the size optimizations (`opt-level`, `lto`, `codegen-units`, `panic`, `strip`) | ✅ |
+| `cargo::test-runtime-profile` | suggestion | Wasmer/Cranelift are optimized in dev builds, so template tests are not ~10x slower. Only checked when the crate has tests | ✅ |
+| `template::metadata` | warning / suggestion | `description` and `[package.metadata.tari-template]` fields are filled in | ❌ — only you know the values; run `tari template init` |
+| `template::metadata-build` | warning | `tari_ootle_template_build` is a build dependency and `build.rs` calls `TemplateMetadataBuilder` | ✅ (unless an unrelated `build.rs` already exists) |
+| `template::byte-vec` | warning | `Vec<u8>` in CBOR-encoded template types — fields of the types a `#[template]` module encodes (and of any type deriving an encoding trait), plus the arguments and return types of template functions | ❌ — the fix rewrites your source |
+
+Cargo only honours `[profile.*]` in the workspace root manifest, so profile checks read — and `--fix` writes — the workspace root `Cargo.toml` when the template is a workspace member.
+
+`tari build` and `tari publish` already pass the release profile settings via `cargo --config`, so `cargo::release-profile` matters for anyone building the crate with plain `cargo build --release`.
+
+### `template::byte-vec`
+
+`Vec<u8>` CBOR-encodes as an array of integers — `Array(Int(1), Int(2), ...)` — costing up to two bytes per byte plus per-element decoding, instead of the dedicated CBOR byte string. Component state is stored, and call arguments are sent, in that encoding, so it shows up in substate size and transaction size.
+
+Use `Bytes` from the template prelude, which encodes as a byte string:
+
+```rust
+use tari_template_lib::prelude::*;
+
+#[template]
+mod my_template {
+    use super::*;
+
+    pub struct MyTemplate {
+        payload: Bytes,
+    }
+
+    impl MyTemplate {
+        pub fn new(payload: Bytes) -> Self {
+            Self { payload }
+        }
+    }
+}
+```
+
+A field can also keep its `Vec<u8>` and pick the byte encoding with an attribute — `#[cbor(with = "minicbor::bytes")]` for the minicbor derives a `#[template]` module injects, or `#[serde(with = "tari_template_lib::types::bytes")]` for a serde-derived type. Function arguments and return types have no attribute to fall back on, so `Bytes` is the only fix there.
+
+The check skips fields that already choose a codec (`#[cbor(with = ..)]`, `#[serde(with = ..)]`, or a `skip`), non-`pub` items in a `#[template]` module (the macro does not derive a codec for those), and `#[template(skip_cbor_derives)]` modules, where the derives you write yourself are what it looks at instead.
+
+## Exit codes
+
+`0` when no errors were found, `1` when any error was found — or any warning with `--deny-warnings`. Suitable for CI.
+
+## Examples
+
+### Check the current crate
+
+```bash
+tari lint
+```
+
+Output:
+```
+⚠️ warning[cargo::crate-type]: `crate-type` also contains `rlib` — every extra crate type is
+   compiled and linked in, bloating the published binary
+   --> Cargo.toml [lib]
+   help:
+       In Cargo.toml, keep only the dynamic library:
+
+       [lib]
+       crate-type = ["cdylib"]
+   (fixable with `tari lint --fix`)
+
+Summary: 0 error(s), 1 warning(s), 0 suggestion(s)
+```
+
+### Apply the automatic fixes
+
+```bash
+tari lint --fix
+```
+
+### In CI
+
+Fail on any finding, without needing a clippy install:
+
+```bash
+tari lint --deny-warnings --no-clippy
+```
