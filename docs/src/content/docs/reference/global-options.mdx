@@ -1,0 +1,51 @@
+---
+title: Global options
+description: Options and wallet daemon authentication that apply to every Tari CLI command.
+---
+
+```bash
+tari [GLOBAL_OPTIONS] <COMMAND> [COMMAND_OPTIONS]
+```
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-b, --base-dir <PATH>` | Base directory for CLI data | `~/.local/share/tari_cli` |
+| `-c, --config-file-path <PATH>` | Config file location | `~/.config/tari_cli/tari.config.toml` |
+| `-e, --config-overrides <KEY=VALUE>` | Config overrides, e.g. `networks.esmeralda.wallet-daemon-url=…` | None |
+| `-n, --network <NETWORK>` | Active network: `esmeralda`, `localnet`, `igor`, `nextnet`, `stagenet`, `mainnet`. Overrides the project and global `default-network` | Project / global default |
+| `--api-key <API_KEY>` | Wallet daemon API key, sent as a bearer token. Also read from `TARI_WALLET_DAEMON_API_KEY` | `$TARI_WALLET_DAEMON_API_KEY` |
+
+## Wallet daemon authentication
+
+Commands that talk to the wallet daemon — [`publish`](/tari-cli/reference/publish/), [`template publish`](/tari-cli/reference/template-publish/) and [`metadata publish --signed`](/tari-cli/reference/metadata-publish/) — authenticate with an API key issued by the wallet daemon. The key is sent as an `Authorization: Bearer` token on every JSON-RPC request; there is no interactive login.
+
+Provide it with the `--api-key` flag or the `TARI_WALLET_DAEMON_API_KEY` environment variable — the flag takes precedence:
+
+```bash
+export TARI_WALLET_DAEMON_API_KEY="<your-api-key>"
+tari publish -a myaccount
+
+# or per-invocation
+tari publish -a myaccount --api-key "<your-api-key>"
+```
+
+For security, the API key is **never** read from or written to a config file.
+
+The key must be minted with at least these permissions:
+
+| Permission | Used for |
+|------------|----------|
+| `templates:read` | Reading template state |
+| `templates:create` | Publishing templates and signing metadata |
+| `accounts:read` | Resolving the fee account and checking its balance |
+| `transactions:read` | Waiting on the publish transaction result to confirm it |
+
+If the wallet daemon has authentication disabled, the API key can be omitted.
+
+## Interactive wizard
+
+Running `tari` with no command launches an interactive setup wizard that walks you through:
+
+1. Creating or detecting a template crate
+2. Setting up the project configuration (`tari.config.toml`)
+3. Initialising the template metadata

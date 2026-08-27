@@ -64,7 +64,11 @@ export default defineConfig({
         {
           label: "Commands",
           items: [
+            { label: "Global options", link: "/reference/global-options/" },
+            { label: "init", link: "/reference/init/" },
             { label: "create", link: "/reference/create/" },
+            { label: "build", link: "/reference/build/" },
+            { label: "lint", link: "/reference/lint/" },
             { label: "publish", link: "/reference/publish/" },
             { label: "template init", link: "/reference/template-init/" },
             {
@@ -75,6 +79,11 @@ export default defineConfig({
               label: "template inspect",
               link: "/reference/template-inspect/",
             },
+            {
+              label: "metadata publish",
+              link: "/reference/metadata-publish/",
+            },
+            { label: "config", link: "/reference/config/" },
           ],
         },
         {

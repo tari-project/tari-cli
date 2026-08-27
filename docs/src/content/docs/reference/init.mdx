@@ -1,0 +1,52 @@
+---
+title: tari init
+description: Initialise the project config and template metadata in an existing template crate.
+---
+
+Initialises the project config (`tari.config.toml`) and template metadata generation (`build.rs`) in a single step. Equivalent to running [`tari config init`](/tari-cli/reference/config/) followed by [`tari template init`](/tari-cli/reference/template-init/).
+
+```bash
+tari init [PATH] [OPTIONS]
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `[PATH]` | Path to the template crate directory, containing `Cargo.toml` (default: `.`) |
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--description <TEXT>` | Template description, written to `[package].description` |
+| `--tags <TAGS>` | Comma-separated tags (e.g. `token,fungible,defi`) |
+| `--category <CATEGORY>` | Template category (e.g. `token`, `nft`, `defi`) |
+| `--documentation <URL>` | Documentation URL |
+| `--homepage <URL>` | Homepage URL |
+| `--logo-url <URL>` | Logo URL — a link to the template's icon or logo image |
+| `--supersedes <ADDRESS>` | Template address of a previous version this template supersedes (64-char hex) |
+| `-y, --non-interactive` | Skip interactive prompts and use only the provided CLI args |
+
+Anything not passed on the command line is prompted for, unless `--non-interactive` is set.
+
+## Examples
+
+### Interactive
+
+```bash
+tari init
+```
+
+### Non-interactive
+
+```bash
+tari init -y --description "A standard fungible token" --tags token,defi --category token
+```
+
+Output:
+```
+✅ Created tari.config.toml at ./tari.config.toml
+✅ Updated Cargo.toml
+✅ Created build.rs
+```
