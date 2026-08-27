@@ -17,12 +17,5 @@
     "astro": "^6.3.7",
     "sass": "^1.98.0",
     "sharp": "^0.34.5"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@parcel/watcher",
-      "esbuild",
-      "sharp"
-    ]
   }
 }

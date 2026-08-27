@@ -1,0 +1,10 @@
+# pnpm >= 11
+allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
+  sharp: true
+# pnpm 10
+onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - esbuild
+  - sharp
