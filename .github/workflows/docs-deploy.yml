@@ -22,7 +22,7 @@ jobs:
         with:
           path: "docs"
           node-version: 24
-          package-manager: pnpm@latest
+          package-manager: pnpm@11.24.0
 
   deploy:
     needs: build
