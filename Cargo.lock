@@ -5977,7 +5977,7 @@ dependencies = [
  "serde",
  "serde_json",
  "spinners",
- "syn 2.0.119",
+ "syn 3.0.4",
  "tari_engine_types",
  "tari_ootle_common_types",
  "tari_ootle_publish_lib",
