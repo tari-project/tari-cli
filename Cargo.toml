@@ -12,13 +12,13 @@ license = "BSD-3-Clause"
 [workspace.dependencies]
 tari_ootle_publish_lib = { path = "crates/publish_lib", version = "0.25" }
 
-tari_ootle_walletd_client = "0.41"
-tari_engine = "0.39"
-tari_engine_types = "0.39"
-tari_ootle_common_types = "0.39"
+tari_ootle_walletd_client = "0.42"
+tari_engine = "0.40"
+tari_engine_types = "0.40"
+tari_ootle_common_types = "0.40"
 tari_template_lib_types = "0.31"
 tari_ootle_template_metadata = "0.11"
-tari_ootle_wallet_sdk = "0.41"
+tari_ootle_wallet_sdk = "0.42"
 tari_utilities = "0.10"
 ootle-network = "0.2"
 ootle_serde = "0.5"
