@@ -91,8 +91,17 @@ tari metadata publish -t template_f807989828e70a... --signed
 | `tari metadata publish` | Publish metadata to a community server |
 | `tari metadata inspect` | Inspect built metadata (alias) |
 | `tari config init/set/get/show` | Manage project configuration |
+| `tari --skill` | Print an agent-readable guide to using the CLI |
 
 Run `tari --help` or `tari <command> --help` for full details.
+
+## Coding agents
+
+`tari --skill` prints a Markdown guide — the commands, the non-interactive flags an agent needs, the authentication model and common failure modes — in the skill format agents load from a `SKILL.md`:
+
+```bash
+mkdir -p .claude/skills/tari && tari --skill > .claude/skills/tari/SKILL.md
+```
 
 ## Configuration
 
