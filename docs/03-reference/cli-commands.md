@@ -26,6 +26,17 @@ tari [GLOBAL_OPTIONS] <COMMAND> [COMMAND_OPTIONS]
 | `--config-overrides <KEY=VALUE>` | `-e` | Config file overrides (e.g. `networks.esmeralda.wallet-daemon-url=...`) | None |
 | `--network <NETWORK>` | `-n` | Active network (`esmeralda`, `localnet`, `igor`, `nextnet`, `stagenet`, `mainnet`). Overrides project and global `default-network` | Project / global default |
 | `--api-key <API_KEY>` | | Wallet daemon API key, sent as a bearer token. Also read from `TARI_WALLET_DAEMON_API_KEY` | `$TARI_WALLET_DAEMON_API_KEY` |
+| `--skill` | | Print a Markdown guide teaching a coding agent how to use the CLI, then exit | |
+
+### Coding agents
+
+`tari --skill` prints a Markdown guide — commands, the non-interactive flags an agent needs, the authentication model and common failure modes — in the skill format agents load from a `SKILL.md`. Write it wherever your agent looks for skills:
+
+```bash
+mkdir -p .claude/skills/tari && tari --skill > .claude/skills/tari/SKILL.md
+```
+
+It only writes to stdout: no config, directories or network access are touched.
 
 ### Wallet daemon authentication
 

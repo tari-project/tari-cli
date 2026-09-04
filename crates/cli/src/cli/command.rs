@@ -30,6 +30,10 @@ use std::{convert::Infallible, env, path::PathBuf};
 use tari_ootle_publish_lib::PublisherError;
 use tari_utilities::Hidden;
 
+/// Agent-oriented usage guide printed by `tari --skill`, written in the Markdown skill format
+/// agents (Claude Code, Cursor, …) load from a `SKILL.md`.
+const SKILL: &str = include_str!("skill.md");
+
 const DEFAULT_DATA_FOLDER_NAME: &str = "tari_cli";
 const TEMPLATE_REPOS_FOLDER_NAME: &str = "template_repositories";
 const DEFAULT_CONFIG_FILE_NAME: &str = "tari.config.toml";
@@ -136,6 +140,26 @@ mod tests {
         let augmented = explain_wallet_daemon_auth_error(unauthorized_error(), true);
         let msg = format!("{augmented:#}");
         assert!(msg.contains("rejected the provided API key"), "got: {msg}");
+    }
+
+    #[test]
+    fn skill_doc_has_frontmatter() {
+        // Agents load the doc as a skill file, which must start with a name/description block.
+        assert!(SKILL.starts_with("---\nname: tari-cli\n"), "missing skill frontmatter");
+        assert!(SKILL.contains("\ndescription: "), "missing skill description");
+    }
+
+    #[test]
+    fn skill_doc_documents_every_command() {
+        use clap::CommandFactory;
+
+        for command in Cli::command().get_subcommands() {
+            let name = command.get_name();
+            assert!(
+                SKILL.contains(&format!("`tari {name}")),
+                "`{name}` is missing from crates/cli/src/cli/skill.md — document it so agents know it exists"
+            );
+        }
     }
 
     #[test]
@@ -250,6 +274,12 @@ pub struct CommonArguments {
     long_about = "🚀 Tari Ootle CLI 🚀\nDevelop and publish Tari templates."
 )]
 pub struct Cli {
+    /// Print a Markdown guide teaching a coding agent how to use this CLI, then exit.
+    /// Write it to a skill file for the agent to pick up, e.g.
+    /// `tari --skill > .claude/skills/tari/SKILL.md`.
+    #[arg(long)]
+    skill: bool,
+
     #[clap(flatten)]
     args: CommonArguments,
 
@@ -380,6 +410,13 @@ impl Cli {
     }
 
     pub async fn handle_command(mut self) -> anyhow::Result<()> {
+        // Printed before anything else so the guide can be piped to a file without the CLI
+        // touching config, directories or the network.
+        if self.skill {
+            print!("{SKILL}");
+            return Ok(());
+        }
+
         let Some(command) = self.command.take() else {
             return wizard::handle().await;
         };
