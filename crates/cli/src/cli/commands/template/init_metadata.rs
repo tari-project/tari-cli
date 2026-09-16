@@ -14,7 +14,7 @@ const BUILD_DEP_KEY: &str = "tari_ootle_template_build";
 /// Used when crates.io cannot be reached. Keep this at the latest release when cutting a CLI
 /// release: an offline `tari init` should still scaffold a current template, not an old one.
 /// [`resolve_build_dep_version`] prefers whatever crates.io reports when it can reach it.
-const FALLBACK_BUILD_DEP_VERSION: &str = "0.11";
+const FALLBACK_BUILD_DEP_VERSION: &str = "0.12";
 const BUILD_RS_CONTENT: &str = r#"fn main() {
     tari_ootle_template_build::TemplateMetadataBuilder::new()
         .build()
