@@ -967,7 +967,7 @@ checksum = "af491d569909a7e4dee0ad7db7f5341fef5c614d5b8ec8cf765732aba3cff681"
 dependencies = [
  "serde",
  "termcolor",
- "unicode-width 0.2.2",
+ "unicode-width 0.1.14",
 ]
 
 [[package]]
@@ -982,7 +982,7 @@ version = "3.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "faf9468729b8cbcea668e36183cb69d317348c2e08e994829fb56ebfdfbaac34"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2009,7 +2009,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2931,7 +2931,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.6.5",
+ "socket2 0.5.10",
  "system-configuration",
  "tokio",
  "tower-service",
@@ -4615,7 +4615,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b570b25f7617e43d59005d0990ccb79e950a423952cea19671b7a876da390adf"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.13.0",
  "proc-macro2",
  "quote",
  "syn 2.0.119",
@@ -4679,7 +4679,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash",
  "rustls",
- "socket2 0.6.5",
+ "socket2 0.5.10",
  "thiserror 2.0.20",
  "tokio",
  "tracing",
@@ -4718,9 +4718,9 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.6.5",
+ "socket2 0.5.10",
  "tracing",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4963,7 +4963,7 @@ dependencies = [
  "bitflags 2.13.1",
  "libc",
  "mach2 0.4.3",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5187,7 +5187,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5255,7 +5255,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -6017,9 +6017,9 @@ dependencies = [
 
 [[package]]
 name = "tari_bulletproofs_plus"
-version = "0.5.2"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44504f532474401c8f3af90f81a8f9cda415a6571df0936b3c505c770144d439"
+checksum = "66582d6709d2b7c49509a3c56a63fe1e893af16e86fb757ae60eac8d15a70903"
 dependencies = [
  "blake2 0.10.6",
  "byteorder",
@@ -6100,9 +6100,9 @@ dependencies = [
 
 [[package]]
 name = "tari_consensus_types"
-version = "0.41.0"
+version = "0.41.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7664934a15a819d91b2e2aa1f3f4d2567b016a50855f680044200bb54f4cd5f9"
+checksum = "a8f6aa7d891a5dc7f9485fb8215244c065a0cc3d3b5c4f4408e79f9c7d713b5f"
 dependencies = [
  "borsh",
  "minicbor",
@@ -6120,9 +6120,9 @@ dependencies = [
 
 [[package]]
 name = "tari_crypto"
-version = "0.23.2"
+version = "0.23.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dd83075a6fc9f62ea6d71f6256bb6e980b0304173f66f8eb60d58790fde8e6e"
+checksum = "6199ba947fcb817563df50146ba0968f0f725990ed1bce2ee6534b4d8bf7c90f"
 dependencies = [
  "blake2 0.10.6",
  "borsh",
@@ -6142,9 +6142,9 @@ dependencies = [
 
 [[package]]
 name = "tari_engine"
-version = "0.41.0"
+version = "0.41.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a457ddd4ca94c5be48b116cc92867c4634c22efef453af0daaa38185f0747c9e"
+checksum = "c7593bcac58de23d50fbe0ea18b07dc2b62765ef2f55a402899d66d3221c3516"
 dependencies = [
  "blake2 0.10.6",
  "digest 0.10.7",
@@ -6173,9 +6173,9 @@ dependencies = [
 
 [[package]]
 name = "tari_engine_types"
-version = "0.41.0"
+version = "0.41.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65890a394018dfa5ac25d080a3723d690d2e0614ba3f50bd2f96ec8ef08b06d8"
+checksum = "d297a516b231eb21cbf64c11e663af0906eddd9d2fba456070f4b30a6c3c8a9e"
 dependencies = [
  "blake2 0.10.6",
  "borsh",
@@ -6302,9 +6302,9 @@ dependencies = [
 
 [[package]]
 name = "tari_ootle_common_types"
-version = "0.41.0"
+version = "0.41.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa6882055e1e3d5f9c94f3463c3d37f844c36494fb74b3284f5c500bc4bdec37"
+checksum = "02b75dd44adcc7fcf87c264da4332094d3fa616e4f7238b6b42bd84b0977ad40"
 dependencies = [
  "blake2 0.10.6",
  "borsh",
@@ -6376,9 +6376,9 @@ dependencies = [
 
 [[package]]
 name = "tari_ootle_transaction"
-version = "0.41.0"
+version = "0.41.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63ba8d929cda3789850e04326e9c3890d60edb5ead2138e3d95db9c6ee4991b5"
+checksum = "e2c4795bd1cd3f77a63119acd5016b2ba8c568f7355270cc7f66ed40fde544ff"
 dependencies = [
  "blake2 0.10.6",
  "borsh",
@@ -6433,9 +6433,9 @@ dependencies = [
 
 [[package]]
 name = "tari_ootle_wallet_sdk"
-version = "0.43.0"
+version = "0.43.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69ea4e02bb727050f4c38aae151060b9b8f3f7b4edcdf10c4369b287ecd9b751"
+checksum = "fce21c3baa0037dcb38e6a269ef306db6a467e90df67aa0a18a19c03bc9ad02b"
 dependencies = [
  "anyhow",
  "futures",
@@ -6526,9 +6526,9 @@ dependencies = [
 
 [[package]]
 name = "tari_template_builtin"
-version = "0.41.0"
+version = "0.41.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb56c1ae63e131d4f98ed95a71a878143e0028d4793f7b09b3f34b92e15fd0ea"
+checksum = "2295e6129666885d85e61f1432e71467c1cb39b8e82a602d32da087986e19776"
 dependencies = [
  "anyhow",
  "tari_template_lib_types",
@@ -6602,10 +6602,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -7843,7 +7843,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
