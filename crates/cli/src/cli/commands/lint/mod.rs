@@ -765,7 +765,6 @@ fn check_package_metadata(doc: &DocumentMut, location: &str) -> Vec<Finding> {
         ("category", "--category \"<category>\""),
         ("documentation", "--documentation \"<url>\""),
         ("homepage", "--homepage \"<url>\""),
-        ("logo_url", "--logo-url \"<url>\""),
     ] {
         if !non_empty_str(tari_template.and_then(|t| t.get(field))) {
             missing.push((field, flag));
@@ -1084,7 +1083,6 @@ tags = ["game"]
 category = "game"
 documentation = "https://example.com/docs"
 homepage = "https://example.com"
-logo_url = "https://example.com/logo.png"
 "#);
         assert!(check_package_metadata(&manifest, "Cargo.toml").is_empty());
     }
