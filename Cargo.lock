@@ -6005,9 +6005,9 @@ dependencies = [
 
 [[package]]
 name = "tari_bor"
-version = "0.16.0"
+version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2acc5c91dd88e8972fd3a20d8f95f4453be742163411b32a8aa09fa17795d7b"
+checksum = "a777490e757827064572cfd4746a04fec414e28adde1d51763f1e4842e952a13"
 dependencies = [
  "borsh",
  "indexmap 2.14.0",
@@ -6173,9 +6173,9 @@ dependencies = [
 
 [[package]]
 name = "tari_engine_types"
-version = "0.41.1"
+version = "0.41.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d297a516b231eb21cbf64c11e663af0906eddd9d2fba456070f4b30a6c3c8a9e"
+checksum = "11817886ea896a46e7ad6a88027493ec06d1fc6a2d82ee04ebf5fef6f5dd642d"
 dependencies = [
  "blake2 0.10.6",
  "borsh",
@@ -6302,9 +6302,9 @@ dependencies = [
 
 [[package]]
 name = "tari_ootle_common_types"
-version = "0.41.1"
+version = "0.41.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02b75dd44adcc7fcf87c264da4332094d3fa616e4f7238b6b42bd84b0977ad40"
+checksum = "95205d19b1958f530ac089e5964d34d1b23bd02ef27a198d617e3e70039a6e8b"
 dependencies = [
  "blake2 0.10.6",
  "borsh",
@@ -6514,9 +6514,9 @@ dependencies = [
 
 [[package]]
 name = "tari_template_abi"
-version = "0.20.0"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8b0890e4901af2fc3a4925b18c1d6ca99854fed2d408d18fcc627b3e25c5a08"
+checksum = "4a2055105ddf637caa61fcc4f29a407fc87965d39537c2e66e13b60a595fde97"
 dependencies = [
  "minicbor",
  "serde",
@@ -6536,9 +6536,9 @@ dependencies = [
 
 [[package]]
 name = "tari_template_lib"
-version = "0.32.0"
+version = "0.32.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea1fbc78ec9772af053b34b7bb289850b064d999813cac4382f39c0063ca0b2f"
+checksum = "0b64979b6602c1b6d5e8b69c3bbd56d01450f2cb553f350b898844e378143d4b"
 dependencies = [
  "borsh",
  "minicbor",
@@ -6551,9 +6551,9 @@ dependencies = [
 
 [[package]]
 name = "tari_template_lib_types"
-version = "0.32.0"
+version = "0.32.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b65de0aef5811ccb5c78c96bcd31d812126f61c9fce46b93a5b7ab2f2e14c6f3"
+checksum = "d47177254c47c89fb769818c60950a7360635f27e8da095966ca7db4bfcf7c4c"
 dependencies = [
  "bnum",
  "borsh",
@@ -6602,7 +6602,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",
