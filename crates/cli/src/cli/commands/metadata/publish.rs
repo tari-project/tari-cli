@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use crate::cli::commands::publish::{
-    decode_metadata_cbor, ensure_wallet_daemon_url_allowed, find_metadata_cbor, load_project_config_with_path,
+    decode_metadata_cbor, ensure_wallet_daemon_url_allowed, find_metadata_cbor, load_project_config,
     resolve_active_network, resolve_wallet_daemon_url,
 };
 use crate::cli::config::Config;
@@ -57,9 +57,9 @@ pub struct PublishMetadataArgs {
     pub key_index: u64,
 
     /// Wallet daemon JSON-RPC URL.
-    /// Overrides the value in tari.config.toml and global CLI config.
+    /// Overrides the global CLI config. Not read from the project tari.config.toml.
     /// Required with --signed.
-    #[arg(long)]
+    #[arg(long, env = "TARI_WALLET_DAEMON_URL")]
     pub wallet_daemon_url: Option<url::Url>,
 }
 
@@ -72,18 +72,11 @@ pub async fn handle(
     let cbor_path = find_metadata_cbor(&args.path).await?;
     let mut cbor_bytes = std::fs::read(&cbor_path).context("reading metadata CBOR file")?;
 
-    let (project_config, project_config_path) = load_project_config_with_path(&args.path).await?;
+    let project_config = load_project_config(&args.path).await?;
     let network = resolve_active_network(network_override, &project_config, &config);
-    let wallet_daemon_url = resolve_wallet_daemon_url(
-        args.wallet_daemon_url.as_ref(),
-        &project_config,
-        project_config_path.as_deref(),
-        &config,
-        network,
-    );
+    let wallet_daemon_url = resolve_wallet_daemon_url(args.wallet_daemon_url.as_ref(), &config, network);
     println!("🌐 Network: {network}");
-    ensure_wallet_daemon_url_allowed(&wallet_daemon_url, &config, api_key.is_some())?;
-    let wallet_daemon_url = wallet_daemon_url.url;
+    ensure_wallet_daemon_url_allowed(&wallet_daemon_url, api_key.is_some())?;
 
     let publisher = TemplatePublisher::new(NetworkConfig::new(wallet_daemon_url).with_api_key(api_key));
 

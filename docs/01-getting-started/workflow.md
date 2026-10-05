@@ -136,9 +136,6 @@ cd templates/staking_pool/src
 # Configure for development network
 cat > tari.config.toml << EOF
 default-network = "localnet"
-
-[networks.localnet]
-wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
 EOF
 
 # Set up testing environment
@@ -217,10 +214,10 @@ tari new ProductionToken --template audited-token-v2
 # Security configuration
 cat > tari.config.toml << EOF
 default-network = "mainnet"
-
-[networks.mainnet]
-wallet-daemon-url = "https://secure-mainnet-wallet:9000/json_rpc"
 EOF
+
+# Wallet daemon URL is not read from the project config
+export TARI_WALLET_DAEMON_URL="https://secure-mainnet-wallet:9000/json_rpc"
 ```
 
 ### Step 2: Security Audit Preparation
@@ -245,12 +242,10 @@ find . -name "*.rs" -exec grep -l "TODO\|FIXME\|XXX" {} \;
 # Deploy to testnet first
 cat > tari.config.testnet.toml << EOF
 default-network = "esmeralda"
-
-[networks.esmeralda]
-wallet-daemon-url = "https://testnet-wallet:9000/json_rpc"
 EOF
 
 # Testnet deployment
+export TARI_WALLET_DAEMON_URL="https://testnet-wallet:9000/json_rpc"
 tari -c tari.config.testnet.toml deploy --account testnet-production --yes production_token
 
 # Extended testing period
@@ -421,8 +416,7 @@ jobs:
         run: |
           # Configure for CI environment
           echo 'default-network = "localnet"' > tari.config.toml
-          echo '[networks.localnet]' >> tari.config.toml
-          echo 'wallet-daemon-url = "http://ci-wallet:5100/json_rpc"' >> tari.config.toml
+          export TARI_WALLET_DAEMON_URL="http://ci-wallet:5100/json_rpc"
           
           # Test deployment process (without actual deployment)
           # tari deploy --account ci-test --dry-run template-name

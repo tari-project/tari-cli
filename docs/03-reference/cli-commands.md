@@ -23,7 +23,7 @@ tari [GLOBAL_OPTIONS] <COMMAND> [COMMAND_OPTIONS]
 |--------|-------|-------------|---------|
 | `--base-dir <PATH>` | `-b` | Base directory for CLI data | `~/.local/share/tari_cli` |
 | `--config-file-path <PATH>` | `-c` | Config file location | `~/.config/tari_cli/tari.config.toml` |
-| `--config-overrides <KEY=VALUE>` | `-e` | Config file overrides (e.g. `networks.esmeralda.wallet-daemon-url=...`) | None |
+| `--config-overrides <KEY=VALUE>` | `-e` | Config file overrides (e.g. `networks.esmeralda.wallet-daemon-url=...`, global config) | None |
 | `--network <NETWORK>` | `-n` | Active network (`esmeralda`, `localnet`, `igor`, `nextnet`, `stagenet`, `mainnet`). Overrides project and global `default-network` | Project / global default |
 | `--api-key <API_KEY>` | | Wallet daemon API key, sent as a bearer token. Also read from `TARI_WALLET_DAEMON_API_KEY` | `$TARI_WALLET_DAEMON_API_KEY` |
 | `--skill` | | Print a Markdown guide teaching a coding agent how to use the CLI, then exit | |
@@ -273,7 +273,7 @@ tari publish [OPTIONS] [PATH]
 | `-y, --yes` | Flag | `false` | Skip confirmation prompt |
 | `-f, --max-fee` | u64 | Auto-estimated | Maximum fee in microtari |
 | `--binary, --bin` | Path | *builds if not set* | Path to pre-compiled WASM binary |
-| `--wallet-daemon-url` | URL | `[networks.<active>].wallet-daemon-url` | Wallet daemon JSON-RPC URL |
+| `--wallet-daemon-url` | URL | `$TARI_WALLET_DAEMON_URL`, else global `[networks.<active>].wallet-daemon-url`, else `http://127.0.0.1:5100/json_rpc` | Wallet daemon JSON-RPC URL |
 | `--api-key` | String | `$TARI_WALLET_DAEMON_API_KEY` | Wallet daemon API key (bearer token) |
 | `--publish-metadata` | Flag | `false` | Auto-submit metadata to server after publishing |
 | `--metadata-server-url` | URL | `[networks.<active>].metadata-server-url` | Metadata server URL (with `--publish-metadata`) |
@@ -374,7 +374,7 @@ tari metadata publish [OPTIONS] [-t <TEMPLATE_ADDRESS>]
 | `--max-retries` | u32 | `6` | Max retry attempts for 404 (template not yet synced) |
 | `--signed` | Flag | `false` | Use author-signed submission via wallet daemon |
 | `--key-index` | u64 | `0` | Derived account key index (with `--signed`) |
-| `--wallet-daemon-url` | URL | `[networks.<active>].wallet-daemon-url` | Wallet daemon URL (with `--signed`) |
+| `--wallet-daemon-url` | URL | `$TARI_WALLET_DAEMON_URL`, else global `[networks.<active>].wallet-daemon-url`, else `http://127.0.0.1:5100/json_rpc` | Wallet daemon URL (with `--signed`) |
 | `--api-key` | String | `$TARI_WALLET_DAEMON_API_KEY` | Wallet daemon API key (bearer token, with `--signed`) |
 
 #### Hash-verified (default)
@@ -419,7 +419,7 @@ tari config set <KEY> <VALUE>
 
 Examples:
 ```bash
-tari config set networks.localnet.wallet-daemon-url http://localhost:12008/json_rpc
+tari config set networks.localnet.metadata-server-url http://localhost:3000/
 tari config set networks.esmeralda.metadata-server-url http://community.example.com
 tari config set default-network localnet
 tari config set default-account myaccount
@@ -461,7 +461,7 @@ The active network is resolved first, then per-setting values are read from that
 
 | Setting | CLI flag | Project config | Global config | Default |
 |---------|----------|---------------|---------------|---------|
-| Wallet daemon URL | `--wallet-daemon-url` | `networks.<active>.wallet-daemon-url` | `networks.<active>.wallet-daemon-url` | `http://127.0.0.1:5100/json_rpc` |
+| Wallet daemon URL | `--wallet-daemon-url` or `TARI_WALLET_DAEMON_URL` | — (ignored, with a warning) | `networks.<active>.wallet-daemon-url` | `http://127.0.0.1:5100/json_rpc` |
 | Metadata server URL | `--metadata-server-url` | `networks.<active>.metadata-server-url` | `networks.<active>.metadata-server-url` | esmeralda → `https://ootle.tari.com/community-templates`, localnet → `http://localhost:3000/`, others → none |
 | Template address | `--template-address` | `networks.<active>.template-address` | — | — |
 | Account | `--account` | `default-account` | `default-account` | Wallet daemon default |

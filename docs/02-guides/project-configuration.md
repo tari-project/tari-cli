@@ -23,11 +23,9 @@ Every Tari project requires a `tari.config.toml` file in the project root for de
 default-network = "esmeralda"
 
 [networks.esmeralda]
-wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
 metadata-server-url = "https://ootle.tari.com/community-templates"
 
 [networks.localnet]
-wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
 metadata-server-url = "http://localhost:3000/"
 ```
 
@@ -37,11 +35,12 @@ metadata-server-url = "http://localhost:3000/"
 
 **Per-network `[networks.<name>]` fields:**
 
-- `wallet-daemon-url` (string): JSON-RPC URL of the Tari Wallet Daemon for this network. Default: `http://127.0.0.1:5100/json_rpc`.
 - `metadata-server-url` (string, optional): Metadata server for this network.
 - `template-address` (string, optional): Most recently published template address — written automatically by `tari publish`.
 
 Override the active network on any command with `-n <name>` / `--network <name>`.
+
+`wallet-daemon-url` is **not** read from the project config (it is ignored with a warning, and `tari config set` rejects it). Set it with `--wallet-daemon-url`, the `TARI_WALLET_DAEMON_URL` env var, or `[networks.<name>].wallet-daemon-url` in the global config. Default: `http://127.0.0.1:5100/json_rpc`.
 
 ### CLI Configuration
 
@@ -195,7 +194,6 @@ Options:
 default-network = "localnet"
 
 [networks.localnet]
-wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
 metadata-server-url = "http://localhost:3000/"
 ```
 
@@ -207,16 +205,16 @@ Per-network sections let a single project target multiple networks:
 default-network = "esmeralda"
 
 [networks.esmeralda]
-wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
+metadata-server-url = "https://ootle.tari.com/community-templates"
 
 [networks.localnet]
-wallet-daemon-url = "http://127.0.0.1:5101/json_rpc"
+metadata-server-url = "http://localhost:3000/"
 ```
 
-Switch networks per-command with `--network`:
+Switch networks per-command with `--network`, pointing at the right wallet daemon:
 
 ```bash
-tari --network localnet publish -a myaccount
+tari --network localnet publish -a myaccount --wallet-daemon-url http://127.0.0.1:5101/json_rpc
 ```
 
 ## Template Development
@@ -244,7 +242,7 @@ The CLI automatically handles this compilation during deployment.
 ### Common Configuration Issues
 
 1. **Wallet Daemon Connection Failed**
-    - Verify `[networks.<active>].wallet-daemon-url` in `tari.config.toml`
+    - Verify the wallet daemon URL (`--wallet-daemon-url`, `TARI_WALLET_DAEMON_URL`, or global-config `[networks.<active>].wallet-daemon-url`)
     - Ensure wallet daemon is running and accessible
     - Check network firewall settings
 

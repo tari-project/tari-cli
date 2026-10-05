@@ -195,12 +195,10 @@ curl -X POST http://127.0.0.1:9000/ \
 
 2. **Verify Network Configuration**:
    <!-- SOURCE: Verified against crates/cli/src/project/config.rs -->
-   ```toml
-   # In tari.config.toml
-   default-network = "esmeralda"
-
-   [networks.esmeralda]
-   wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
+   ```bash
+   # wallet-daemon-url in the project tari.config.toml is ignored; use the env var (or --wallet-daemon-url)
+   export TARI_WALLET_DAEMON_URL="http://127.0.0.1:5100/json_rpc"
+   # or set [networks.esmeralda].wallet-daemon-url in ~/.config/tari_cli/tari.config.toml
    ```
 
 3. **Test Different Port**:
@@ -400,12 +398,10 @@ Connection refused to network endpoint
 **Solutions**:
 
 1. **Verify Network Configuration**:
-   ```toml
-   # Check tari.config.toml
-   default-network = "esmeralda"
-
-   [networks.esmeralda]
-   wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
+   ```bash
+   # Effective URL: flag/env var > global config > default
+   echo "$TARI_WALLET_DAEMON_URL"
+   grep -A3 'networks.esmeralda' ~/.config/tari_cli/tari.config.toml
    ```
 
 2. **Test Network Connection**:

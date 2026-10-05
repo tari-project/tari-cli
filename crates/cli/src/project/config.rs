@@ -27,6 +27,9 @@ pub struct ProjectConfig {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ProjectNetworkSettings {
+    /// No longer honoured: a project config ships with the repository, so it must not choose where
+    /// the wallet API key is sent. Parsed only so the CLI can warn that it is ignored.
+    #[serde(default, skip_serializing)]
     pub wallet_daemon_url: Option<Url>,
     pub metadata_server_url: Option<Url>,
     pub template_address: Option<PublishedTemplateAddress>,
@@ -37,8 +40,9 @@ impl ProjectConfig {
         self.default_network
     }
 
-    pub fn wallet_daemon_url(&self, network: Network) -> Option<&Url> {
-        self.networks.get(&network).and_then(|n| n.wallet_daemon_url.as_ref())
+    /// True if any network section sets the ignored `wallet-daemon-url` key.
+    pub fn has_ignored_wallet_daemon_url(&self) -> bool {
+        self.networks.values().any(|n| n.wallet_daemon_url.is_some())
     }
 
     pub fn metadata_server_url(&self, network: Network) -> Option<&Url> {
@@ -57,13 +61,12 @@ impl ProjectConfig {
 
 impl Default for ProjectConfig {
     fn default() -> Self {
-        let wallet_url = || Some(Url::parse(DEFAULT_WALLET_DAEMON_URL).expect("default wallet daemon URL is valid"));
         let metadata_url = |s: &str| Some(Url::parse(s).expect("default metadata server URL is valid"));
         let mut networks = HashMap::new();
         networks.insert(
             Network::Esmeralda,
             ProjectNetworkSettings {
-                wallet_daemon_url: wallet_url(),
+                wallet_daemon_url: None,
                 metadata_server_url: metadata_url(DEFAULT_METADATA_SERVER_URL_ESMERALDA),
                 template_address: None,
             },
@@ -71,7 +74,7 @@ impl Default for ProjectConfig {
         networks.insert(
             Network::LocalNet,
             ProjectNetworkSettings {
-                wallet_daemon_url: wallet_url(),
+                wallet_daemon_url: None,
                 metadata_server_url: metadata_url(DEFAULT_METADATA_SERVER_URL_LOCALNET),
                 template_address: None,
             },
@@ -94,10 +97,7 @@ mod tests {
         let ser = toml::to_string(&cfg).expect("serialize default");
         let de: ProjectConfig = toml::from_str(&ser).expect("deserialize default");
         assert_eq!(de.default_network(), Some(Network::Esmeralda));
-        assert_eq!(
-            de.wallet_daemon_url(Network::Esmeralda).map(|u| u.as_str()),
-            Some(DEFAULT_WALLET_DAEMON_URL)
-        );
+        assert!(!ser.contains("wallet-daemon-url"));
     }
 
     #[test]
@@ -114,14 +114,7 @@ wallet-daemon-url = "http://localhost:9999/json_rpc"
 "#;
         let cfg: ProjectConfig = toml::from_str(toml_str).expect("parse");
         assert_eq!(cfg.default_network(), Some(Network::Esmeralda));
-        assert_eq!(
-            cfg.wallet_daemon_url(Network::Esmeralda).map(|u| u.as_str()),
-            Some("http://localhost:5100/json_rpc")
-        );
-        assert_eq!(
-            cfg.wallet_daemon_url(Network::LocalNet).map(|u| u.as_str()),
-            Some("http://localhost:9999/json_rpc")
-        );
+        assert!(cfg.has_ignored_wallet_daemon_url());
         assert!(cfg.template_address(Network::Esmeralda).is_some());
         assert!(cfg.template_address(Network::LocalNet).is_none());
     }

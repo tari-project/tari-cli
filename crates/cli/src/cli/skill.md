@@ -59,7 +59,7 @@ tari metadata publish              # submit metadata to the community server
 | `--api-key <KEY>` | Wallet daemon bearer token. Also read from `TARI_WALLET_DAEMON_API_KEY`. |
 | `-c, --config-file-path <PATH>` | Global config file (default `~/.config/tari_cli/tari.config.toml`). |
 | `-b, --base-dir <PATH>` | CLI data directory (default `~/.local/share/tari_cli`). |
-| `-e, --config-overrides <KEY=VALUE>` | e.g. `networks.esmeralda.wallet-daemon-url=http://localhost:5100/json_rpc`. |
+| `-e, --config-overrides <KEY=VALUE>` | e.g. `networks.esmeralda.wallet-daemon-url=http://localhost:5100/json_rpc` (global config). |
 | `--skill` | Print this document. |
 
 ### `tari init [PATH]`
@@ -125,7 +125,7 @@ Builds (unless `--binary` is given) and publishes the template on-chain. **Costs
 | `-y, --yes` | Skip the confirmation prompt — **required for non-interactive runs** |
 | `-f, --max-fee <MICROTARI>` | Fee cap (auto-estimated by default) |
 | `--binary <PATH>` | Publish a pre-built WASM instead of building |
-| `--wallet-daemon-url <URL>` | Overrides the active network's configured URL |
+| `--wallet-daemon-url <URL>` | Overrides the global-config URL for the active network. Also `$TARI_WALLET_DAEMON_URL`. Not read from the project config |
 | `--publish-metadata` | Also submit metadata to the metadata server afterwards |
 | `--metadata-server-url <URL>` | Metadata server for `--publish-metadata` |
 
@@ -162,7 +162,7 @@ Manages the project `tari.config.toml`.
 ```bash
 tari config init
 tari config set default-network localnet
-tari config set networks.localnet.wallet-daemon-url http://localhost:12008/json_rpc
+tari config set networks.localnet.metadata-server-url http://localhost:3000/
 tari config get default-account
 tari config show
 ```
