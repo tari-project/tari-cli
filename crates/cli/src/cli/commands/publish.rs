@@ -127,6 +127,8 @@ pub async fn handle(
     crate::cli::commands::template::publish::handle(config, network_override, api_key, template_args).await
 }
 
+const WALLET_DAEMON_API_KEY_ENV: &str = "TARI_WALLET_DAEMON_API_KEY";
+
 async fn build_project(dir: &Path, name: &str, optimize: bool) -> anyhow::Result<PathBuf> {
     let mut cmd = Command::new("cargo");
     cmd.arg("build").arg("--target=wasm32-unknown-unknown").arg("--release");
@@ -137,7 +139,11 @@ async fn build_project(dir: &Path, name: &str, optimize: bool) -> anyhow::Result
         }
     }
 
-    cmd.current_dir(dir).stdout(Stdio::piped()).stderr(Stdio::piped());
+    // Build scripts in the project are untrusted; don't hand them the wallet API key.
+    cmd.env_remove(WALLET_DAEMON_API_KEY_ENV)
+        .current_dir(dir)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
 
     let process = cmd.spawn()?;
 
@@ -396,6 +402,12 @@ pub fn ensure_wallet_daemon_url_allowed(
     };
     let hint = "Pass --wallet-daemon-url explicitly, or add the project directory to `trusted-directories` \
                 in the global CLI config if you trust it.";
+    if !std::io::stdin().is_terminal() {
+        return Err(anyhow!(
+            "Untrusted wallet daemon URL {} from {source}. {hint}",
+            resolved.url
+        ));
+    }
     println!("⚠️  The wallet daemon URL is set by the project config, which this directory's author controls:");
     println!("   Source: {source}");
     println!("   URL:    {}", resolved.url);
@@ -403,12 +415,6 @@ pub fn ensure_wallet_daemon_url_allowed(
         println!("   Your wallet daemon API key will be sent to this URL.");
     }
 
-    if !std::io::stdin().is_terminal() {
-        return Err(anyhow!(
-            "Untrusted wallet daemon URL {} from {source}. {hint}",
-            resolved.url
-        ));
-    }
     let proceed = Confirm::new()
         .with_prompt("Connect to this wallet daemon?")
         .default(false)
