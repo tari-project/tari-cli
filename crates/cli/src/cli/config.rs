@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 use std::collections::HashMap;
-use std::{path::PathBuf, string::ToString};
+use std::{
+    path::{Path, PathBuf},
+    string::ToString,
+};
 
 use anyhow::anyhow;
 use ootle_network::Network;
@@ -35,6 +38,10 @@ pub struct Config {
     /// Per-network defaults (wallet daemon URL, metadata server URL).
     #[serde(default)]
     pub networks: HashMap<Network, CliNetworkSettings>,
+    /// Project directories whose `tari.config.toml` is trusted to set a non-loopback
+    /// wallet daemon URL without a confirmation prompt.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub trusted_directories: Vec<PathBuf>,
 }
 
 /// Per-network CLI defaults used when the project config is absent or does not
@@ -84,6 +91,7 @@ impl Default for Config {
             default_account: None,
             default_network: Some(Network::Esmeralda),
             networks,
+            trusted_directories: Vec::new(),
         }
     }
 }
@@ -117,6 +125,16 @@ impl Config {
             return parts[1].parse::<Network>().is_ok() && VALID_NETWORK_OVERRIDE_FIELDS.contains(&parts[2]);
         }
         false
+    }
+
+    /// True if `dir` is one of the configured `trusted-directories` (compared after canonicalisation).
+    pub fn is_directory_trusted(&self, dir: &Path) -> bool {
+        let Ok(dir) = dir.canonicalize() else {
+            return false;
+        };
+        self.trusted_directories
+            .iter()
+            .any(|t| t.canonicalize().is_ok_and(|t| t == dir))
     }
 
     pub fn wallet_daemon_url(&self, network: Network) -> Option<&url::Url> {

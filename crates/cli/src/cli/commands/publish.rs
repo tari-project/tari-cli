@@ -8,7 +8,9 @@ use crate::{loading, project};
 use anyhow::{Context, anyhow};
 use cargo_toml::Manifest;
 use clap::Parser;
+use dialoguer::Confirm;
 use ootle_network::Network;
+use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use tari_ootle_publish_lib::walletd_client::ComponentAddressOrName;
@@ -242,7 +244,11 @@ pub fn decode_metadata_cbor(bytes: &[u8]) -> anyhow::Result<TemplateMetadata> {
     })
 }
 
-pub async fn load_project_config(project_folder: &Path) -> anyhow::Result<project::ProjectConfig> {
+/// Search `project_folder` and its parents for `tari.config.toml`. Also returns the path of the file
+/// that was loaded (if any) so callers can report where a setting came from.
+pub async fn load_project_config_with_path(
+    project_folder: &Path,
+) -> anyhow::Result<(project::ProjectConfig, Option<PathBuf>)> {
     // Search current dir and parents for tari.config.toml
     let mut search_dir = project_folder.to_path_buf();
     loop {
@@ -255,14 +261,15 @@ pub async fn load_project_config(project_folder: &Path) -> anyhow::Result<projec
                     error
                 )
             })?;
-            return toml::from_str::<project::ProjectConfig>(content.as_str()).context("parsing config toml");
+            let config = toml::from_str::<project::ProjectConfig>(content.as_str()).context("parsing config toml")?;
+            return Ok((config, Some(config_file)));
         }
         if !search_dir.pop() {
             break;
         }
     }
 
-    Ok(project::ProjectConfig::default())
+    Ok((project::ProjectConfig::default(), None))
 }
 
 /// Resolve the active network: CLI flag > project default > global default > Esmeralda.
@@ -277,18 +284,228 @@ pub fn resolve_active_network(
         .unwrap_or_default()
 }
 
+/// Where the effective wallet-daemon URL came from.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum WalletDaemonUrlSource {
+    Cli,
+    /// Project `tari.config.toml` (path of the file, if known).
+    Project(Option<PathBuf>),
+    Global,
+    Default,
+}
+
+#[derive(Clone, Debug)]
+pub struct ResolvedWalletDaemonUrl {
+    pub url: url::Url,
+    pub source: WalletDaemonUrlSource,
+}
+
 /// Resolve wallet-daemon URL for the active network. Precedence: CLI flag > project > global > default.
+///
+/// A project-supplied URL is untrusted input (it ships with whatever repository was cloned), so
+/// callers must pass the result through [`ensure_wallet_daemon_url_allowed`] before connecting.
 pub fn resolve_wallet_daemon_url(
     cli_override: Option<&url::Url>,
     project: &project::ProjectConfig,
+    project_config_path: Option<&Path>,
     global: &Config,
     network: Network,
-) -> url::Url {
-    cli_override
-        .cloned()
-        .or_else(|| project.wallet_daemon_url(network).cloned())
-        .or_else(|| global.wallet_daemon_url(network).cloned())
-        .unwrap_or_else(|| {
-            url::Url::parse(project::DEFAULT_WALLET_DAEMON_URL).expect("default wallet daemon URL is valid")
-        })
+) -> ResolvedWalletDaemonUrl {
+    let (url, source) = if let Some(url) = cli_override {
+        (url.clone(), WalletDaemonUrlSource::Cli)
+    } else if let Some(url) = project.wallet_daemon_url(network) {
+        (
+            url.clone(),
+            WalletDaemonUrlSource::Project(project_config_path.map(Path::to_path_buf)),
+        )
+    } else if let Some(url) = global.wallet_daemon_url(network) {
+        (url.clone(), WalletDaemonUrlSource::Global)
+    } else {
+        (
+            url::Url::parse(project::DEFAULT_WALLET_DAEMON_URL).expect("default wallet daemon URL is valid"),
+            WalletDaemonUrlSource::Default,
+        )
+    };
+    ResolvedWalletDaemonUrl { url, source }
+}
+
+/// True if the URL's host is a loopback address (`localhost`, `127.0.0.0/8`, `::1`).
+pub fn is_loopback_url(url: &url::Url) -> bool {
+    match url.host() {
+        Some(url::Host::Domain(d)) => d.eq_ignore_ascii_case("localhost"),
+        Some(url::Host::Ipv4(ip)) => ip.is_loopback(),
+        Some(url::Host::Ipv6(ip)) => ip.is_loopback(),
+        None => false,
+    }
+}
+
+/// Outcome of the pre-connection policy check, before any interactive confirmation.
+#[derive(Debug, PartialEq, Eq)]
+pub enum WalletDaemonUrlCheck {
+    Allowed,
+    /// URL comes from an untrusted project config and must be confirmed by the user.
+    NeedsConfirmation,
+}
+
+/// Non-interactive policy for the wallet-daemon URL:
+/// - refuse to send an API key over plain `http` to a non-loopback host;
+/// - a non-loopback URL from a project config is only allowed if the project directory is listed
+///   in the global `trusted-directories`; otherwise the user must confirm it.
+pub fn check_wallet_daemon_url(
+    resolved: &ResolvedWalletDaemonUrl,
+    global: &Config,
+    has_api_key: bool,
+) -> anyhow::Result<WalletDaemonUrlCheck> {
+    let url = &resolved.url;
+    if has_api_key && url.scheme() == "http" && !is_loopback_url(url) {
+        return Err(anyhow!(
+            "Refusing to send the wallet daemon API key over plain http to non-loopback host {url}. \
+             Use https, or a loopback address."
+        ));
+    }
+
+    if let WalletDaemonUrlSource::Project(path) = &resolved.source {
+        if is_loopback_url(url) {
+            return Ok(WalletDaemonUrlCheck::Allowed);
+        }
+        let trusted = path
+            .as_deref()
+            .and_then(Path::parent)
+            .is_some_and(|dir| global.is_directory_trusted(dir));
+        if !trusted {
+            return Ok(WalletDaemonUrlCheck::NeedsConfirmation);
+        }
+    }
+    Ok(WalletDaemonUrlCheck::Allowed)
+}
+
+/// Apply [`check_wallet_daemon_url`] and, if needed, show the URL and its source and ask the user to
+/// confirm before any RPC (and therefore any API key) is sent. `--yes` does not skip this prompt.
+pub fn ensure_wallet_daemon_url_allowed(
+    resolved: &ResolvedWalletDaemonUrl,
+    global: &Config,
+    has_api_key: bool,
+) -> anyhow::Result<()> {
+    if check_wallet_daemon_url(resolved, global, has_api_key)? == WalletDaemonUrlCheck::Allowed {
+        return Ok(());
+    }
+
+    let source = match &resolved.source {
+        WalletDaemonUrlSource::Project(Some(path)) => path.display().to_string(),
+        _ => project::CONFIG_FILE_NAME.to_string(),
+    };
+    let hint = "Pass --wallet-daemon-url explicitly, or add the project directory to `trusted-directories` \
+                in the global CLI config if you trust it.";
+    println!("⚠️  The wallet daemon URL is set by the project config, which this directory's author controls:");
+    println!("   Source: {source}");
+    println!("   URL:    {}", resolved.url);
+    if has_api_key {
+        println!("   Your wallet daemon API key will be sent to this URL.");
+    }
+
+    if !std::io::stdin().is_terminal() {
+        return Err(anyhow!(
+            "Untrusted wallet daemon URL {} from {source}. {hint}",
+            resolved.url
+        ));
+    }
+    let proceed = Confirm::new()
+        .with_prompt("Connect to this wallet daemon?")
+        .default(false)
+        .interact()?;
+    if !proceed {
+        return Err(anyhow!("Aborted: untrusted wallet daemon URL. {hint}"));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod wallet_daemon_url_tests {
+    use super::*;
+
+    fn project_with(url: &str) -> project::ProjectConfig {
+        toml::from_str(&format!("[networks.esmeralda]\nwallet-daemon-url = \"{url}\"\n")).unwrap()
+    }
+
+    fn resolve(project: &project::ProjectConfig, path: Option<&Path>) -> ResolvedWalletDaemonUrl {
+        resolve_wallet_daemon_url(None, project, path, &Config::default(), Network::Esmeralda)
+    }
+
+    #[test]
+    fn project_non_loopback_url_needs_confirmation() {
+        let project = project_with("https://attacker.example/json_rpc");
+        let resolved = resolve(&project, Some(Path::new("/nonexistent/tari.config.toml")));
+        assert!(matches!(resolved.source, WalletDaemonUrlSource::Project(_)));
+        assert_eq!(
+            check_wallet_daemon_url(&resolved, &Config::default(), false).unwrap(),
+            WalletDaemonUrlCheck::NeedsConfirmation
+        );
+    }
+
+    #[test]
+    fn project_loopback_url_is_allowed() {
+        let project = project_with("http://127.0.0.1:5100/json_rpc");
+        let resolved = resolve(&project, None);
+        assert_eq!(
+            check_wallet_daemon_url(&resolved, &Config::default(), true).unwrap(),
+            WalletDaemonUrlCheck::Allowed
+        );
+    }
+
+    #[test]
+    fn trusted_directory_allows_project_url() {
+        let dir = tempfile::tempdir().unwrap();
+        let project = project_with("https://wallet.example/json_rpc");
+        let config_path = dir.path().join(project::CONFIG_FILE_NAME);
+        let resolved = resolve(&project, Some(&config_path));
+        let config = Config {
+            trusted_directories: vec![dir.path().to_path_buf()],
+            ..Config::default()
+        };
+        assert_eq!(
+            check_wallet_daemon_url(&resolved, &config, true).unwrap(),
+            WalletDaemonUrlCheck::Allowed
+        );
+    }
+
+    #[test]
+    fn cli_url_is_allowed() {
+        let url = url::Url::parse("https://wallet.example/json_rpc").unwrap();
+        let resolved = resolve_wallet_daemon_url(
+            Some(&url),
+            &project_with("https://attacker.example/"),
+            None,
+            &Config::default(),
+            Network::Esmeralda,
+        );
+        assert_eq!(resolved.source, WalletDaemonUrlSource::Cli);
+        assert_eq!(
+            check_wallet_daemon_url(&resolved, &Config::default(), true).unwrap(),
+            WalletDaemonUrlCheck::Allowed
+        );
+    }
+
+    #[test]
+    fn api_key_over_plain_http_to_remote_host_is_refused() {
+        let url = url::Url::parse("http://wallet.example/json_rpc").unwrap();
+        let resolved = resolve_wallet_daemon_url(
+            Some(&url),
+            &project::ProjectConfig::default(),
+            None,
+            &Config::default(),
+            Network::Esmeralda,
+        );
+        assert!(check_wallet_daemon_url(&resolved, &Config::default(), true).is_err());
+        assert!(check_wallet_daemon_url(&resolved, &Config::default(), false).is_ok());
+    }
+
+    #[test]
+    fn loopback_detection() {
+        for u in ["http://localhost:1/", "http://127.0.0.2/", "http://[::1]/"] {
+            assert!(is_loopback_url(&url::Url::parse(u).unwrap()), "{u}");
+        }
+        for u in ["http://10.0.0.1/", "http://localhost.attacker.example/"] {
+            assert!(!is_loopback_url(&url::Url::parse(u).unwrap()), "{u}");
+        }
+    }
 }

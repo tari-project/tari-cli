@@ -15,8 +15,8 @@ use tari_utilities::Hidden;
 
 use crate::cli::commands::metadata::publish::publish_metadata_to_server;
 use crate::cli::commands::publish::{
-    build_template, decode_metadata_cbor, find_metadata_cbor, load_project_config, resolve_active_network,
-    resolve_wallet_daemon_url,
+    build_template, decode_metadata_cbor, ensure_wallet_daemon_url_allowed, find_metadata_cbor,
+    load_project_config_with_path, resolve_active_network, resolve_wallet_daemon_url,
 };
 use crate::cli::config::Config;
 use crate::cli::util;
@@ -80,11 +80,19 @@ pub async fn handle(
 ) -> anyhow::Result<()> {
     let crate_dir = &args.path;
 
-    let project_config = load_project_config(crate_dir).await?;
+    let (project_config, project_config_path) = load_project_config_with_path(crate_dir).await?;
     let network = resolve_active_network(network_override, &project_config, &config);
-    let wallet_daemon_url =
-        resolve_wallet_daemon_url(args.wallet_daemon_url.as_ref(), &project_config, &config, network);
+    let wallet_daemon_url = resolve_wallet_daemon_url(
+        args.wallet_daemon_url.as_ref(),
+        &project_config,
+        project_config_path.as_deref(),
+        &config,
+        network,
+    );
     println!("🌐 Network: {network}");
+    // Must run before any RPC so the API key never reaches an unconfirmed URL.
+    ensure_wallet_daemon_url_allowed(&wallet_daemon_url, &config, api_key.is_some())?;
+    let wallet_daemon_url = wallet_daemon_url.url;
 
     // Warn if template address already exists in config (republishing)
     if let Some(existing_addr) = project_config.template_address(network) {

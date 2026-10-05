@@ -30,6 +30,17 @@ Both the global CLI config and the project config are organised by **network** (
 4. **Global CLI configuration** — `[networks.<active>]` in `~/.config/tari_cli/tari.config.toml`
 5. **Built-in defaults**
 
+### Untrusted project wallet daemon URLs
+
+A `tari.config.toml` ships with whatever repository you cloned, so a project-supplied
+`wallet-daemon-url` pointing at a non-loopback host is treated as untrusted. Before any RPC
+(and therefore before your API key is sent), the CLI prints the URL and the config file it came
+from and asks for confirmation (`--yes` does not skip this; non-interactive runs fail). To skip the
+prompt for a project you trust, add its directory to `trusted-directories` in the global config,
+or pass `--wallet-daemon-url` explicitly.
+
+The CLI also refuses to send an API key over plain `http` to a non-loopback host.
+
 ---
 
 ## Global CLI Configuration
@@ -78,6 +89,15 @@ metadata-server-url = "http://localhost:3000/"
 | `url` | String | `https://github.com/tari-project/wasm-template` | Git repository URL for templates |
 | `branch` | String | `main` | Git branch |
 | `folder` | String | `wasm_templates` | Subdirectory containing templates |
+
+#### `trusted-directories`
+
+List of project directories whose `tari.config.toml` may set a non-loopback `wallet-daemon-url`
+without a confirmation prompt.
+
+```toml
+trusted-directories = ["/home/me/src/my-template"]
+```
 
 #### `[networks.<name>]`
 
