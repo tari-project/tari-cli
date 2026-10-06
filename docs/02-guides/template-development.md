@@ -62,8 +62,10 @@ Include a default `tari.config.toml`:
 default-network = "esmeralda"
 
 [networks.esmeralda]
-wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
+metadata-server-url = "https://ootle.tari.com/community-templates"
 ```
+
+Don't set `wallet-daemon-url` here; it is ignored in project configs.
 
 ### Cargo Workspace Configuration
 

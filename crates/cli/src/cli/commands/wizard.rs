@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use anyhow::Context;
 use dialoguer::{Confirm, Input};
 
-use crate::cli::commands::config::{ConfigCommand, resolve_config_path};
+use crate::cli::commands::config::resolve_config_path;
 use crate::cli::commands::template::init_metadata;
 use crate::project::CONFIG_FILE_NAME;
 
@@ -118,20 +118,10 @@ async fn step_project_config(_crate_dir: &PathBuf) -> anyhow::Result<()> {
         .context("writing config file")?;
     println!("✅ Created {}", config_path.display());
 
-    // Ask for wallet daemon URL (applied to the default network: esmeralda)
-    let default_url = crate::project::DEFAULT_WALLET_DAEMON_URL.to_string();
-    let url: String = Input::new()
-        .with_prompt("Wallet daemon JSON-RPC URL (for esmeralda)")
-        .default(default_url.clone())
-        .interact_text()?;
-
-    if url != default_url {
-        crate::cli::commands::config::handle(ConfigCommand::Set {
-            key: "networks.esmeralda.wallet-daemon-url".to_string(),
-            value: url,
-        })
-        .await?;
-    }
+    println!(
+        "ℹ️  The wallet daemon URL defaults to {}. Use --wallet-daemon-url or TARI_WALLET_DAEMON_URL to change it.",
+        crate::project::DEFAULT_WALLET_DAEMON_URL
+    );
 
     Ok(())
 }

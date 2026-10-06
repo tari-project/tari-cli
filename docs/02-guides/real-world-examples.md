@@ -63,10 +63,10 @@ cd nft-marketplace-platform
 # Configure for testnet deployment
 cat > tari.config.toml << EOF
 default-network = "esmeralda"
-
-[networks.esmeralda]
-wallet-daemon-url = "https://testnet-wallet.tari.com:9000/json_rpc"
 EOF
+
+# Wallet daemon URL is not read from the project config
+export TARI_WALLET_DAEMON_URL="https://testnet-wallet.tari.com:9000/json_rpc"
 ```
 
 **Step 2: Core Template Generation**

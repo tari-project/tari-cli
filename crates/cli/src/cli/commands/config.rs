@@ -15,7 +15,7 @@ pub enum ConfigCommand {
     Init,
     /// Set a configuration value.
     Set {
-        /// Configuration key (e.g. wallet-daemon-jrpc-address, default_account).
+        /// Configuration key (e.g. default-network, default-account).
         key: String,
         /// Value to set.
         value: String,
@@ -52,6 +52,12 @@ async fn handle_init() -> anyhow::Result<()> {
 }
 
 async fn handle_set(key: &str, value: &str) -> anyhow::Result<()> {
+    if key.ends_with("wallet-daemon-url") {
+        return Err(anyhow!(
+            "wallet-daemon-url can't be set in the project config. Use --wallet-daemon-url, \
+             TARI_WALLET_DAEMON_URL, or the global CLI config (-e {key}=...)."
+        ));
+    }
     let config_path = resolve_config_path()?;
     if !config_path.exists() {
         // Auto-create with defaults

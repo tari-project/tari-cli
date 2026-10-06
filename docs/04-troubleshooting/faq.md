@@ -216,11 +216,13 @@ serde = { version = "1.0", features = ["derive"] }
 default-network = "esmeralda"
 
 [networks.localnet]
-wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
+metadata-server-url = "http://localhost:3000/"
 
 [networks.esmeralda]
-wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
+metadata-server-url = "https://ootle.tari.com/community-templates"
 ```
+
+The wallet daemon URL is not read from the project config. Set it with `--wallet-daemon-url`, the `TARI_WALLET_DAEMON_URL` env var, or `[networks.<name>].wallet-daemon-url` in the global config.
 
 Then deploy:
 ```bash
@@ -389,20 +391,19 @@ done
 
 ### Q: How do I switch between networks?
 
-**A**: Either change `default-network` in `tari.config.toml`, or pass `--network <name>` per command. Each network keeps its own wallet daemon URL, metadata server URL, and published template address:
+**A**: Either change `default-network` in `tari.config.toml`, or pass `--network <name>` per command. Each network keeps its own metadata server URL and published template address (the wallet daemon URL comes from the global config):
 
 ```toml
 default-network = "esmeralda"
 
 [networks.esmeralda]
-wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
+metadata-server-url = "https://ootle.tari.com/community-templates"
 
 [networks.localnet]
-wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
-
-[networks.mainnet]
-wallet-daemon-url = "https://my-mainnet-wallet:5100/json_rpc"
+metadata-server-url = "http://localhost:3000/"
 ```
+
+Per-network wallet daemon URLs go in the global config (`~/.config/tari_cli/tari.config.toml`) under `[networks.<name>]`, or use `--wallet-daemon-url` / `TARI_WALLET_DAEMON_URL`.
 
 ```bash
 # Use default-network

@@ -15,8 +15,8 @@ use tari_utilities::Hidden;
 
 use crate::cli::commands::metadata::publish::publish_metadata_to_server;
 use crate::cli::commands::publish::{
-    build_template, decode_metadata_cbor, find_metadata_cbor, load_project_config, resolve_active_network,
-    resolve_wallet_daemon_url,
+    build_template, decode_metadata_cbor, ensure_wallet_daemon_url_allowed, find_metadata_cbor, load_project_config,
+    resolve_active_network, resolve_wallet_daemon_url,
 };
 use crate::cli::config::Config;
 use crate::cli::util;
@@ -53,8 +53,8 @@ pub struct TemplatePublishArgs {
     pub binary: Option<PathBuf>,
 
     /// Wallet daemon JSON-RPC URL.
-    /// Overrides the value in tari.config.toml and global CLI config.
-    #[arg(long)]
+    /// Overrides the global CLI config. Not read from the project tari.config.toml.
+    #[arg(long, env = "TARI_WALLET_DAEMON_URL")]
     pub wallet_daemon_url: Option<url::Url>,
 
     /// After publishing, automatically submit metadata to a metadata server.
@@ -82,9 +82,10 @@ pub async fn handle(
 
     let project_config = load_project_config(crate_dir).await?;
     let network = resolve_active_network(network_override, &project_config, &config);
-    let wallet_daemon_url =
-        resolve_wallet_daemon_url(args.wallet_daemon_url.as_ref(), &project_config, &config, network);
+    let wallet_daemon_url = resolve_wallet_daemon_url(args.wallet_daemon_url.as_ref(), &config, network);
     println!("🌐 Network: {network}");
+    // Must run before any RPC so the API key is never sent in the clear.
+    ensure_wallet_daemon_url_allowed(&wallet_daemon_url, api_key.is_some())?;
 
     // Warn if template address already exists in config (republishing)
     if let Some(existing_addr) = project_config.template_address(network) {

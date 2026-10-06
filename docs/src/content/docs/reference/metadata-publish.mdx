@@ -28,7 +28,7 @@ tari metadata publish [PATH] [OPTIONS]
 | `--max-retries <N>` | Maximum retry attempts while the server has not yet synced the template (default: `6`) |
 | `--signed` | Use author-signed submission via the wallet daemon |
 | `--key-index <N>` | Derived account key index to sign with, used with `--signed` (default: `0`) |
-| `--wallet-daemon-url <URL>` | Wallet daemon JSON-RPC URL, used with `--signed` |
+| `--wallet-daemon-url <URL>` | Wallet daemon JSON-RPC URL, used with `--signed`. Also `$TARI_WALLET_DAEMON_URL`; not read from the project config |
 
 The global `-n, --network` and `--api-key` options apply here too.
 

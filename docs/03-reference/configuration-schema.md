@@ -13,7 +13,7 @@ audience: users
 
 ## Configuration Hierarchy
 
-Both the global CLI config and the project config are organised by **network** (`esmeralda`, `localnet`, `igor`, `nextnet`, `stagenet`, `mainnet`). Each command resolves an **active network** and then reads `wallet-daemon-url`, `metadata-server-url`, and `template-address` from the matching `[networks.<name>]` section.
+Both the global CLI config and the project config are organised by **network** (`esmeralda`, `localnet`, `igor`, `nextnet`, `stagenet`, `mainnet`). Each command resolves an **active network** and then reads `metadata-server-url` and `template-address` (and, from the global config only, `wallet-daemon-url`) from the matching `[networks.<name>]` section.
 
 ### Active network resolution (highest priority first)
 
@@ -24,11 +24,21 @@ Both the global CLI config and the project config are organised by **network** (
 
 ### Per-setting resolution (highest priority first)
 
-1. **Command-line flags** (`--wallet-daemon-url`, `--metadata-server-url`, etc.)
+1. **Command-line flags** (`--wallet-daemon-url`, `--metadata-server-url`, etc.; `TARI_WALLET_DAEMON_URL` for the wallet daemon URL)
 2. **CLI overrides** (`-e KEY=VALUE`)
-3. **Project configuration** — `[networks.<active>]` in `tari.config.toml`
+3. **Project configuration** — `[networks.<active>]` in `tari.config.toml` (not used for `wallet-daemon-url`)
 4. **Global CLI configuration** — `[networks.<active>]` in `~/.config/tari_cli/tari.config.toml`
 5. **Built-in defaults**
+
+### Wallet daemon URL
+
+`wallet-daemon-url` is **not** read from the project `tari.config.toml`: a cloned repo could otherwise redirect your wallet API key. If present there it is ignored with a warning, and `tari config set ...wallet-daemon-url` errors. Resolution (highest priority first):
+
+1. `--wallet-daemon-url` flag or `TARI_WALLET_DAEMON_URL` env var
+2. `[networks.<active>].wallet-daemon-url` in the global CLI config (also settable with `-e networks.<name>.wallet-daemon-url=...`)
+3. `http://127.0.0.1:5100/json_rpc`
+
+The CLI refuses to send an API key over plain `http` to a non-loopback host.
 
 ---
 
@@ -121,12 +131,10 @@ default-network = "esmeralda"
 # default-account = "myaccount"
 
 [networks.esmeralda]
-wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
 metadata-server-url = "https://ootle.tari.com/community-templates"
 # template-address = "template_abc123..."  # written automatically by `tari publish`
 
 [networks.localnet]
-wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
 metadata-server-url = "http://localhost:3000/"
 ```
 
@@ -143,7 +151,6 @@ metadata-server-url = "http://localhost:3000/"
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `wallet-daemon-url` | URL | `http://127.0.0.1:5100/json_rpc` | Wallet daemon JSON-RPC endpoint |
 | `metadata-server-url` | URL | None | Metadata server URL for this network |
 | `template-address` | Address | None | Most recently published template address (written automatically by `tari publish`) |
 
@@ -154,9 +161,6 @@ metadata-server-url = "http://localhost:3000/"
 ```bash
 # Create default config (esmeralda + localnet sections)
 tari config init
-
-# Set wallet daemon URL for a specific network
-tari config set networks.localnet.wallet-daemon-url http://localhost:12008/json_rpc
 
 # Change the default network
 tari config set default-network localnet

@@ -86,10 +86,9 @@ Default configuration publishes to local development network:
 ```toml
 # In tari.config.toml
 default-network = "localnet"
-
-[networks.localnet]
-wallet-daemon-url = "http://127.0.0.1:5100/json_rpc"
 ```
+
+The wallet daemon defaults to `http://127.0.0.1:5100/json_rpc`; override with `--wallet-daemon-url` or `TARI_WALLET_DAEMON_URL`.
 
 Local publishing is ideal for:
 - Development and testing
@@ -278,11 +277,13 @@ tari_wallet_daemon --network localnet
 
 **Configuration**:
 ```toml
-# Custom testnet configuration
+# tari.config.toml
 default-network = "esmeralda"
+```
 
-[networks.esmeralda]
-wallet-daemon-url = "http://testnet-node:5100/json_rpc"
+```bash
+# Wallet daemon URL comes from the flag/env var or the global config, not the project config
+export TARI_WALLET_DAEMON_URL="http://testnet-node:5100/json_rpc"
 ```
 
 ### Mainnet Publishing

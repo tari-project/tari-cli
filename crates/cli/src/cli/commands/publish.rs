@@ -52,8 +52,8 @@ pub struct PublishArgs {
     pub binary: Option<PathBuf>,
 
     /// Wallet daemon JSON-RPC URL.
-    /// Overrides the value in tari.config.toml and global CLI config.
-    #[arg(long)]
+    /// Overrides the global CLI config. Not read from the project tari.config.toml.
+    #[arg(long, env = "TARI_WALLET_DAEMON_URL")]
     pub wallet_daemon_url: Option<url::Url>,
 
     /// After publishing, automatically submit metadata to a metadata server.
@@ -125,6 +125,8 @@ pub async fn handle(
     crate::cli::commands::template::publish::handle(config, network_override, api_key, template_args).await
 }
 
+const WALLET_DAEMON_API_KEY_ENV: &str = "TARI_WALLET_DAEMON_API_KEY";
+
 async fn build_project(dir: &Path, name: &str, optimize: bool) -> anyhow::Result<PathBuf> {
     let mut cmd = Command::new("cargo");
     cmd.arg("build").arg("--target=wasm32-unknown-unknown").arg("--release");
@@ -135,7 +137,11 @@ async fn build_project(dir: &Path, name: &str, optimize: bool) -> anyhow::Result
         }
     }
 
-    cmd.current_dir(dir).stdout(Stdio::piped()).stderr(Stdio::piped());
+    // Build scripts in the project are untrusted; don't hand them the wallet API key.
+    cmd.env_remove(WALLET_DAEMON_API_KEY_ENV)
+        .current_dir(dir)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
 
     let process = cmd.spawn()?;
 
@@ -255,7 +261,15 @@ pub async fn load_project_config(project_folder: &Path) -> anyhow::Result<projec
                     error
                 )
             })?;
-            return toml::from_str::<project::ProjectConfig>(content.as_str()).context("parsing config toml");
+            let config = toml::from_str::<project::ProjectConfig>(content.as_str()).context("parsing config toml")?;
+            if config.has_ignored_wallet_daemon_url() {
+                println!(
+                    "⚠️  Ignoring wallet-daemon-url in {}: it is no longer read from the project config. \
+                     Use --wallet-daemon-url, TARI_WALLET_DAEMON_URL, or the global CLI config.",
+                    config_file.display()
+                );
+            }
+            return Ok(config);
         }
         if !search_dir.pop() {
             break;
@@ -277,18 +291,78 @@ pub fn resolve_active_network(
         .unwrap_or_default()
 }
 
-/// Resolve wallet-daemon URL for the active network. Precedence: CLI flag > project > global > default.
-pub fn resolve_wallet_daemon_url(
-    cli_override: Option<&url::Url>,
-    project: &project::ProjectConfig,
-    global: &Config,
-    network: Network,
-) -> url::Url {
+/// Resolve wallet-daemon URL for the active network. Precedence: CLI flag / `TARI_WALLET_DAEMON_URL` >
+/// global > default. The project config is deliberately not consulted: it ships with whatever
+/// repository was cloned and must not decide where the wallet API key is sent.
+pub fn resolve_wallet_daemon_url(cli_override: Option<&url::Url>, global: &Config, network: Network) -> url::Url {
     cli_override
+        .or_else(|| global.wallet_daemon_url(network))
         .cloned()
-        .or_else(|| project.wallet_daemon_url(network).cloned())
-        .or_else(|| global.wallet_daemon_url(network).cloned())
         .unwrap_or_else(|| {
             url::Url::parse(project::DEFAULT_WALLET_DAEMON_URL).expect("default wallet daemon URL is valid")
         })
+}
+
+/// True if the URL's host is a loopback address (`localhost`, `127.0.0.0/8`, `::1`).
+pub fn is_loopback_url(url: &url::Url) -> bool {
+    match url.host() {
+        Some(url::Host::Domain(d)) => d.eq_ignore_ascii_case("localhost"),
+        Some(url::Host::Ipv4(ip)) => ip.is_loopback(),
+        Some(url::Host::Ipv6(ip)) => ip.is_loopback(),
+        None => false,
+    }
+}
+
+/// Refuse to send the wallet daemon API key over plain `http` to a non-loopback host.
+pub fn ensure_wallet_daemon_url_allowed(url: &url::Url, has_api_key: bool) -> anyhow::Result<()> {
+    if has_api_key && url.scheme() == "http" && !is_loopback_url(url) {
+        return Err(anyhow!(
+            "Refusing to send the wallet daemon API key over plain http to non-loopback host {url}. \
+             Use https, or a loopback address."
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod wallet_daemon_url_tests {
+    use super::*;
+
+    #[test]
+    fn project_url_is_ignored() {
+        let project: project::ProjectConfig =
+            toml::from_str("[networks.esmeralda]\nwallet-daemon-url = \"https://attacker.example/json_rpc\"\n")
+                .unwrap();
+        assert!(project.has_ignored_wallet_daemon_url());
+        let url = resolve_wallet_daemon_url(None, &Config::default(), Network::Esmeralda);
+        assert_eq!(url.as_str(), project::DEFAULT_WALLET_DAEMON_URL);
+    }
+
+    #[test]
+    fn cli_url_overrides_global() {
+        let url = url::Url::parse("https://wallet.example/json_rpc").unwrap();
+        assert_eq!(
+            resolve_wallet_daemon_url(Some(&url), &Config::default(), Network::Esmeralda),
+            url
+        );
+    }
+
+    #[test]
+    fn api_key_over_plain_http_to_remote_host_is_refused() {
+        let url = url::Url::parse("http://wallet.example/json_rpc").unwrap();
+        assert!(ensure_wallet_daemon_url_allowed(&url, true).is_err());
+        assert!(ensure_wallet_daemon_url_allowed(&url, false).is_ok());
+        let local = url::Url::parse("http://127.0.0.1:5100/json_rpc").unwrap();
+        assert!(ensure_wallet_daemon_url_allowed(&local, true).is_ok());
+    }
+
+    #[test]
+    fn loopback_detection() {
+        for u in ["http://localhost:1/", "http://127.0.0.2/", "http://[::1]/"] {
+            assert!(is_loopback_url(&url::Url::parse(u).unwrap()), "{u}");
+        }
+        for u in ["http://10.0.0.1/", "http://localhost.attacker.example/"] {
+            assert!(!is_loopback_url(&url::Url::parse(u).unwrap()), "{u}");
+        }
+    }
 }

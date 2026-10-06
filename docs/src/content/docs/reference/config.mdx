@@ -28,7 +28,7 @@ tari config set <KEY> <VALUE>
 ```bash
 tari config set default-network localnet
 tari config set default-account myaccount
-tari config set networks.localnet.wallet-daemon-url http://localhost:12008/json_rpc
+tari config set networks.localnet.metadata-server-url http://localhost:3000/
 tari config set networks.esmeralda.metadata-server-url https://ootle.tari.com/community-templates
 ```
 
@@ -58,7 +58,7 @@ The active network is resolved first, then per-setting values are read from that
 
 | Setting | CLI flag | Project config | Global config | Default |
 |---------|----------|---------------|---------------|---------|
-| Wallet daemon URL | `--wallet-daemon-url` | `networks.<active>.wallet-daemon-url` | `networks.<active>.wallet-daemon-url` | `http://127.0.0.1:5100/json_rpc` |
+| Wallet daemon URL | `--wallet-daemon-url` or `TARI_WALLET_DAEMON_URL` | — (ignored, with a warning) | `networks.<active>.wallet-daemon-url` | `http://127.0.0.1:5100/json_rpc` |
 | Metadata server URL | `--metadata-server-url` | `networks.<active>.metadata-server-url` | `networks.<active>.metadata-server-url` | esmeralda → `https://ootle.tari.com/community-templates`, localnet → `http://localhost:3000/`, others → none |
 | Template address | `--template-address` | `networks.<active>.template-address` | — | — |
 | Account | `--account` | `default-account` | `default-account` | Wallet daemon default |
