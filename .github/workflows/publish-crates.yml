@@ -11,8 +11,10 @@ jobs:
     name: Publish crates
     runs-on: ubuntu-latest
     environment: cargopublish
-    env:
-      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    permissions:
+      contents: read
+      # Required for crates.io Trusted Publishing (OIDC).
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -26,6 +28,14 @@ jobs:
       - name: Install system deps
         run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
 
+      # Exchanges the GitHub OIDC token for a short-lived crates.io token.
+      # Requires a Trusted Publishing config on crates.io for each crate
+      # (repo: tari-project/tari-cli, workflow: publish-crates.yml,
+      # environment: cargopublish). The token is revoked when the job ends.
+      - name: Authenticate with crates.io
+        id: auth
+        uses: rust-lang/crates-io-auth-action@v1
+
       # Order matters: tari-ootle-cli depends on tari_ootle_publish_lib.
       # `cargo publish` waits for the new version to be queryable on the
       # registry before exiting, so the dependent publish below will resolve it.
@@ -35,7 +45,11 @@ jobs:
       - name: Publish tari_ootle_publish_lib
         shell: bash
         run: .github/scripts/publish-if-new.sh tari_ootle_publish_lib
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
 
       - name: Publish tari-ootle-cli
         shell: bash
         run: .github/scripts/publish-if-new.sh tari-ootle-cli
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
