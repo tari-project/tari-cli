@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 use std::io;
-use tari_engine::template::TemplateLoaderError;
 use tari_ootle_walletd_client::error::WalletDaemonClientError;
 use tari_template_lib_types::Amount;
 use tari_template_lib_types::HashParseError;
@@ -17,8 +16,6 @@ pub enum Error {
     // crate large enough to trip `clippy::result_large_err`.
     #[error("gRPC error: {0}")]
     Grpc(Box<tonic::Status>),
-    #[error("Invalid template: {0}")]
-    InvalidTemplate(#[from] TemplateLoaderError),
     #[error("Invalid template: {0}")]
     IO(#[from] io::Error),
     #[error("Invalid hash error: {0}")]

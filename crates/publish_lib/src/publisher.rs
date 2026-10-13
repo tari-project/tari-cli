@@ -7,10 +7,7 @@ use serde::Serialize;
 use std::borrow::Cow;
 use std::path::PathBuf;
 use std::time::Duration;
-use tari_engine::template::LoadedTemplate;
-use tari_engine::wasm::WasmModule;
 use tari_engine_types::commit_result::TransactionResult;
-use tari_engine_types::hashing::template_hasher32;
 use tari_engine_types::substate::SubstateId;
 use tari_ootle_common_types::optional::Optional;
 use tari_ootle_template_metadata::MetadataHash;
@@ -20,7 +17,6 @@ use tari_ootle_walletd_client::types::{
     SignTemplateMetadataRequest, SignTemplateMetadataResponse, TransactionWaitResultRequest, WalletGetInfoResponse,
 };
 use tari_ootle_walletd_client::{ComponentAddressOrName, WalletDaemonClient};
-use tari_template_lib_types::Hash32;
 use tari_template_lib_types::constants::TARI_TOKEN;
 use tari_template_lib_types::{Amount, TemplateAddress};
 use tokio::fs;
@@ -225,7 +221,7 @@ impl TemplatePublisher {
         max_fee: u64,
         metadata_hash: Option<MetadataHash>,
     ) -> Result<PublishTemplateRequest> {
-        let (binary, _, _) = self.validate_and_load_wasm_template(template).await?;
+        let binary = self.load_wasm_template(template).await?;
         Ok(PublishTemplateRequest {
             binary: binary.into_owned(),
             fee_account: Some(account.clone()),
@@ -236,23 +232,17 @@ impl TemplatePublisher {
         })
     }
 
-    /// Validating provided wasm template on the given path.
-    async fn validate_and_load_wasm_template<'a>(
-        &self,
-        params: &'a Template,
-    ) -> Result<(Cow<'a, [u8]>, LoadedTemplate, Hash32)> {
-        let mut wasm_code: Cow<'_, [u8]> = match params {
+    /// Loads (and optimizes, if enabled) the wasm template. Template validation is left to the network,
+    /// which rejects an invalid template in the publish dry run.
+    async fn load_wasm_template<'a>(&self, params: &'a Template) -> Result<Cow<'a, [u8]>> {
+        let wasm_code: Cow<'_, [u8]> = match params {
             Template::Path { path } => {
                 let bin = fs::read(path).await?;
                 Cow::Owned(bin)
             },
             Template::Binary { bin } => Cow::Borrowed(bin),
         };
-        wasm_code = Self::optimize_wasm_template(wasm_code).await?;
-
-        let template = WasmModule::load_template_from_code(wasm_code.as_ref())?;
-        let wasm_hash: Hash32 = template_hasher32().chain(&wasm_code).result();
-        Ok((wasm_code, template, wasm_hash))
+        Self::optimize_wasm_template(wasm_code).await
     }
 
     async fn optimize_wasm_template<'a>(wasm_code: Cow<'a, [u8]>) -> Result<Cow<'a, [u8]>> {
