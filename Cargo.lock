@@ -1292,7 +1292,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c54e03a951783e8b327515db3f2a2fd0e3bed362a96b066f341ce66ed49b4ead"
 dependencies = [
  "data-encoding",
- "syn 1.0.109",
+ "syn 3.0.6",
 ]
 
 [[package]]
@@ -5678,9 +5678,9 @@ dependencies = [
 
 [[package]]
 name = "tari_engine_types"
-version = "0.46.0"
+version = "0.46.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e2607417c3b0dd9406991c71bee51e0574cf03abbfc455bf269d82f9c35d616"
+checksum = "5166b8a49e287db7b3381ae627e3c1e36fd5a45c05b42c2925b1fc692cb2955b"
 dependencies = [
  "blake2 0.10.6",
  "borsh",
@@ -6105,7 +6105,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix",
  "windows-sys 0.52.0",
