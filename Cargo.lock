@@ -1310,7 +1310,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c54e03a951783e8b327515db3f2a2fd0e3bed362a96b066f341ce66ed49b4ead"
 dependencies = [
  "data-encoding",
- "syn 1.0.109",
+ "syn 3.0.6",
 ]
 
 [[package]]
@@ -5568,7 +5568,7 @@ dependencies = [
  "tari_ootle_common_types",
  "tari_ootle_publish_lib",
  "tari_ootle_template_metadata",
- "tari_utilities",
+ "tari_utilities 0.11.0",
  "tempfile",
  "termimad",
  "thiserror 2.0.21",
@@ -5666,7 +5666,7 @@ dependencies = [
  "tari_crypto",
  "tari_hashing",
  "tari_max_size",
- "tari_utilities",
+ "tari_utilities 0.10.0",
  "thiserror 2.0.21",
  "utoipa",
  "zeroize",
@@ -5710,7 +5710,7 @@ dependencies = [
  "snafu",
  "subtle",
  "tari_bulletproofs_plus",
- "tari_utilities",
+ "tari_utilities 0.10.0",
  "zeroize",
 ]
 
@@ -5815,7 +5815,7 @@ dependencies = [
  "borsh",
  "integer-encoding",
  "serde",
- "tari_utilities",
+ "tari_utilities 0.10.0",
  "thiserror 2.0.21",
 ]
 
@@ -5908,7 +5908,7 @@ dependencies = [
  "tari_ootle_wallet_sdk",
  "tari_ootle_walletd_client",
  "tari_template_lib_types",
- "tari_utilities",
+ "tari_utilities 0.11.0",
  "tempfile",
  "thiserror 2.0.21",
  "tokio",
@@ -6017,7 +6017,7 @@ dependencies = [
  "tari_hashing",
  "tari_ootle_common_types",
  "tari_template_lib_types",
- "tari_utilities",
+ "tari_utilities 0.10.0",
  "thiserror 2.0.21",
  "zeroize",
 ]
@@ -6100,7 +6100,7 @@ dependencies = [
  "tari_crypto",
  "tari_hashing",
  "tari_jellyfish",
- "tari_utilities",
+ "tari_utilities 0.10.0",
  "thiserror 2.0.21",
 ]
 
@@ -6206,13 +6206,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "tari_utilities"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "598c14c0aea03d57f26fb1557c88de103154cb07658f8a09acc6a10ed02af780"
+dependencies = [
+ "base58-monero",
+ "base64 0.13.1",
+ "bincode",
+ "generic-array",
+ "log",
+ "newtype-ops",
+ "serde",
+ "serde_json",
+ "snafu",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
 name = "tempfile"
 version = "3.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",
