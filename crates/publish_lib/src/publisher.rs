@@ -54,10 +54,15 @@ impl TemplatePublisher {
         wait_timeout: Option<Duration>,
     ) -> Result<TemplateAddress> {
         let publish_template_request = self
-            .create_publish_template_request(account, &template, max_fee, metadata_hash.clone())
+            .create_publish_template_request(account, &template, max_fee, metadata_hash)
             .await?;
-        self.check_balance_for_publish(account, &template, metadata_hash)
-            .await?;
+        let wallet_balance = self.wallet_xtr_balance(account).await?;
+        if wallet_balance < max_fee {
+            return Err(Error::InsufficientBalance {
+                current: wallet_balance,
+                fee: max_fee,
+            });
+        }
         self.publish_template(
             publish_template_request,
             wait_timeout.or(Some(Duration::from_secs(120))),

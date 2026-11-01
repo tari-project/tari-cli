@@ -102,12 +102,39 @@ async fn handle_show() -> anyhow::Result<()> {
 /// crate root (Cargo.toml) if in one, then git repo root, otherwise CWD.
 pub fn resolve_config_path() -> anyhow::Result<PathBuf> {
     let cwd = std::env::current_dir()?;
-    let root = if cwd.join("Cargo.toml").exists() {
-        cwd
-    } else {
-        find_repo_root().unwrap_or(cwd)
-    };
-    Ok(root.join(CONFIG_FILE_NAME))
+    Ok(resolve_config_path_for(&cwd))
+}
+
+/// Resolve the config file path starting from `start_dir`:
+/// existing `tari.config.toml` in `start_dir` or an ancestor, otherwise `start_dir` if it has a
+/// `Cargo.toml`, otherwise the git repo root containing `start_dir`, falling back to `start_dir`.
+pub fn resolve_config_path_for(start_dir: & std::path::Path) -> PathBuf {
+    let mut search = start_dir.to_path_buf();
+    loop {
+        let candidate = search.join(CONFIG_FILE_NAME);
+        if candidate.exists() {
+            return candidate;
+        }
+        if !search.pop() {
+            break;
+        }
+    }
+
+    if start_dir.join("Cargo.toml").exists() {
+        return start_dir.join(CONFIG_FILE_NAME);
+    }
+
+    let mut dir = start_dir.to_path_buf();
+    loop {
+        if dir.join(".git").exists() {
+            return dir.join(CONFIG_FILE_NAME);
+        }
+        if !dir.pop() {
+            break;
+        }
+    }
+
+    start_dir.join(CONFIG_FILE_NAME)
 }
 
 /// Find an existing config file by walking up from CWD.
@@ -126,18 +153,6 @@ fn find_existing_config() -> anyhow::Result<PathBuf> {
         "No {} found. Run `tari config init` to create one.",
         CONFIG_FILE_NAME
     ))
-}
-
-pub fn find_repo_root() -> Option<PathBuf> {
-    let mut dir = std::env::current_dir().ok()?;
-    loop {
-        if dir.join(".git").exists() {
-            return Some(dir);
-        }
-        if !dir.pop() {
-            return None;
-        }
-    }
 }
 
 /// Set an arbitrary dotted-path key in a TOML document.
@@ -203,5 +218,34 @@ fn get_dotted_key(doc: &toml_edit::DocumentMut, key: &str) -> anyhow::Result<Str
         Some(toml_edit::Item::Table(t)) => Ok(t.to_string()),
         Some(other) => Ok(other.to_string()),
         None => Err(anyhow!("Key '{key}' not found")),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resolve_config_path_for_prefers_existing_ancestor_config() {
+        let tmp = tempfile::tempdir().unwrap();
+        let workspace_root = tmp.path();
+        let crate_dir = workspace_root.join("crates").join("my_template");
+        std::fs::create_dir_all(&crate_dir).unwrap();
+        std::fs::write(crate_dir.join("Cargo.toml"), "[package]\nname = \"my_template\"\n").unwrap();
+
+        let root_config = workspace_root.join(CONFIG_FILE_NAME);
+        std::fs::write(&root_config, "").unwrap();
+
+        assert_eq!(resolve_config_path_for(&crate_dir), root_config);
+    }
+
+    #[test]
+    fn resolve_config_path_for_uses_crate_dir_when_no_config_exists() {
+        let tmp = tempfile::tempdir().unwrap();
+        let crate_dir = tmp.path().join("my_template");
+        std::fs::create_dir_all(&crate_dir).unwrap();
+        std::fs::write(crate_dir.join("Cargo.toml"), "[package]\nname = \"my_template\"\n").unwrap();
+
+        assert_eq!(resolve_config_path_for(&crate_dir), crate_dir.join(CONFIG_FILE_NAME));
     }
 }
