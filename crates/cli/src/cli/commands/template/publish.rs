@@ -92,12 +92,14 @@ pub async fn handle(
         println!("⚠️  A template has already been published from this project: {existing_addr}");
         println!("   If the template binary is unchanged, the transaction will fail.");
         println!("   If changed, a new template address will be generated.");
-        let proceed = Confirm::new()
-            .with_prompt("Continue with publish?")
-            .default(false)
-            .interact()?;
-        if !proceed {
-            return Err(anyhow!("Publishing aborted"));
+        if !args.yes {
+            let proceed = Confirm::new()
+                .with_prompt("Continue with publish?")
+                .default(false)
+                .interact()?;
+            if !proceed {
+                return Err(anyhow!("Publishing aborted"));
+            }
         }
     }
 
@@ -168,9 +170,23 @@ pub async fn handle(
     let account = resolve_account(&args, &config, &publisher, &project_config).await?;
     let template = Template::Path { path: template_bin };
 
-    let CheckBalanceResult { max_fee, binary_size } = publisher
+    let CheckBalanceResult {
+        max_fee: estimated_fee,
+        binary_size,
+    } = publisher
         .check_balance_for_publish(&account, &template, metadata_hash.clone())
         .await?;
+    let max_fee = match args.max_fee {
+        Some(user_max_fee) => {
+            if user_max_fee < estimated_fee {
+                println!(
+                    "⚠️  Provided --max-fee ({user_max_fee}) is less than estimated fee ({estimated_fee}); publish may fail."
+                );
+            }
+            user_max_fee
+        },
+        None => estimated_fee,
+    };
 
     if binary_size > MAX_WASM_SIZE {
         println!("⚠️ WASM binary size exceeded: {}", util::human_bytes(binary_size));
@@ -181,7 +197,7 @@ pub async fn handle(
     if !args.yes {
         let confirmation = Confirm::new()
             .with_prompt(format!(
-                "⚠️ Publishing this template costs {max_fee} (estimated), are you sure to continue?",
+                "⚠️ Publishing this template costs {max_fee} (estimated {estimated_fee}), are you sure to continue?",
             ))
             .interact()?;
         if !confirmation {
@@ -200,7 +216,7 @@ pub async fn handle(
     println!("⭐ Your new template's address: {published_addr}");
 
     // Save template address to project config under [networks.<network>]
-    let config_path = crate::cli::commands::config::resolve_config_path()?;
+    let config_path = crate::cli::commands::config::resolve_config_path_for(crate_dir);
     if config_path.exists() {
         let content = tokio::fs::read_to_string(&config_path)
             .await
@@ -224,7 +240,7 @@ pub async fn handle(
 
     let should_publish_metadata = if args.publish_metadata {
         metadata_hash.is_some()
-    } else if metadata_hash.is_some() {
+    } else if !args.yes && metadata_hash.is_some() {
         Confirm::new()
             .with_prompt("Publish metadata to community server?")
             .default(false)
@@ -273,15 +289,14 @@ async fn resolve_account(
     publisher: &TemplatePublisher,
     project_config: &crate::project::ProjectConfig,
 ) -> anyhow::Result<ComponentAddressOrName> {
+    let project_default_account = project_config
+        .parsed_default_account()
+        .context("invalid default-account in tari.config.toml")?;
     let account = args
         .account
         .as_ref()
         .cloned()
-        .or_else(|| {
-            project_config
-                .parsed_default_account()
-                .expect("Malformed default account")
-        })
+        .or(project_default_account)
         .or(config.default_account.clone());
 
     match account {

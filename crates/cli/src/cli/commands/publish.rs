@@ -203,7 +203,14 @@ const METADATA_CBOR_FILENAME: &str = "template_metadata.cbor";
 pub async fn find_metadata_cbor(project_dir: &Path) -> anyhow::Result<PathBuf> {
     let target_dir = find_target_dir(project_dir).await?;
     let build_dir = target_dir.join("wasm32-unknown-unknown").join("release").join("build");
+    let pkg_name = Manifest::from_path(project_dir.join("Cargo.toml"))
+        .ok()
+        .and_then(|m| m.package)
+        .map(|p| p.name);
+    find_metadata_cbor_in_build_dir(&build_dir, pkg_name.as_deref())
+}
 
+fn find_metadata_cbor_in_build_dir(build_dir: &Path, package_name: Option<&str>) -> anyhow::Result<PathBuf> {
     if !build_dir.exists() {
         return Err(anyhow!(
             "Build output directory not found at {}. Run `tari build` first.",
@@ -212,8 +219,15 @@ pub async fn find_metadata_cbor(project_dir: &Path) -> anyhow::Result<PathBuf> {
     }
 
     let mut newest: Option<(PathBuf, std::time::SystemTime)> = None;
-    for entry in std::fs::read_dir(&build_dir).context("reading build directory")? {
+    for entry in std::fs::read_dir(build_dir).context("reading build directory")? {
         let entry = entry?;
+        if let Some(pkg) = package_name {
+            let file_name = entry.file_name();
+            let name = file_name.to_string_lossy();
+            if !matches_package_build_dir(&name, pkg) {
+                continue;
+            }
+        }
         let out_file = entry.path().join("out").join(METADATA_CBOR_FILENAME);
         if out_file.exists() {
             let modified = std::fs::metadata(&out_file)
@@ -232,6 +246,16 @@ pub async fn find_metadata_cbor(project_dir: &Path) -> anyhow::Result<PathBuf> {
              and has been built with `tari build`."
         )
     })
+}
+
+fn matches_package_build_dir(dir_name: &str, package_name: &str) -> bool {
+    let Some((prefix, hash)) = dir_name.rsplit_once('-') else {
+        return false;
+    };
+    if hash.is_empty() || !hash.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return false;
+    }
+    prefix == package_name || prefix.replace('-', "_") == package_name.replace('-', "_")
 }
 
 /// Decode template metadata CBOR with a friendly hint when the on-disk format predates the
@@ -364,5 +388,36 @@ mod wallet_daemon_url_tests {
         for u in ["http://10.0.0.1/", "http://localhost.attacker.example/"] {
             assert!(!is_loopback_url(&url::Url::parse(u).unwrap()), "{u}");
         }
+    }
+
+    #[test]
+    fn matches_package_build_dir_filters_by_crate_name() {
+        assert!(matches_package_build_dir("my-template-0123456789abcdef", "my-template"));
+        assert!(matches_package_build_dir("my_template-0123456789abcdef", "my-template"));
+        assert!(!matches_package_build_dir("other-template-0123456789abcdef", "my-template"));
+        assert!(!matches_package_build_dir("my-template-extra-0123456789abcdef", "my-template"));
+        assert!(!matches_package_build_dir("my-template-nothex", "my-template"));
+    }
+
+    #[test]
+    fn find_metadata_cbor_in_build_dir_selects_target_package_in_workspace() {
+        let tmp = tempfile::tempdir().unwrap();
+        let build_dir = tmp.path();
+
+        let pkg_a_out = build_dir.join("template-a-1111111111111111").join("out");
+        let pkg_b_out = build_dir.join("template-b-2222222222222222").join("out");
+        std::fs::create_dir_all(&pkg_a_out).unwrap();
+        std::fs::create_dir_all(&pkg_b_out).unwrap();
+
+        let cbor_a = pkg_a_out.join(METADATA_CBOR_FILENAME);
+        let cbor_b = pkg_b_out.join(METADATA_CBOR_FILENAME);
+        std::fs::write(&cbor_a, b"a").unwrap();
+        std::fs::write(&cbor_b, b"b").unwrap();
+
+        let found_a = find_metadata_cbor_in_build_dir(build_dir, Some("template-a")).unwrap();
+        assert_eq!(found_a, cbor_a);
+
+        let found_b = find_metadata_cbor_in_build_dir(build_dir, Some("template-b")).unwrap();
+        assert_eq!(found_b, cbor_b);
     }
 }
