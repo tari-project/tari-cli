@@ -74,11 +74,7 @@ pub async fn handle(
 
     let project_config = load_project_config(&args.path).await?;
     let network = resolve_active_network(network_override, &project_config, &config);
-    let wallet_daemon_url = resolve_wallet_daemon_url(args.wallet_daemon_url.as_ref(), &config, network);
     println!("🌐 Network: {network}");
-    ensure_wallet_daemon_url_allowed(&wallet_daemon_url, api_key.is_some())?;
-
-    let publisher = TemplatePublisher::new(NetworkConfig::new(wallet_daemon_url).with_api_key(api_key));
 
     // Resolve metadata server URL: CLI flag > project config > global config > default for network
     let metadata_server_url = args
@@ -148,6 +144,10 @@ pub async fn handle(
     );
 
     if args.signed {
+        let wallet_daemon_url = resolve_wallet_daemon_url(args.wallet_daemon_url.as_ref(), &config, network);
+        ensure_wallet_daemon_url_allowed(&wallet_daemon_url, api_key.is_some())?;
+        let publisher = TemplatePublisher::new(NetworkConfig::new(wallet_daemon_url).with_api_key(api_key));
+
         let payload = publisher
             .sign_metadata_for_publish(args.key_index, addr.as_template_address(), metadata)
             .await
