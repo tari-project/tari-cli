@@ -816,7 +816,7 @@ checksum = "af491d569909a7e4dee0ad7db7f5341fef5c614d5b8ec8cf765732aba3cff681"
 dependencies = [
  "serde",
  "termcolor",
- "unicode-width 0.2.3",
+ "unicode-width 0.1.14",
 ]
 
 [[package]]
@@ -2280,7 +2280,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7518b930f6aeb75e871d32ce873c2ae46e35cef19b5a0b039d4337f651d897cd"
 dependencies = [
  "bstr",
- "hashbrown 0.17.1",
+ "hashbrown 0.16.1",
 ]
 
 [[package]]
@@ -4181,9 +4181,9 @@ dependencies = [
 
 [[package]]
 name = "ootle_serde"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c0b607c9caa305405a41cdbb1005fed4c101112f6b507778b95406eda674b09"
+checksum = "e5ac96accbfb4b807245bf2f01ce9c51ed82660db0bf2569cc5fd4cec563e662"
 dependencies = [
  "base64 0.22.1",
  "hex",
@@ -5703,7 +5703,7 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "tari-ootle-cli"
-version = "0.34.0"
+version = "0.34.1"
 dependencies = [
  "anyhow",
  "cargo-generate",
@@ -5833,9 +5833,9 @@ dependencies = [
 
 [[package]]
 name = "tari_consensus_types"
-version = "0.49.0"
+version = "0.49.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d2e495055f8c566b68840c6cbcb9d0c7bc6b14e69ff430122ee8027f2a4db6b"
+checksum = "ed56e941f1d1929a22b67b75797fa13ece94b2812547937fea093ff4bc55fd29"
 dependencies = [
  "borsh",
  "minicbor",
@@ -5875,9 +5875,9 @@ dependencies = [
 
 [[package]]
 name = "tari_engine_types"
-version = "0.49.0"
+version = "0.49.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4965edabdf45612848c47e578e2e3ca75930c1245c3a5cacea5f9e1d04cba0d8"
+checksum = "5179a8d412c5b371a8123692c439bf76394410fbc430587ac49fb7073820bfc0"
 dependencies = [
  "blake2 0.10.6",
  "borsh",
@@ -6005,9 +6005,9 @@ dependencies = [
 
 [[package]]
 name = "tari_ootle_common_types"
-version = "0.49.0"
+version = "0.49.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "184f11e19a91132620b5d691751bd91315ee84121e7bb883a2678729e6da800e"
+checksum = "5996835edb8e8c640ce3cae57ad9b54c8d71c3bca28a5efaa8801bbce393fda3"
 dependencies = [
  "blake2 0.10.6",
  "borsh",
@@ -6056,7 +6056,7 @@ dependencies = [
 
 [[package]]
 name = "tari_ootle_publish_lib"
-version = "0.34.0"
+version = "0.34.1"
 dependencies = [
  "hickory-proto",
  "ootle_serde",
@@ -6092,9 +6092,9 @@ dependencies = [
 
 [[package]]
 name = "tari_ootle_storage"
-version = "0.49.0"
+version = "0.49.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a937e00b4306fda41fee276913c5d0a32e653e1bb5d95fa9c4dd48fa9a82a2fa"
+checksum = "748fe62f65ad6267297aaee659bb806882734ad06714c91f7761d3b59d327c53"
 dependencies = [
  "anyhow",
  "bitflags 2.13.2",
@@ -6142,9 +6142,9 @@ dependencies = [
 
 [[package]]
 name = "tari_ootle_transaction"
-version = "0.49.0"
+version = "0.49.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "548401d4728e409ac74023beafa3ae5d3aa7c87c04165c55693e43fdf207a79a"
+checksum = "ee338367a0849fbd282803e17ede2736964458c8cecda623a44f70c39771d3a2"
 dependencies = [
  "borsh",
  "hex",
@@ -6296,9 +6296,9 @@ dependencies = [
 
 [[package]]
 name = "tari_state_tree"
-version = "0.49.0"
+version = "0.49.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f5b6619d4917b795d141820fe33390237977a0e871f813c262e7044489ccf92"
+checksum = "81c1d85cb5a97e44286f885af753dcb65318a4b59fb12cc0ed546f343e053a8b"
 dependencies = [
  "borsh",
  "log",
@@ -6422,7 +6422,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix",
  "windows-sys 0.52.0",
