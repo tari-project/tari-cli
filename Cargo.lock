@@ -5726,7 +5726,7 @@ dependencies = [
  "tari_ootle_common_types",
  "tari_ootle_publish_lib",
  "tari_ootle_template_metadata",
- "tari_utilities",
+ "tari_utilities 0.11.0",
  "tempfile",
  "termimad",
  "thiserror 2.0.21",
@@ -5825,7 +5825,7 @@ dependencies = [
  "tari_hashing",
  "tari_max_size",
  "tari_sidechain 8.0.0",
- "tari_utilities",
+ "tari_utilities 0.10.0",
  "thiserror 2.0.21",
  "utoipa",
  "zeroize",
@@ -5869,7 +5869,7 @@ dependencies = [
  "snafu",
  "subtle",
  "tari_bulletproofs_plus",
- "tari_utilities",
+ "tari_utilities 0.10.0",
  "zeroize",
 ]
 
@@ -5972,7 +5972,7 @@ dependencies = [
  "borsh",
  "integer-encoding",
  "serde",
- "tari_utilities",
+ "tari_utilities 0.10.0",
  "thiserror 2.0.21",
 ]
 
@@ -6067,7 +6067,7 @@ dependencies = [
  "tari_ootle_wallet_sdk",
  "tari_ootle_walletd_client",
  "tari_template_lib_types",
- "tari_utilities",
+ "tari_utilities 0.11.0",
  "tempfile",
  "thiserror 2.0.21",
  "tokio",
@@ -6189,7 +6189,7 @@ dependencies = [
  "tari_ootle_common_types",
  "tari_ootle_transaction",
  "tari_template_lib_types",
- "tari_utilities",
+ "tari_utilities 0.10.0",
  "thiserror 2.0.21",
  "zeroize",
 ]
@@ -6272,7 +6272,7 @@ dependencies = [
  "serde",
  "tari_crypto",
  "tari_jellyfish",
- "tari_utilities",
+ "tari_utilities 0.10.0",
  "thiserror 2.0.21",
 ]
 
@@ -6290,7 +6290,7 @@ dependencies = [
  "serde",
  "tari_crypto",
  "tari_jellyfish",
- "tari_utilities",
+ "tari_utilities 0.10.0",
  "thiserror 2.0.21",
 ]
 
@@ -6388,6 +6388,25 @@ dependencies = [
  "base64 0.13.1",
  "bincode",
  "generic-array",
+ "newtype-ops",
+ "serde",
+ "serde_json",
+ "snafu",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
+name = "tari_utilities"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "598c14c0aea03d57f26fb1557c88de103154cb07658f8a09acc6a10ed02af780"
+dependencies = [
+ "base58-monero",
+ "base64 0.13.1",
+ "bincode",
+ "generic-array",
+ "log",
  "newtype-ops",
  "serde",
  "serde_json",
