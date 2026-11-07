@@ -109,8 +109,10 @@ impl GitRepository {
         let repo = self.repository()?;
         let head = repo.head()?;
         if head.is_branch() {
-            if let Ok(name) = head.name() {
-                Ok(name.to_string().replace("refs/heads/", ""))
+            if let Ok(name) = head.shorthand() {
+                Ok(name.to_string())
+            } else if let Ok(name) = head.name() {
+                Ok(name.strip_prefix("refs/heads/").unwrap_or(name).to_string())
             } else {
                 Err(Error::InvalidBranchName)
             }

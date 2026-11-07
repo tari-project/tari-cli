@@ -18,8 +18,13 @@ pub const VALID_OVERRIDE_KEYS: &[&str] = &[
     "template_repository.url",
     "template_repository.branch",
     "template_repository.folder",
+    "template-repository.url",
+    "template-repository.branch",
+    "template-repository.folder",
     "default_account",
+    "default-account",
     "default_network",
+    "default-network",
 ];
 
 const VALID_NETWORK_OVERRIDE_FIELDS: &[&str] = &["wallet-daemon-url", "metadata-server-url"];
@@ -133,19 +138,19 @@ impl Config {
         }
 
         match key {
-            "template_repository.url" => {
+            "template_repository.url" | "template-repository.url" => {
                 self.template_repository.url = value.to_string();
             },
-            "template_repository.branch" => {
+            "template_repository.branch" | "template-repository.branch" => {
                 self.template_repository.branch = value.to_string();
             },
-            "template_repository.folder" => {
+            "template_repository.folder" | "template-repository.folder" => {
                 self.template_repository.folder = value.to_string();
             },
-            "default_account" => {
+            "default_account" | "default-account" => {
                 self.default_account = Some(value.parse()?);
             },
-            "default_network" => {
+            "default_network" | "default-network" => {
                 self.default_network = Some(value.parse().map_err(|e| anyhow!("Invalid network: {e}"))?);
             },
             _ => self.apply_network_override(key, value)?,
