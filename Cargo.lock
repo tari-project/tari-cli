@@ -5875,9 +5875,9 @@ dependencies = [
 
 [[package]]
 name = "tari_engine_types"
-version = "0.49.1"
+version = "0.49.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5179a8d412c5b371a8123692c439bf76394410fbc430587ac49fb7073820bfc0"
+checksum = "f90a480dde9c4d584002ae8aec10d742eba0e4732865d50d68e077d1b660671d"
 dependencies = [
  "blake2 0.10.6",
  "borsh",
