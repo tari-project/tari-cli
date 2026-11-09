@@ -6005,9 +6005,9 @@ dependencies = [
 
 [[package]]
 name = "tari_ootle_common_types"
-version = "0.49.1"
+version = "0.49.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5996835edb8e8c640ce3cae57ad9b54c8d71c3bca28a5efaa8801bbce393fda3"
+checksum = "54f09d0607f2627e62b6c7ddcadd789c592aef9fc8d63388e648b11f82d8ca3c"
 dependencies = [
  "blake2 0.10.6",
  "borsh",
