@@ -26,7 +26,7 @@ clap = { version = "4.5.20", features = ["derive", "string", "env"] }
 convert_case = "0.12.0"
 dialoguer = { version = "0.12.0", features = ["default", "fuzzy-select"] }
 dirs-next = "2.0.0"
-git2 = { version = "^0.21", features = ["default"] }
+git2 = { version = "^0.21", features = ["https", "ssh"] }
 human_bytes = "0.4.3"
 # `span-locations` gives `tari lint` source line numbers for the findings it parses out of template code.
 proc-macro2 = { version = "1.0.107", features = ["span-locations"] }
