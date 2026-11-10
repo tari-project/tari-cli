@@ -31,8 +31,10 @@ impl NetworkConfig {
     }
 
     /// Sets the wallet daemon API key used for authentication.
+    /// Empty or whitespace-only keys are treated as `None` so an unset environment
+    /// variable cannot send an empty `Authorization: Bearer ` header.
     pub fn with_api_key(mut self, api_key: Option<Hidden<String>>) -> Self {
-        self.api_key = api_key;
+        self.api_key = api_key.filter(|key| !key.reveal().trim().is_empty());
         self
     }
 
@@ -41,6 +43,31 @@ impl NetworkConfig {
     }
 
     pub fn api_key(&self) -> Option<&str> {
-        self.api_key.as_ref().map(|key| key.reveal().as_str())
+        self.api_key
+            .as_ref()
+            .map(|key| key.reveal().trim())
+            .filter(|s| !s.is_empty())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn network_config_ignores_blank_api_keys_and_redacts_debug() {
+        let url = Url::parse("http://127.0.0.1:5100/json_rpc").expect("valid url");
+        let blank = NetworkConfig::new(url.clone()).with_api_key(Some(Hidden::hide("   ".to_string())));
+        assert_eq!(blank.api_key(), None);
+
+        let with_secret = NetworkConfig::new(url).with_api_key(Some(Hidden::hide("  secret-token-123  ".to_string())));
+        assert_eq!(with_secret.api_key(), Some("secret-token-123"));
+
+        let debug_str = format!("{with_secret:?}");
+        assert!(!debug_str.contains("secret-token-123"));
+        assert_eq!(
+            with_secret.wallet_daemon_jrpc_address().as_str(),
+            "http://127.0.0.1:5100/json_rpc"
+        );
     }
 }
