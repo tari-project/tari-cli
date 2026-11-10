@@ -287,12 +287,15 @@ fn count(findings: &[Finding], severity: Severity) -> usize {
 }
 
 /// Accept either a crate directory or a path to its Cargo.toml.
-fn crate_dir(path: &Path) -> anyhow::Result<PathBuf> {
+pub(crate) fn crate_dir(path: &Path) -> anyhow::Result<PathBuf> {
     if path.file_name().is_some_and(|n| n == "Cargo.toml") {
-        return Ok(path
+        let parent = path
             .parent()
-            .ok_or_else(|| anyhow!("Cannot determine crate directory of {}", path.display()))?
-            .to_path_buf());
+            .ok_or_else(|| anyhow!("Cannot determine crate directory of {}", path.display()))?;
+        if parent.as_os_str().is_empty() {
+            return Ok(PathBuf::from("."));
+        }
+        return Ok(parent.to_path_buf());
     }
     Ok(path.to_path_buf())
 }
@@ -746,10 +749,15 @@ fn check_package_metadata(doc: &DocumentMut, location: &str) -> Vec<Finding> {
         .and_then(|p| p.get("metadata"))
         .and_then(|m| m.get(TARI_TEMPLATE_METADATA_KEY));
 
-    let non_empty_str = |item: Option<&Item>| item.and_then(|v| v.as_str()).is_some_and(|s| !s.trim().is_empty());
+    let non_empty_or_workspace = |item: Option<&Item>| {
+        item.is_some_and(|v| {
+            v.as_str().is_some_and(|s| !s.trim().is_empty())
+                || v.get("workspace").and_then(|w| w.as_bool()) == Some(true)
+        })
+    };
 
     let mut missing: Vec<(&str, &str)> = Vec::new();
-    if !non_empty_str(package.and_then(|p| p.get("description"))) {
+    if !non_empty_or_workspace(package.and_then(|p| p.get("description"))) {
         missing.push(("description", "--description \"<what the template does>\""));
     }
 
@@ -766,7 +774,9 @@ fn check_package_metadata(doc: &DocumentMut, location: &str) -> Vec<Finding> {
         ("documentation", "--documentation \"<url>\""),
         ("homepage", "--homepage \"<url>\""),
     ] {
-        if !non_empty_str(tari_template.and_then(|t| t.get(field))) {
+        if !non_empty_or_workspace(tari_template.and_then(|t| t.get(field)))
+            && !non_empty_or_workspace(package.and_then(|p| p.get(field)))
+        {
             missing.push((field, flag));
         }
     }
@@ -814,11 +824,28 @@ fn check_package_metadata(doc: &DocumentMut, location: &str) -> Vec<Finding> {
 /// Metadata in Cargo.toml is only emitted into the published binary when the crate runs
 /// `tari_ootle_template_build` from a build script.
 async fn check_metadata_generation(doc: &DocumentMut, crate_dir: &Path, location: &str) -> Vec<Finding> {
+    let build_setting = doc.get("package").and_then(|p| p.get("build"));
+    if build_setting.and_then(|b| b.as_bool()) == Some(false) {
+        return vec![
+            Finding::new(
+                Severity::Warning,
+                "template::metadata-build",
+                "template metadata will not be generated: `[package] build = false` disables build scripts",
+                location.to_string(),
+            )
+            .with_help("Remove `build = false` from `[package]` and run `tari template init`."),
+        ];
+    }
+
+    let build_script_rel = build_setting
+        .and_then(|b| b.as_str())
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or("build.rs");
     let has_build_dep = doc
         .get("build-dependencies")
         .and_then(|d| d.get(BUILD_DEP_KEY))
         .is_some();
-    let build_rs = crate_dir.join("build.rs");
+    let build_rs = crate_dir.join(build_script_rel);
     let has_build_rs = fs::read_to_string(&build_rs)
         .await
         .is_ok_and(|src| src.contains("TemplateMetadataBuilder"));
@@ -1205,7 +1232,34 @@ tags = [""]
     #[test]
     fn accepts_a_manifest_path_as_well_as_a_directory() {
         assert_eq!(crate_dir(Path::new("foo/Cargo.toml")).unwrap(), PathBuf::from("foo"));
+        assert_eq!(crate_dir(Path::new("Cargo.toml")).unwrap(), PathBuf::from("."));
         assert_eq!(crate_dir(Path::new("foo")).unwrap(), PathBuf::from("foo"));
+    }
+
+    #[tokio::test]
+    async fn metadata_generation_flags_explicit_build_false_without_auto_fix() {
+        let dir = tempfile::tempdir().unwrap();
+        let manifest = doc("[package]\nname = \"t\"\nbuild = false\n[build-dependencies]\ntari_ootle_template_build = \"0.7\"\n");
+        let findings = check_metadata_generation(&manifest, dir.path(), "Cargo.toml").await;
+        assert_eq!(findings.len(), 1);
+        assert!(findings[0].message.contains("build = false"));
+        assert_eq!(findings[0].fix, None);
+    }
+
+    #[test]
+    fn package_metadata_accepts_workspace_inherited_description_and_links() {
+        let manifest = doc(r#"
+[package]
+name = "t"
+description.workspace = true
+documentation.workspace = true
+homepage.workspace = true
+
+[package.metadata.tari-template]
+tags = ["defi"]
+category = "token"
+"#);
+        assert!(check_package_metadata(&manifest, "Cargo.toml").is_empty());
     }
 
     #[test]
