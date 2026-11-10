@@ -6,7 +6,7 @@ use std::{collections::HashMap, fmt::Display, path::PathBuf};
 use serde::{Deserialize, Serialize};
 use termimad::{MadSkin, crossterm::style::Color};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Template {
     path: PathBuf,
     id: String,
@@ -60,9 +60,37 @@ impl Template {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TemplateFile {
     pub name: String,
     pub description: String,
     pub extra: Option<HashMap<String, String>>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn template_file_deserializes_and_template_formats_display() {
+        let file: TemplateFile = toml::from_str(
+            r#"
+name = "Fungible"
+description = "Token template"
+"#,
+        )
+        .expect("parse template file");
+        let tpl = Template::new(
+            PathBuf::from("/templates/fungible"),
+            "fungible".to_string(),
+            file.name,
+            file.description,
+            file.extra.unwrap_or_default(),
+        );
+        assert_eq!(tpl.id(), "fungible");
+        assert_eq!(tpl.name(), "Fungible");
+        assert_eq!(tpl.description(), "Token template");
+        assert!(tpl.extra().is_empty());
+        assert!(tpl.to_string().contains("Fungible"));
+    }
 }
