@@ -1,5 +1,4 @@
 target
-.env
 # Non-root Cargo.locks
 **/Cargo.lock
 !/Cargo.lock
@@ -12,7 +11,6 @@ target
 *.iml
 .vs/
 *.userprefs
-.vscode/
 *.code-workspace
 tags
 
@@ -60,3 +58,4 @@ clients/validator_node_grpc_client/package-lock.json
 /integration_tests/cucumber-output-junit.xml
 
 .claude/
+config.bat

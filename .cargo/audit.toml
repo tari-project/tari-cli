@@ -1,0 +1,21 @@
+[advisories]
+ignore = [
+    # RUSTSEC-2026-0319: anymap2 is unmaintained. Transitive dependency via CLI and template tooling.
+    # No vulnerability reported; purely informational unmaintained advisory.
+    "RUSTSEC-2026-0319",
+
+    # RUSTSEC-2026-0249: smartstring is unmaintained. Transitive dependency in string formatting utilities.
+    # No vulnerability reported; purely informational unmaintained advisory.
+    "RUSTSEC-2026-0249",
+
+    # RUSTSEC-2024-0449: unsafe-libyaml is unmaintained. Transitive dependency via YAML parsers.
+    # No vulnerability reported; purely informational unmaintained advisory.
+    "RUSTSEC-2024-0449",
+
+    # RUSTSEC-2026-0173: proc-macro-error2 is unmaintained. Build-time macro diagnostic helper only.
+    # No vulnerability reported; purely informational unmaintained advisory.
+    "RUSTSEC-2026-0173",
+
+    # RUSTSEC-2022-0104: structopt is in maintenance mode. Workspace has migrated to clap 4.
+    "RUSTSEC-2022-0104",
+]
