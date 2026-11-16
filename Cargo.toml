@@ -20,7 +20,7 @@ tari_ootle_template_metadata = "0.20"
 tari_ootle_wallet_sdk = "0.55"
 tari_utilities = "0.11"
 ootle-network = "0.2"
-ootle_serde = "0.6.2"
+ootle_serde = "0.7.0"
 
 tokio = { version = "1.52.3", features = ["full"] }
 serde = { version = "1.0.215", features = ["derive"] }
