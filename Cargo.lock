@@ -4179,9 +4179,9 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
 name = "ootle-network"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbaa04b000c9d51e701385c1369c53b1123a81eec862d8c595e6c44e0beb8015"
+checksum = "3ca8ef2f62c97600d81467c2490369e89ee1880755a72707ef573bf135f5ebfe"
 dependencies = [
  "minicbor",
  "serde",
