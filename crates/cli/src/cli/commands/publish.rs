@@ -174,6 +174,19 @@ async fn build_project(dir: &Path, name: &str, optimize: bool) -> anyhow::Result
 }
 
 pub async fn find_target_dir(dir: &Path) -> anyhow::Result<PathBuf> {
+    cargo_metadata_dir(dir, "target_directory").await
+}
+
+/// Cargo's build directory (where build-script `OUT_DIR`s live). Falls back to the target
+/// directory on cargo versions that don't report `build_directory`.
+async fn find_build_dir(dir: &Path) -> anyhow::Result<PathBuf> {
+    match cargo_metadata_dir(dir, "build_directory").await {
+        Ok(path) => Ok(path),
+        Err(_) => find_target_dir(dir).await,
+    }
+}
+
+async fn cargo_metadata_dir(dir: &Path, key: &str) -> anyhow::Result<PathBuf> {
     let output = Command::new("cargo")
         .args(["metadata", "--format-version=1", "--no-deps"])
         .current_dir(dir)
@@ -191,18 +204,21 @@ pub async fn find_target_dir(dir: &Path) -> anyhow::Result<PathBuf> {
 
     let metadata: serde_json::Value = serde_json::from_slice(&output.stdout).context("parsing cargo metadata")?;
 
-    metadata["target_directory"]
+    metadata[key]
         .as_str()
         .map(PathBuf::from)
-        .ok_or_else(|| anyhow!("cargo metadata missing target_directory"))
+        .ok_or_else(|| anyhow!("cargo metadata missing {key}"))
 }
 
 const METADATA_CBOR_FILENAME: &str = "template_metadata.cbor";
 
 /// Find the most recently generated metadata CBOR file in the build output.
 pub async fn find_metadata_cbor(project_dir: &Path) -> anyhow::Result<PathBuf> {
-    let target_dir = find_target_dir(project_dir).await?;
-    let build_dir = target_dir.join("wasm32-unknown-unknown").join("release").join("build");
+    let build_dir = find_build_dir(project_dir)
+        .await?
+        .join("wasm32-unknown-unknown")
+        .join("release")
+        .join("build");
 
     if !build_dir.exists() {
         return Err(anyhow!(
@@ -211,11 +227,21 @@ pub async fn find_metadata_cbor(project_dir: &Path) -> anyhow::Result<PathBuf> {
         ));
     }
 
+    newest_metadata_cbor(&build_dir)?.ok_or_else(|| {
+        anyhow!(
+            "No {METADATA_CBOR_FILENAME} found in build output. \
+             Make sure the template uses tari_ootle_template_build in build.rs \
+             and has been built with `tari build`."
+        )
+    })
+}
+
+/// Returns the most recently modified metadata CBOR under `build_dir`, supporting both the
+/// classic `build/<pkg>-<hash>/out/` layout and cargo's newer `build/<pkg>/<hash>/out/` layout.
+fn newest_metadata_cbor(build_dir: &Path) -> anyhow::Result<Option<PathBuf>> {
     let mut newest: Option<(PathBuf, std::time::SystemTime)> = None;
-    for entry in std::fs::read_dir(&build_dir).context("reading build directory")? {
-        let entry = entry?;
-        let out_file = entry.path().join("out").join(METADATA_CBOR_FILENAME);
-        if out_file.exists() {
+    let mut consider = |out_file: PathBuf| {
+        if out_file.is_file() {
             let modified = std::fs::metadata(&out_file)
                 .and_then(|m| m.modified())
                 .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
@@ -223,15 +249,73 @@ pub async fn find_metadata_cbor(project_dir: &Path) -> anyhow::Result<PathBuf> {
                 newest = Some((out_file, modified));
             }
         }
+    };
+
+    for entry in std::fs::read_dir(build_dir).context("reading build directory")? {
+        let dir = entry?.path();
+        if !dir.is_dir() {
+            continue;
+        }
+        consider(dir.join("out").join(METADATA_CBOR_FILENAME));
+        for sub in std::fs::read_dir(&dir).context("reading build directory")? {
+            let sub = sub?.path();
+            if sub.is_dir() {
+                consider(sub.join("out").join(METADATA_CBOR_FILENAME));
+            }
+        }
     }
 
-    newest.map(|(path, _)| path).ok_or_else(|| {
-        anyhow!(
-            "No {METADATA_CBOR_FILENAME} found in build output. \
-             Make sure the template uses tari_ootle_template_build in build.rs \
-             and has been built with `tari build`."
-        )
-    })
+    Ok(newest.map(|(path, _)| path))
+}
+
+#[cfg(test)]
+mod metadata_cbor_tests {
+    use super::*;
+    use std::time::{Duration, SystemTime};
+
+    fn write_cbor(path: &Path, age_secs: u64) {
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, b"x").unwrap();
+        let f = std::fs::File::options().write(true).open(path).unwrap();
+        f.set_modified(SystemTime::now() - Duration::from_secs(age_secs))
+            .unwrap();
+    }
+
+    #[test]
+    fn finds_classic_layout() {
+        let tmp = tempfile::tempdir().unwrap();
+        let p = tmp.path().join("tmpl-abc123/out").join(METADATA_CBOR_FILENAME);
+        write_cbor(&p, 0);
+        assert_eq!(newest_metadata_cbor(tmp.path()).unwrap(), Some(p));
+    }
+
+    #[test]
+    fn finds_nested_layout() {
+        let tmp = tempfile::tempdir().unwrap();
+        let p = tmp
+            .path()
+            .join("tmpl/1f6d8a97aac202fe/out")
+            .join(METADATA_CBOR_FILENAME);
+        write_cbor(&p, 0);
+        assert_eq!(newest_metadata_cbor(tmp.path()).unwrap(), Some(p));
+    }
+
+    #[test]
+    fn picks_newest_across_layouts() {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = tmp.path().join("tmpl-abc123/out").join(METADATA_CBOR_FILENAME);
+        let new = tmp.path().join("tmpl/def456/out").join(METADATA_CBOR_FILENAME);
+        write_cbor(&old, 100);
+        write_cbor(&new, 0);
+        assert_eq!(newest_metadata_cbor(tmp.path()).unwrap(), Some(new));
+    }
+
+    #[test]
+    fn none_when_missing() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(tmp.path().join("other/hash/out")).unwrap();
+        assert_eq!(newest_metadata_cbor(tmp.path()).unwrap(), None);
+    }
 }
 
 /// Decode template metadata CBOR with a friendly hint when the on-disk format predates the
