@@ -44,7 +44,11 @@ impl Collector {
         if dir.is_dir() {
             let mut entries_stream = fs::read_dir(dir).await?;
             while let Some(entry) = entries_stream.next_entry().await? {
-                if entry.path().is_dir() {
+                let file_type = entry.file_type().await?;
+                if file_type.is_symlink() {
+                    continue;
+                }
+                if file_type.is_dir() {
                     Box::pin(Self::collect_templates(&entry.path(), result)).await?;
                     continue;
                 }

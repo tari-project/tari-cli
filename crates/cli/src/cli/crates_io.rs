@@ -23,7 +23,8 @@ const LOOKUP_TIMEOUT: Duration = Duration::from_secs(3);
 ///
 /// Yanked and pre-release versions are ignored.
 pub async fn latest_version_req(crate_name: &str) -> anyhow::Result<String> {
-    let url = format!("{SPARSE_INDEX_URL}/{}", index_path(crate_name));
+    let path = index_path(crate_name).ok_or_else(|| anyhow!("invalid crate name {crate_name:?}"))?;
+    let url = format!("{SPARSE_INDEX_URL}/{path}");
     let response = reqwest::Client::builder()
         .timeout(LOOKUP_TIMEOUT)
         .build()?
@@ -45,15 +46,21 @@ pub async fn latest_version_req(crate_name: &str) -> anyhow::Result<String> {
 
 /// The crates.io index shards by name length: 1 and 2 character names live under `1/` and `2/`,
 /// 3 character names under `3/{first char}/`, and everything else under `{ab}/{cd}/`.
-fn index_path(crate_name: &str) -> String {
-    let name = crate_name.to_lowercase();
-    match name.len() {
-        0 => name,
+fn index_path(crate_name: &str) -> Option<String> {
+    let name = crate_name.trim().to_ascii_lowercase();
+    if name.is_empty()
+        || !name
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+    {
+        return None;
+    }
+    Some(match name.len() {
         1 => format!("1/{name}"),
         2 => format!("2/{name}"),
         3 => format!("3/{}/{name}", &name[0..1]),
         _ => format!("{}/{}/{name}", &name[0..2], &name[2..4]),
-    }
+    })
 }
 
 /// Highest non-yanked, non-prerelease version in a sparse index response (one JSON object per
@@ -88,18 +95,20 @@ mod tests {
 
     #[test]
     fn index_paths_shard_by_name_length() {
-        assert_eq!(index_path("a"), "1/a");
-        assert_eq!(index_path("ab"), "2/ab");
-        assert_eq!(index_path("abc"), "3/a/abc");
+        assert_eq!(index_path("a").as_deref(), Some("1/a"));
+        assert_eq!(index_path("ab").as_deref(), Some("2/ab"));
+        assert_eq!(index_path("abc").as_deref(), Some("3/a/abc"));
         assert_eq!(
-            index_path("tari_ootle_template_build"),
-            "ta/ri/tari_ootle_template_build"
+            index_path("tari_ootle_template_build").as_deref(),
+            Some("ta/ri/tari_ootle_template_build")
         );
+        assert_eq!(index_path(""), None);
+        assert_eq!(index_path("éé"), None);
     }
 
     #[test]
     fn index_paths_are_lowercased() {
-        assert_eq!(index_path("Inflector"), "in/fl/inflector");
+        assert_eq!(index_path("Inflector").as_deref(), Some("in/fl/inflector"));
     }
 
     #[test]
