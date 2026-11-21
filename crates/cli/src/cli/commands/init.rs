@@ -14,7 +14,8 @@ pub struct InitArgs {
     pub metadata_args: InitMetadataArgs,
 }
 
-pub async fn handle(args: InitArgs) -> anyhow::Result<()> {
+pub async fn handle(mut args: InitArgs) -> anyhow::Result<()> {
+    args.metadata_args.path = crate::cli::commands::lint::crate_dir(&args.metadata_args.path)?;
     // Init project config (tari.config.toml) in the target crate directory
     let config_path = args.metadata_args.path.join(CONFIG_FILE_NAME);
     if config_path.exists() {
