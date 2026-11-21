@@ -14,7 +14,7 @@ pub const DEFAULT_METADATA_SERVER_URL_ESMERALDA: &str = "https://ootle.tari.com/
 pub const DEFAULT_METADATA_SERVER_URL_LOCALNET: &str = "http://localhost:3000";
 
 /// Project configuration.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ProjectConfig {
     default_network: Option<Network>,
@@ -24,7 +24,7 @@ pub struct ProjectConfig {
 }
 
 /// Per-network project settings.
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ProjectNetworkSettings {
     /// No longer honoured: a project config ships with the repository, so it must not choose where
@@ -54,7 +54,13 @@ impl ProjectConfig {
     }
 
     pub fn parsed_default_account(&self) -> anyhow::Result<Option<ComponentAddressOrName>> {
-        let acc = self.default_account.as_ref().map(|s| s.parse()).transpose()?;
+        let acc = self
+            .default_account
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::parse)
+            .transpose()?;
         Ok(acc)
     }
 }
@@ -117,5 +123,15 @@ wallet-daemon-url = "http://localhost:9999/json_rpc"
         assert!(cfg.has_ignored_wallet_daemon_url());
         assert!(cfg.template_address(Network::Esmeralda).is_some());
         assert!(cfg.template_address(Network::LocalNet).is_none());
+    }
+
+    #[test]
+    fn parsed_default_account_trims_and_ignores_blank_values() {
+        let blank: ProjectConfig = toml::from_str("default-account = \"   \"\n").expect("parse blank");
+        assert!(blank.parsed_default_account().expect("valid").is_none());
+
+        let named: ProjectConfig = toml::from_str("default-account = \"  alice  \"\n").expect("parse named");
+        let parsed = named.parsed_default_account().expect("valid").expect("account present");
+        assert_eq!(parsed.to_string(), "alice");
     }
 }

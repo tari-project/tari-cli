@@ -49,10 +49,30 @@ pub struct CreateArgs {
     pub verbose: bool,
 }
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq, Eq)]
 pub enum CreateHandlerError {
     #[error("Template not found by name: {0}. Possible values: {1:?}")]
     TemplateNotFound(String, Vec<String>),
+}
+
+/// Resolves a template by case-insensitive ID first, then falls back to case-insensitive display name.
+pub fn resolve_template<'a>(
+    templates: &'a [crate::templates::Template],
+    query: &str,
+) -> Result<&'a crate::templates::Template, CreateHandlerError> {
+    let trimmed = query.trim();
+    if !trimmed.is_empty() {
+        if let Some(by_id) = templates.iter().rfind(|t| t.id().eq_ignore_ascii_case(trimmed)) {
+            return Ok(by_id);
+        }
+        if let Some(by_name) = templates.iter().rfind(|t| t.name().eq_ignore_ascii_case(trimmed)) {
+            return Ok(by_name);
+        }
+    }
+    Err(CreateHandlerError::TemplateNotFound(
+        trimmed.to_string(),
+        templates.iter().map(|t| t.id().to_string()).collect(),
+    ))
 }
 
 pub async fn handle(config: Config, template_repo_dir: PathBuf, mut args: CreateArgs) -> anyhow::Result<()> {
@@ -72,15 +92,7 @@ pub async fn handle(config: Config, template_repo_dir: PathBuf, mut args: Create
     )?;
 
     let template = match &args.template {
-        Some(template_id) => templates
-            .iter()
-            .rfind(|t| t.id().eq_ignore_ascii_case(template_id) || t.name().eq_ignore_ascii_case(template_id))
-            .ok_or_else(|| {
-                CreateHandlerError::TemplateNotFound(
-                    template_id.to_string(),
-                    templates.iter().map(|t| t.id().to_string()).collect(),
-                )
-            })?,
+        Some(template_id) => resolve_template(&templates, template_id)?,
         None => util::cli_select("🔎 Select a template", templates.as_slice())?,
     };
 
@@ -120,4 +132,61 @@ pub async fn handle(config: Config, template_repo_dir: PathBuf, mut args: Create
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use super::*;
+    use crate::templates::Template;
+
+    fn sample_templates() -> Vec<Template> {
+        vec![
+            Template::new(
+                PathBuf::from("/tmp/fungible"),
+                "fungible".to_string(),
+                "Fungible Token".to_string(),
+                "A fungible token template".to_string(),
+                HashMap::new(),
+            ),
+            Template::new(
+                PathBuf::from("/tmp/meme_coin"),
+                "meme_coin".to_string(),
+                "fungible".to_string(),
+                "Template whose display name collides with fungible id".to_string(),
+                HashMap::new(),
+            ),
+        ]
+    }
+
+    #[test]
+    fn resolve_template_prioritizes_id_over_name_and_trims_whitespace() {
+        let templates = sample_templates();
+        let matched = resolve_template(&templates, "  FUNGIBLE ").expect("should resolve by id");
+        assert_eq!(matched.id(), "fungible");
+        assert_eq!(matched.path(), &PathBuf::from("/tmp/fungible"));
+
+        let by_name = resolve_template(&templates, "Fungible Token").expect("should resolve by display name");
+        assert_eq!(by_name.id(), "fungible");
+    }
+
+    #[test]
+    fn resolve_template_rejects_empty_or_unknown_names() {
+        let templates = sample_templates();
+        assert_eq!(
+            resolve_template(&templates, "   "),
+            Err(CreateHandlerError::TemplateNotFound(
+                String::new(),
+                vec!["fungible".to_string(), "meme_coin".to_string()]
+            ))
+        );
+        assert_eq!(
+            resolve_template(&templates, "nonexistent"),
+            Err(CreateHandlerError::TemplateNotFound(
+                "nonexistent".to_string(),
+                vec!["fungible".to_string(), "meme_coin".to_string()]
+            ))
+        );
+    }
 }
