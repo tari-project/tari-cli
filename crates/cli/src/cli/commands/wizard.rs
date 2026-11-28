@@ -65,9 +65,8 @@ async fn step_template_crate(cwd: &Path) -> anyhow::Result<PathBuf> {
         return Ok(cwd.to_path_buf());
     }
 
-    let name: String = Input::new().with_prompt("Template crate name").interact_text()?;
-
-    let name = convert_case::Casing::to_case(&name, convert_case::Case::Snake);
+    let raw_name: String = Input::new().with_prompt("Template crate name").interact_text()?;
+    let name = crate::cli::command::project_name_parser(&raw_name).map_err(|e| anyhow::anyhow!(e))?;
 
     // We need to do the full create flow: refresh repo, select template, generate
     let config = crate::cli::config::Config::default();
@@ -204,10 +203,17 @@ async fn refresh_template_repo(
     let repos_dir = base_dir.join("template_repositories");
     util::create_dir(&repos_dir).await?;
 
-    let repo_url_parts: Vec<&str> = template_repo.url.split("/").collect();
-    let repo_name = repo_url_parts.last().context("Failed to get repo name from URL")?;
+    let trimmed_url = template_repo.url.trim_end_matches('/').trim_end_matches(".git");
+    let repo_url_parts: Vec<&str> = trimmed_url.split('/').collect();
+    let repo_name = repo_url_parts
+        .last()
+        .filter(|s| !s.is_empty())
+        .context("Failed to get repo name from URL")?;
     let repo_user = repo_url_parts
-        .get(repo_url_parts.len() - 2)
+        .len()
+        .checked_sub(2)
+        .and_then(|idx| repo_url_parts.get(idx))
+        .filter(|s| !s.is_empty())
         .context("Failed to get repo owner from URL")?;
     let repo_path = repos_dir.join(repo_user).join(repo_name);
     let mut repo = GitRepository::new(repo_path.clone());

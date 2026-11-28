@@ -170,10 +170,43 @@ mod tests {
         assert_eq!(msg, "some unrelated failure");
         assert!(!msg.contains("API key"));
     }
+
+    #[test]
+    fn override_parser_accepts_kebab_case_top_level_keys() {
+        let ov = config_override_parser("default-network=localnet").expect("kebab-case key should parse");
+        assert_eq!(ov.key, "default-network");
+        let ov2 = config_override_parser("template-repository.branch=dev").expect("kebab-case repo key should parse");
+        assert_eq!(ov2.key, "template-repository.branch");
+    }
+
+    #[test]
+    fn project_name_parser_validates_crate_names() {
+        assert_eq!(project_name_parser("MyTemplate").unwrap(), "my_template");
+        assert!(project_name_parser("").is_err());
+        assert!(project_name_parser("   ").is_err());
+        assert!(project_name_parser("123bad").is_err());
+    }
 }
 
 pub fn project_name_parser(project_name: &str) -> Result<String, String> {
-    Ok(project_name.to_case(Case::Snake))
+    let trimmed = project_name.trim();
+    if trimmed.is_empty() {
+        return Err("Template crate name cannot be empty".to_string());
+    }
+    let snake = trimmed.to_case(Case::Snake);
+    if snake.is_empty() {
+        return Err("Template crate name must contain alphanumeric characters".to_string());
+    }
+    if snake.as_bytes()[0].is_ascii_digit() {
+        return Err("Template crate name cannot start with a digit".to_string());
+    }
+    if !snake
+        .chars()
+        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+    {
+        return Err("Template crate name contains invalid characters".to_string());
+    }
+    Ok(snake)
 }
 
 fn parse_network(s: &str) -> Result<Network, String> {
@@ -379,12 +412,17 @@ impl Cli {
 
     async fn refresh_template_repository(&self, template_repo: &TemplateRepository) -> anyhow::Result<GitRepository> {
         util::create_dir(&self.args.base_dir.join(TEMPLATE_REPOS_FOLDER_NAME)).await?;
-        let repo_url_splitted: Vec<&str> = template_repo.url.split("/").collect();
+        let trimmed_url = template_repo.url.trim_end_matches('/').trim_end_matches(".git");
+        let repo_url_splitted: Vec<&str> = trimmed_url.split('/').collect();
         let repo_name = repo_url_splitted
             .last()
+            .filter(|s| !s.is_empty())
             .ok_or(anyhow!("Failed to get repository name from URL!"))?;
         let repo_user = repo_url_splitted
-            .get(repo_url_splitted.len() - 2)
+            .len()
+            .checked_sub(2)
+            .and_then(|idx| repo_url_splitted.get(idx))
+            .filter(|s| !s.is_empty())
             .ok_or(anyhow!("Failed to get repository owner from URL!"))?;
         let repo_folder_path = self
             .args
