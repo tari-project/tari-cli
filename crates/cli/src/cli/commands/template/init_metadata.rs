@@ -170,13 +170,15 @@ fn resolve_metadata(args: &InitMetadataArgs, cargo_toml_content: &str) -> anyhow
         } else {
             normalized_args_tags
         };
+        let trim_opt =
+            |opt: Option<&str>| -> Option<String> { opt.map(str::trim).filter(|s| !s.is_empty()).map(str::to_string) };
         return Ok(TemplateMetadataInput {
-            description: args.description.clone().or(existing.description),
+            description: trim_opt(args.description.as_deref()).or(existing.description),
             tags,
-            category: args.category.clone().or(existing.category),
-            documentation: args.documentation.clone().or(existing.documentation),
-            homepage: args.homepage.clone().or(existing.homepage),
-            logo_url: args.logo_url.clone().or(existing.logo_url),
+            category: trim_opt(args.category.as_deref()).or(existing.category),
+            documentation: trim_opt(args.documentation.as_deref()).or(existing.documentation),
+            homepage: trim_opt(args.homepage.as_deref()).or(existing.homepage),
+            logo_url: trim_opt(args.logo_url.as_deref()).or(existing.logo_url),
             supersedes: normalize_supersedes(args.supersedes.as_deref()).or(existing.supersedes),
         });
     }
@@ -188,7 +190,12 @@ fn resolve_metadata(args: &InitMetadataArgs, cargo_toml_content: &str) -> anyhow
             .default(default)
             .allow_empty(true)
             .interact_text()?;
-        Ok(if value.is_empty() { None } else { Some(value) })
+        let trimmed = value.trim();
+        Ok(if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        })
     };
 
     let description = prompt_opt("Description", args.description.as_deref(), existing.description)?;
