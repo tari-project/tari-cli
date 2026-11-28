@@ -22,12 +22,13 @@ pub struct BuildArgs {
 }
 
 pub async fn handle(args: BuildArgs) -> anyhow::Result<()> {
-    let wasm_path = build_template(&args.path, !args.no_cargo_opts).await?;
+    let crate_dir = crate::cli::commands::lint::crate_dir(&args.path)?;
+    let wasm_path = build_template(&crate_dir, !args.no_cargo_opts).await?;
     let size = tokio::fs::metadata(&wasm_path).await?.len() as usize;
 
     println!("✅ WASM binary: {} ({})", wasm_path.display(), util::human_bytes(size));
 
-    match find_metadata_cbor(&args.path).await {
+    match find_metadata_cbor(&crate_dir).await {
         Ok(path) => println!("📄 Metadata:    {}", path.display()),
         Err(e) => println!("📄 Metadata:    none ({e})"),
     }

@@ -36,6 +36,12 @@ pub enum Error {
 /// - There are I/O errors when creating temporary files
 /// - The optimization process fails
 pub async fn optimize_wasm_template(template_binary: &[u8]) -> Result<Vec<u8>, Error> {
+    if template_binary.len() < 8 || &template_binary[..4] != b"\0asm" {
+        return Err(Error::InvalidFile(
+            "Input is not a valid WebAssembly binary (missing \\0asm header)".to_string(),
+        ));
+    }
+
     let temp_dir = tempdir()?;
 
     // create temporary input file
@@ -64,4 +70,18 @@ pub async fn optimize_wasm_template(template_binary: &[u8]) -> Result<Vec<u8>, E
     temp_dir.close()?;
 
     Ok(result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn optimize_wasm_template_rejects_empty_or_non_wasm_input() {
+        let err = optimize_wasm_template(&[]).await.unwrap_err();
+        assert!(matches!(err, Error::InvalidFile(_)));
+
+        let err = optimize_wasm_template(b"not-a-wasm-binary").await.unwrap_err();
+        assert!(matches!(err, Error::InvalidFile(_)));
+    }
 }

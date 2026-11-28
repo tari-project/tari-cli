@@ -24,6 +24,9 @@ pub async fn path_metadata(path: &PathBuf) -> io::Result<Metadata> {
 }
 
 pub fn cli_select<'a, T: std::fmt::Display>(prompt: &str, items: &'a [T]) -> anyhow::Result<&'a T> {
+    if items.is_empty() {
+        anyhow::bail!("No items available to select");
+    }
     let selection = FuzzySelect::new()
         .with_prompt(prompt)
         .highlight_matches(true)
