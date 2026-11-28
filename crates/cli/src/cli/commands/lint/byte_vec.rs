@@ -131,8 +131,8 @@ impl Scan<'_> {
                         }
                     }
                 },
-                // Only functions inside a `#[template]` module are called across the ABI boundary.
-                Item::Impl(item) if template.is_some() => {
+                // Only inherent functions inside a `#[template]` module are called across the ABI boundary.
+                Item::Impl(item) if template.is_some() && item.trait_.is_none() => {
                     let owner = type_name(&item.self_ty);
                     for item in &item.items {
                         if let ImplItem::Fn(func) = item
@@ -266,19 +266,23 @@ fn derived_encoding(attrs: &[Attribute]) -> Option<Encoding> {
         if !attr.path().is_ident("derive") {
             continue;
         }
-        let derives = attr.to_token_stream().to_string();
-        for name in ENCODING_DERIVES {
-            if !derives.contains(name) {
-                continue;
+        let _ = attr.parse_nested_meta(|meta| {
+            let Some(last) = meta.path.segments.last() else {
+                return Ok(());
+            };
+            let ident = last.ident.to_string();
+            if !ENCODING_DERIVES.contains(&ident.as_str()) {
+                return Ok(());
             }
             // A type deriving both is encoded by minicbor on the template side, so the CBOR
             // attribute is the one to suggest.
-            if *name == "Serialize" || *name == "Deserialize" {
+            if ident == "Serialize" || ident == "Deserialize" {
                 encoding.get_or_insert(Encoding::Serde);
             } else {
                 encoding = Some(Encoding::Cbor);
             }
-        }
+            Ok(())
+        });
     }
     encoding
 }
@@ -294,8 +298,15 @@ fn template_ctx(attrs: &[Attribute]) -> Option<TemplateCtx> {
                 .last()
                 .is_some_and(|segment| segment.ident == "template")
         })
-        .map(|attr| TemplateCtx {
-            skip_cbor_derives: attr.to_token_stream().to_string().contains("skip_cbor_derives"),
+        .map(|attr| {
+            let mut skip_cbor_derives = false;
+            let _ = attr.parse_nested_meta(|meta| {
+                if meta.path.is_ident("skip_cbor_derives") {
+                    skip_cbor_derives = true;
+                }
+                Ok(())
+            });
+            TemplateCtx { skip_cbor_derives }
         })
 }
 
@@ -306,8 +317,26 @@ fn is_exempt(attrs: &[Attribute]) -> bool {
         if !path.is_ident("cbor") && !path.is_ident("serde") {
             return false;
         }
-        let tokens = attr.to_token_stream().to_string();
-        tokens.contains("with") || tokens.contains("skip")
+        let mut exempt = false;
+        let _ = attr.parse_nested_meta(|meta| {
+            if meta.path.is_ident("with")
+                || meta.path.is_ident("skip")
+                || meta.path.is_ident("skip_serializing")
+                || meta.path.is_ident("skip_deserializing")
+            {
+                exempt = true;
+            }
+            // Consume any value (`= ...`) or parenthesised tokens (`(...)`) so subsequent items parse.
+            if meta.input.peek(syn::Token![=]) {
+                let _: syn::Expr = meta.value()?.parse()?;
+            } else if meta.input.peek(syn::token::Paren) {
+                let content;
+                syn::parenthesized!(content in meta.input);
+                let _: proc_macro2::TokenStream = content.parse()?;
+            }
+            Ok(())
+        });
+        exempt
     })
 }
 
@@ -632,5 +661,53 @@ mod my_template {
     #[test]
     fn unparseable_source_is_ignored() {
         assert!(scan("pub struct { oops").is_empty());
+    }
+
+    #[test]
+    fn non_encoding_derive_with_encode_substring_is_not_flagged() {
+        let findings = scan(
+            r#"
+#[derive(UrlEncode, CustomDecoder)]
+pub struct Helper {
+    data: Vec<u8>,
+}
+"#,
+        );
+        assert!(findings.is_empty(), "{findings:?}");
+    }
+
+    #[test]
+    fn serde_rename_containing_with_or_skip_substring_does_not_exempt_field() {
+        let findings = scan(
+            r#"
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct Payload {
+    #[serde(rename = "with_header")]
+    first: Vec<u8>,
+    #[serde(rename = "skip_count")]
+    second: Vec<u8>,
+}
+"#,
+        );
+        assert_eq!(findings.len(), 2, "{findings:?}");
+    }
+
+    #[test]
+    fn trait_impl_in_template_module_is_not_flagged() {
+        let findings = scan(
+            r#"
+#[template]
+mod my_template {
+    pub struct MyTemplate {}
+
+    impl From<Vec<u8>> for MyTemplate {
+        fn from(_raw: Vec<u8>) -> Self {
+            Self {}
+        }
+    }
+}
+"#,
+        );
+        assert!(findings.is_empty(), "{findings:?}");
     }
 }

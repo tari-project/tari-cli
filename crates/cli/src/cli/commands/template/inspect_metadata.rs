@@ -31,6 +31,7 @@ pub struct InspectMetadataArgs {
 }
 
 pub async fn handle(args: InspectMetadataArgs) -> anyhow::Result<()> {
+    let has_explicit_path = args.path.is_some();
     let cbor_path = match args.path {
         Some(p) => p,
         None => find_metadata_cbor(&args.project_dir).await?,
@@ -45,11 +46,12 @@ pub async fn handle(args: InspectMetadataArgs) -> anyhow::Result<()> {
     let mut cbor_bytes = std::fs::read(&cbor_path).context("reading metadata CBOR file")?;
     let mut metadata = decode_metadata_cbor(&cbor_bytes)?;
 
-    // Check if built metadata matches Cargo.toml. `functions` is extracted from rustdoc at
-    // build time and is never present in `from_cargo_toml` output, so exclude it from the
-    // comparison or every template with documented functions would appear stale.
+    // Check if built metadata matches Cargo.toml when inspecting a project's build output.
+    // `functions` is extracted from rustdoc at build time and is never present in
+    // `from_cargo_toml` output, so exclude it from the comparison or every template with
+    // documented functions would appear stale.
     let cargo_toml_path = args.project_dir.join("Cargo.toml");
-    if cargo_toml_path.exists() {
+    if !has_explicit_path && cargo_toml_path.exists() {
         let built_without_functions = TemplateMetadata {
             functions: Vec::new(),
             ..metadata.clone()
